@@ -45,7 +45,7 @@ Other points:
 
 ## SvelteKit as static files on GitHub Pages
 
-Tested on 2026-10-31, because the maintainer doubted that SvelteKit hosts easily as static files. The same small app, a map, two named states and an OIDC toggle in the query string, was built on `@sveltejs/kit` 3.1.1 with `adapter-static` 4.0.1, and on plain Svelte 5.57.3 with Vite 8.3.5. A local server mimicked a Pages project site: plain files under a subpath, no rewrite rules, and `404.html` for anything else. Playwright 1.64.1 drove both in Chromium. **This has not run on real GitHub Pages,** because the repo is still private.
+Tested on 2026-10-31, because the maintainer doubted that SvelteKit hosts easily as static files. The same small app, a map, two named states and an OIDC toggle in the query string, was built on `@sveltejs/kit` 3.1.1 with `adapter-static` 4.0.1, and on plain Svelte 5.57.3 with Vite 8.3.5. A local server mimicked a Pages project site: plain files under a subpath, no rewrite rules, and `404.html` for anything else. Playwright 1.64.1 drove both in Chromium. This test did not run on real GitHub Pages. The application has since, as recorded in the next section.
 
 | | SvelteKit | Plain Svelte on Vite |
 |---|---|---|
@@ -64,7 +64,34 @@ Other points:
 - **Storybook 10.6.5 on Kit 3, through `@storybook/sveltekit`:** a plain component renders. A component importing `$app/state`, `$app/env` and `$app/paths` fails with `__SVELTEKIT_PAYLOAD__ is not defined`. Which import causes it was not isolated.
 - **The query string is not available while prerendering.** A link with non-default settings shows the default state until JS runs. This flash was not measured.
 - **Windows paths:** in a folder that made paths exceed 260 characters, Kit's config failed to load with `ERR_PACKAGE_IMPORT_NOT_DEFINED`. A shorter folder with `node-linker=hoisted` fixed it. Nothing suggests this is specific to Kit.
-- **Previews on a sub page:** the `preview` input of `actions/deploy-pages` is marked alpha and not public. [pr-preview-action](https://github.com/rossjrw/pr-preview-action) (MIT, 448 stars, pushed 2026-10-27) deploys to a branch, so Pages has to deploy from that branch. Jekyll would then be expected to skip Kit's `_app` folder unless the site has a `.nojekyll` file. None of this has been tried.
+- **Previews on a sub page:** the `preview` input of `actions/deploy-pages` is marked alpha and not public. [pr-preview-action](https://github.com/rossjrw/pr-preview-action) (MIT, 448 stars, pushed 2026-10-27) deploys to a branch, so Pages has to deploy from that branch. Jekyll would then be expected to skip Kit's `_app` folder unless the site has a `.nojekyll` file. The next section records how this went.
+
+## The application on real GitHub Pages
+
+On 2026-10-31, when the repository went public and the first deploys ran, in pull requests 16 and 17. The click-through, 50 tests on Playwright 1.64.1 in Chromium, ran against the live addresses through `LIVE_URL`. The local server imitating Pages held up, apart from the differences listed here.
+
+| | Result |
+|---|---|
+| Production | 50 of 50 |
+| A preview, before production existed | 48 of 50. One test named the production path, which is now fixed. The other needs the site's own `404.html`, which did not exist yet |
+| A preview, with production in place | 50 of 50 |
+| A folder without its trailing slash | 301, as the local server does |
+| From merge to live | 2 min 18 s: 1 min 29 s of checks, then 40 s of deploying, about 30 s of that waiting for Pages |
+
+What the local server does not show:
+
+- **A bad link in a preview gets production's error page.** Pages only looks for `404.html` at the site root, so a preview's own copy goes unused. The status is still 404.
+- **Pages caches for ten minutes.** It sends `Cache-Control: max-age=600`, so a returning browser can show the old page for that long after a deploy.
+- **`.nojekyll` outlives a preview.** The deploy action never deletes it, so closing pull request 16 left two empty files under `pr-preview/pr-16`, one from the site and one from the Storybook. The preview workflow now deletes them before deploying.
+- **Pages turns itself on.** Creating a `gh-pages` branch on a public repository enabled Pages from that branch, and the API call to enable it then returned 409.
+
+How far production and previews were shown to leave each other alone:
+
+- Deploying a preview left production serving the same commit, with its files in place.
+- A production redeploy with the preview of pull request 17 open ran `rsync --delete` with `pr-preview/` protected and found nothing to commit, and the preview's tree was unchanged. It had nothing to push, so a deploy that pushes while a preview is open has not been seen.
+- No two pushes have collided yet, so the rebase that `force: false` asks for has not been exercised.
+
+**Not exercised:** a commit failing CI on `main`. Deploy needs the checks and protection on `main` keeps such a commit out, so this rests on the job order.
 
 ## What the step 0 content has and has not been checked against
 
