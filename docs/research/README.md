@@ -15,7 +15,16 @@ Research done on 2026-10-30 to answer: does an interactive visual explainer for 
 
 ## What has been superseded
 
-**The report's recommendation is out of date on one point.** It says to start with the registration flow and send people to IdentiFlows for the basics. The maintainer's response changed this: [premise.md](../premise.md) starts from OAuth and OIDC and adds registration as a toggle in the setup phase. The report's findings still stand.
+**The research recommendations are out of date, and its findings still stand.** [premise.md](../premise.md) wins wherever they differ.
+
+- **Starting point:** the report says to start with the registration flow and send people to IdentiFlows for the basics. The premise starts from OAuth and OIDC and adds registration as a toggle in the setup phase.
+- **The form:** much of the research benchmarks articles, so its advice leans that way. This project is an interactive web application. Read these as lessons about explaining things, not about what to build:
+    - the Astro and MDX stack with the diagram as an embedded island
+    - a next presentation as the deadline, and the first flow as the test
+    - publishing an essay with the diagram embedded
+    - per-step expansion in place of a page-wide mode (the maintainer asked for a simple mode and an advanced mode)
+    - star counts falling across sequels, which measure separate articles and not an application growing in place
+    - effort estimates for one polished flow
 
 ## How far to trust it
 
