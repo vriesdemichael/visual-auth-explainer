@@ -1,6 +1,54 @@
 # Follow-up checks
 
-Done on 2026-10-30, after the main research, to test points the maintainer raised in response to it. These were quick checks and not a survey.
+Done on 2026-10-30 and 2026-10-31, after the main research, to test points the maintainer raised in response to it. These were quick checks and not a survey.
+
+## OAuth to OIDC on a real Keycloak
+
+Run on 2026-10-30 against `quay.io/keycloak/keycloak:26.8.1` in `start-dev`: the authorization code flow with a public client, through the real login form. There were four runs, with and without `openid`, on a default client and on a client with `profile`, `email` and `roles` removed from its default client scopes.
+
+| | `openid` off | `openid` on |
+|---|---|---|
+| `id_token` in the token response | No | Yes |
+| UserInfo | 403, `insufficient_scope`, "Missing openid scope" | 200 |
+| `scope` in the response, default client | `profile email` | `openid profile email` |
+| Access token, default client | Has `name`, `email` and `preferred_username` | Same claims |
+| Access token, stripped client | `sub` and technical claims, no `aud` | Same claims |
+| ID token, stripped client | None issued | `sub` and technical claims, no name or email |
+
+**The toggle is real, but the access token does not change.** On a default client it already says who the user is with OIDC off. Those claims come from client scopes, not from `openid`.
+
+Also seen in these runs:
+
+- **Wrong `redirect_uri`:** 400 with `Invalid parameter: redirect_uri` and no redirect.
+- **Discovery:** 200 at `/realms/{realm}/.well-known/openid-configuration`, `/realms/{realm}/.well-known/oauth-authorization-server` and `/.well-known/oauth-authorization-server/realms/{realm}`.
+- **A new client's default client scopes:** `web-origins`, `acr`, `profile`, `roles`, `basic` and `email`.
+
+## What "token brokering" refers to
+
+On 2026-10-31 the maintainer said it means upstream token storage. **This was read from Keycloak's 26.8.1 docs and has not been run.** The sources are the [developer guide](https://www.keycloak.org/docs/26.8.1/server_development/#_identity-brokering-apis-tokens), the [admin guide](https://www.keycloak.org/docs/latest/server_admin/index.html), the [features page](https://www.keycloak.org/server/features) and the [release notes](https://www.keycloak.org/docs/latest/release_notes/index.html). This explains the brief's "feature flags of keycloak like cimd and token brokering", because the retrieval API sits behind a flag.
+
+| | `identity-brokering-api:v1` | `identity-brokering-api:v2` |
+|---|---|---|
+| Status | Deprecated, on by default, to be removed | Supported, off by default, to become the default |
+| Request | `GET /realms/{realm}/broker/{alias}/token` | `POST` to the same path, with a form body |
+| Authentication | The user's Keycloak access token as a bearer token | Client authentication plus the access token. Confidential clients only |
+| Authorization | The user's `read-token` role on the `broker` client | Client settings: "Allow retrieve external tokens" and "Allowed Identity Providers for External Tokens" |
+| Storage | "Store Tokens": in the database, per user and IdP | "Store token in session", or "Store tokens". The session is tried first, with the database as a fallback |
+| Response | Format not specified | Always a JSON access token response |
+
+Other points:
+
+- **Defaults:** the pages read do not state the defaults of "Store Tokens" and "Stored Tokens Readable". The developer guide's wording implies they start off.
+- **"Stored Tokens Readable":** assigns the `read-token` role to newly imported users.
+- **History:** V2 arrived as a preview in 26.6.0, and in 26.7.0 it became supported and V1 was deprecated.
+- **Not settled by these pages:** whether enabling V2 turns V1 off.
+
+## The entry and the format
+
+Looked at on 2026-10-31, because the maintainer named both as the references to follow.
+
+- **roadmap.sh:** the home page has a search box, category chips and cards for 96 roadmaps. A roadmap is a node map on one long page, with a spine, branches, a legend, and progress marks on the nodes. It also carries accounts, ads and an AI tutor. Seen in screenshots of the home page and `/frontend`. What opening a node does was not confirmed.
+- **IdentiFlows:** the home page has a search and a category filter over flow cards. A flow page has a description and tags, then the diagram, with five lifelines and 18 messages on code + PKCE, then links to specs. Interactive Mode adds Previous and Next, and the theme can be auto, light or dark. This check read the page text and DOM only, because the browser pane was hidden. The rendering itself was seen only in the earlier research.
 
 ## Keycloak feature flags
 
