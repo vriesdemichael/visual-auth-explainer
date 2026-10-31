@@ -8,9 +8,11 @@ const [, , folder, base, port] = process.argv;
 const types = {
 	'.html': 'text/html',
 	'.js': 'text/javascript',
+	'.mjs': 'text/javascript',
 	'.css': 'text/css',
 	'.json': 'application/json',
-	'.svg': 'image/svg+xml'
+	'.svg': 'image/svg+xml',
+	'.txt': 'text/plain'
 };
 
 const server = createServer((request, response) => {

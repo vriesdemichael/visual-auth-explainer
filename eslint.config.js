@@ -15,6 +15,6 @@ export default ts.config(
 		languageOptions: { parserOptions: { parser: ts.parser } }
 	},
 	{
-		ignores: ['build/', '.svelte-kit/', 'storybook-static/', 'test-results/', 'playwright-report/']
+		ignores: ['build/', '.svelte-kit/', 'test-results/', 'playwright-report/']
 	}
 );

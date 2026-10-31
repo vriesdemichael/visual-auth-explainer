@@ -47,6 +47,14 @@ test.describe('links', () => {
 		});
 	}
 
+	test('a link survives a reload', async ({ page }) => {
+		const search = 'oidc=1&step=token-response';
+		await open(page, search);
+		await page.reload();
+		await page.locator('.workspace[data-ready="true"]').waitFor();
+		await expectMatchesModel(page, search);
+	});
+
 	test('opening a link reports no change, because nothing changed', async ({ page }) => {
 		await open(page, 'oidc=1&broker=1');
 		await expectMatchesModel(page, 'oidc=1&broker=1');

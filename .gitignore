@@ -17,6 +17,5 @@ desktop.ini
 node_modules/
 .svelte-kit/
 build/
-storybook-static/
 test-results/
 playwright-report/

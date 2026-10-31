@@ -1,6 +1,6 @@
 # Premise
 
-Starting point as of 2026-10-31. Step 0 is built as a rough prototype (section 8). The next step is the maintainer's judgement of its transition, then the first version, and settling what is left in section 11.
+Starting point as of 2026-10-31. Step 0 is built as a rough prototype (section 8). The next step is the maintainer's judgement of its transition, then the first version, and settling what is left in section 11. The way there is split into [target states](https://github.com/vriesdemichael/visual-auth-explainer/issues?q=is%3Aissue+label%3A%22target+state%22), each a GitHub issue with acceptance criteria and deliverables.
 
 **This is an interactive web application, not an article.** Read section 2 first, because everything else depends on it.
 
@@ -312,7 +312,7 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 - CI runs an **automated click-through** that validates the site through changes.
 - CI blocks merges from the first code commit ([ADR-006](adr/006-ci-gates-every-change-from-the-first-commit.md)).
 - **Storybook** is there from the start, to set the precedent ([ADR-007](adr/007-every-component-has-a-story.md)).
-- The repository goes public, with a licence that allows reuse and modification and requires attribution ([ADR-009](adr/009-code-is-apache-and-content-is-cc-by.md)).
+- The repository is public, with a licence that allows reuse and modification and requires attribution ([ADR-009](adr/009-code-is-apache-and-content-is-cc-by.md)).
 - The site is completely static, with no state outside the visitor's browser, and on GitHub Pages for now ([ADR-010](adr/010-static-files-on-github-pages.md)).
 - Tooling is whatever suits the JavaScript ecosystem, so no Taskfile ([ADR-011](adr/011-tooling-follows-the-javascript-ecosystem.md)).
 

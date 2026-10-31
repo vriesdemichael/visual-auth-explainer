@@ -4,19 +4,19 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
 
-concurrency:
-  group: pages
-  cancel-in-progress: false
+concurrency: preview-${{ github.ref }}
 
 permissions:
   contents: write
+  deployments: read
   pull-requests: write
 
 jobs:
   preview:
-    # Waits for a public repository, as deploy.yml does. Forks cannot write to gh-pages.
-    if: ${{ !github.event.repository.private && !github.event.pull_request.head.repo.fork }}
+    # Forks cannot write to gh-pages.
+    if: ${{ !github.event.pull_request.head.repo.fork }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -33,7 +33,24 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}
       - uses: rossjrw/pr-preview-action@v1
+        id: preview
         with:
           source-dir: build
           preview-branch: gh-pages
           umbrella-dir: pr-preview
+          comment: false
+          wait-for-pages-deployment: true
+      - uses: marocchino/sticky-pull-request-comment@v3.0.5
+        if: steps.preview.outputs.deployment-action == 'deploy'
+        with:
+          header: preview
+          message: |
+            Preview of ${{ github.event.pull_request.head.sha }}:
+
+            - [Site](${{ steps.preview.outputs.preview-url }})
+            - [Storybook](${{ steps.preview.outputs.preview-url }}storybook/)
+      - uses: marocchino/sticky-pull-request-comment@v3.0.5
+        if: steps.preview.outputs.deployment-action == 'remove'
+        with:
+          header: preview
+          message: The preview was removed when this pull request closed.
