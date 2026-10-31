@@ -47,6 +47,14 @@ test.describe('links', () => {
 		});
 	}
 
+	test('a link survives a reload', async ({ page }) => {
+		const search = 'oidc=1&step=token-response';
+		await open(page, search);
+		await page.reload();
+		await page.locator('.workspace[data-ready="true"]').waitFor();
+		await expectMatchesModel(page, search);
+	});
+
 	test('opening a link reports no change, because nothing changed', async ({ page }) => {
 		await open(page, 'oidc=1&broker=1');
 		await expectMatchesModel(page, 'oidc=1&broker=1');
@@ -137,7 +145,7 @@ test.describe('walking the steps', () => {
 		await page.getByTestId('next').click();
 		await page.getByTestId('next').click();
 		await page.goBack();
-		await expect(page).toHaveURL(/visual-auth-explainer\/$/);
+		await expect(page).toHaveURL('./');
 	});
 
 	test('Back from the first login step opens setup', async ({ page }) => {

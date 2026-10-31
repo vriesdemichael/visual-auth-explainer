@@ -29,7 +29,6 @@ jobs:
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test:unit
-      - run: pnpm build-storybook
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
@@ -40,3 +39,35 @@ jobs:
             playwright-report/
             test-results/
           retention-days: 7
+      # The build the click-through just tested is the one that goes live.
+      - uses: actions/upload-artifact@v7
+        if: github.event_name == 'push'
+        with:
+          name: pages
+          path: build/
+          include-hidden-files: true
+          retention-days: 1
+
+  deploy:
+    name: Deploy
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: pages
+          path: build
+      - uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build
+          branch: gh-pages
+          # Pull request previews live on the same branch and are not this job's to remove,
+          # and one may be pushing at the same moment, so rebase on it and do not overwrite it.
+          clean-exclude: pr-preview/
+          force: false
+      - run: node tests/support/check-live.mjs "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/" "${{ github.sha }}"

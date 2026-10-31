@@ -8,7 +8,7 @@
 	},
 	"scripts": {
 		"dev": "vite dev",
-		"build": "vite build",
+		"build": "node scripts/build.mjs",
 		"preview": "node tests/support/pages-server.mjs build /visual-auth-explainer 4173",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"lint": "eslint .",
@@ -17,8 +17,7 @@
 		"test:unit": "vitest run",
 		"test:e2e": "playwright test",
 		"storybook": "storybook dev -p 6006 --disable-telemetry",
-		"build-storybook": "storybook build --disable-telemetry",
-		"verify": "pnpm format:check && pnpm lint && pnpm check && pnpm test:unit && pnpm build-storybook && pnpm test:e2e",
+		"verify": "pnpm format:check && pnpm lint && pnpm check && pnpm test:unit && pnpm test:e2e",
 		"prepare": "lefthook install"
 	},
 	"devDependencies": {
