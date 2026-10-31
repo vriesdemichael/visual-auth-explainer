@@ -3,6 +3,7 @@ import type { SourceRef } from '#lib/sources/sources.ts';
 export interface Settings {
 	oidc: boolean;
 	clientType: 'public' | 'confidential';
+	pkce: boolean;
 	binding: 'bearer' | 'dpop';
 	dpopNonce: boolean;
 	broker: boolean;
@@ -102,7 +103,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'client',
 		default: 'confidential',
 		summary:
-			'Whether the app can keep a secret. A public client also needs PKCE, not modelled yet.',
+			'Whether the app can keep a secret. One that cannot, such as an app in a browser, has to rely on PKCE.',
 		why: "A secret inside an app on someone else's device is not secret, because anyone can read it out. So an app in a browser or on a phone cannot prove who it is that way, and is treated differently.",
 		sources: [
 			{
@@ -114,6 +115,32 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		options: [
 			{ value: 'confidential', label: 'Confidential' },
 			{ value: 'public', label: 'Public' }
+		]
+	},
+	pkce: {
+		kind: 'toggle',
+		label: 'PKCE',
+		param: 'pkce',
+		default: false,
+		summary:
+			'The app proves it started this login, so a stolen code is no use alone. Current advice is to have it on, and a public client must.',
+		why: 'The code goes through the browser, where other software can get at it. An app with no secret has nothing else to show that it is the one that asked, so whoever holds the code gets the tokens. With PKCE the code only works together with a value that was never sent through the browser.',
+		simple: {
+			label: 'Protect against a stolen code',
+			summary:
+				'The app proves it started this login, so a code someone intercepts is no use to them. Current advice is to always have this on.'
+		},
+		sources: [
+			{
+				source: 'rfc7636',
+				section: '1',
+				why: 'Section 1 describes the attack on an app with no secret. Section 4 is what this switch adds to the messages.'
+			},
+			{
+				source: 'rfc9700',
+				section: '2.1.1',
+				why: 'Section 2.1.1 is the current advice: public clients must use PKCE, and it is recommended for all others.'
+			}
 		]
 	},
 	binding: {

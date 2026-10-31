@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HEAD_HEIGHT, layHeld, layoutDiagram, WIDTH } from '#lib/diagram/layout.ts';
+import { HEAD_HEIGHT, layHeld, layoutDiagram, SELF_LOOP, WIDTH } from '#lib/diagram/layout.ts';
 import { interpolate, toFrame, type Frame } from '#lib/diagram/motion.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
@@ -25,6 +25,24 @@ describe('layout', () => {
 			}
 		}
 	);
+
+	// A label on a message to itself has only the room beside the lane, and nothing wraps it.
+	it('keeps the label of a message to itself inside the diagram', () => {
+		const charWidth = 6.4;
+		for (const settings of allValidSettings()) {
+			for (const diagram of [flow, setup]) {
+				for (const mode of ['simple', 'advanced'] as const) {
+					const { rows } = layoutDiagram(evaluate(diagram, settings), mode);
+					for (const row of rows.filter((candidate) => candidate.self)) {
+						const room = SELF_LOOP.width + 8 + row.label.length * charWidth;
+						const edge = row.x1 + row.selfSide * room;
+						expect(edge, row.label).toBeGreaterThanOrEqual(0);
+						expect(edge, row.label).toBeLessThanOrEqual(WIDTH);
+					}
+				}
+			}
+		}
+	});
 
 	it('keeps lanes inside the diagram, and slides them over for a new lifeline', () => {
 		const before = layout();

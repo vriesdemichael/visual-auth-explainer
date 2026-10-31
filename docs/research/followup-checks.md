@@ -106,7 +106,7 @@ Checked on 2026-10-31, because the maintainer asked for an RFC to open in the ap
 
 ## What a real Keycloak does
 
-Recorded on 2026-11-01 with `pnpm record`, against `quay.io/keycloak/keycloak:26.8.1` in `start-dev`, with real logins through a headless browser. The answers are in `static/recordings/authorization-code/questions.json`, and each one came from a real request.
+Recorded on 2026-10-31 with `pnpm record`, against `quay.io/keycloak/keycloak:26.8.1` in `start-dev`, with real logins through a headless browser. The answers are in `static/recordings/authorization-code/questions.json`, and each one came from a real request.
 
 | Question | Answer |
 |---|---|
@@ -118,6 +118,9 @@ Recorded on 2026-11-01 with `pnpm record`, against `quay.io/keycloak/keycloak:26
 | Does enabling API V2 turn V1 off? | Yes. V1 then answers 400 `Identity Brokering API feature not enabled`, which the docs do not say |
 | What does each API version hand over? | V1 hands over everything stored, including the upstream's ID and refresh tokens. V2 hands over only the access token, with `expires_in` and `issued_token_type` |
 | Is a public client without PKCE accepted? | Yes, by default. With `pkce.code.challenge.method` set to `S256` on the client, the app gets an error back at its redirect URI: `Missing parameter: code_challenge_method` |
+| Is PKCE tied to the client type? | No. Keycloak applies it to any client that sends a challenge, and insists on it only when the client's PKCE Method is set, which is `pkce.code.challenge.method` in the admin API. So the two settings are independent |
+| What can someone do with a code they intercepted? | On a public client without PKCE, get the tokens, and the real app then gets 400 `Code not valid`. With PKCE, nothing: no verifier gets 400 `PKCE code verifier not specified`, and a wrong one 400 `PKCE verification failed: Code mismatch`, with or without the secret. On a confidential client without PKCE, no secret gets 401 `unauthorized_client` |
+| Does a refused try use up the code? | It depends where it was refused. When the PKCE check fails the code is gone, and the real app gets `Code not valid`, so someone with only the code can still spoil a login that PKCE protects. When client authentication fails the code survives, and the real app still got its tokens |
 | What does a wrong redirect URI do? | 400 with `Invalid parameter: redirect_uri`, and no redirect |
 
 What else the recordings changed or showed:
@@ -131,7 +134,7 @@ What else the recordings changed or showed:
 
 ## What the content has and has not been checked against
 
-- **Recorded on Keycloak 26.8.1:** every message on the wire, in all eight named states, apart from the nonce retry.
+- **Recorded on Keycloak 26.8.1:** every message on the wire, in all eleven named states, apart from the nonce retry.
 - **Read in RFC 9449, not seen on Keycloak:** the nonce retry with `use_dpop_nonce` and `DPoP-Nonce`. The nonce is the server's choice, so it is a setting and not part of DPoP itself, and the application marks these messages.
 - **Not on the wire, so not recorded:** what people do in setup, which the recorder does through the admin API instead.
 - **From general knowledge, not checked:** the concept texts.

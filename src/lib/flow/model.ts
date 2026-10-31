@@ -39,7 +39,7 @@ export type StepKind = 'request' | 'response' | 'internal' | 'human';
 
 export interface FieldDef {
 	name: string;
-	place: 'query' | 'header' | 'body' | 'token' | 'setting' | 'path';
+	place: 'query' | 'header' | 'body' | 'token' | 'setting' | 'path' | 'memory';
 	note?: string;
 	/** The credential or token this field carries, which the diagram draws on the message. */
 	artifact?: ArtifactId;
@@ -56,6 +56,12 @@ export interface StepLink {
 }
 
 /** What goes wrong here, for a message people actually run into trouble with. */
+export interface PitfallDef {
+	title: string;
+	text: Text;
+	keycloak?: Text;
+}
+
 export interface Pitfall {
 	title: string;
 	text: string;
@@ -72,7 +78,7 @@ export interface StepDef {
 	label: Text;
 	concept: Text;
 	group?: string;
-	pitfall?: Pitfall;
+	pitfall?: PitfallDef;
 	links?: readonly StepLink[];
 	fields?: readonly FieldDef[];
 	/** Where this comes from, when a real Keycloak did not do it and so it could not be recorded. */
@@ -153,6 +159,14 @@ function resolve(text: Text, settings: Settings): string {
 	return match.text;
 }
 
+function resolvePitfall(pitfall: PitfallDef, settings: Settings): Pitfall {
+	return {
+		title: pitfall.title,
+		text: resolve(pitfall.text, settings),
+		keycloak: pitfall.keycloak && resolve(pitfall.keycloak, settings)
+	};
+}
+
 const present = (when: Condition | undefined, settings: Settings) => !when || holds(when, settings);
 const causes = (when: Condition | undefined) => (when ? settingsIn(when) : []);
 
@@ -176,7 +190,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			label: resolve(step.label, settings),
 			concept: resolve(step.concept, settings),
 			group: step.group,
-			pitfall: step.pitfall,
+			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
 			links: step.links ?? [],
 			specOnly: step.specOnly,
 			causes: causes(step.when),

@@ -1,4 +1,6 @@
 [
+	"make-verifier",
+	"check-verifier",
 	"register-client",
 	"create-client",
 	"hand-over-credentials",

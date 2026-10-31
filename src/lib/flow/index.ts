@@ -22,6 +22,19 @@ export interface Preset {
 export const presets: readonly Preset[] = [
 	{ id: 'oauth', title: 'OAuth', flow: authorizationCode.id, settings: {} },
 	{ id: 'oidc', title: 'OpenID Connect', flow: authorizationCode.id, settings: { oidc: true } },
+	{ id: 'pkce', title: 'PKCE', flow: authorizationCode.id, settings: { pkce: true } },
+	{
+		id: 'public',
+		title: 'An app with no secret',
+		flow: authorizationCode.id,
+		settings: { clientType: 'public' }
+	},
+	{
+		id: 'public-pkce',
+		title: 'An app with no secret, with PKCE',
+		flow: authorizationCode.id,
+		settings: { clientType: 'public', pkce: true }
+	},
 	{ id: 'dpop', title: 'DPoP', flow: authorizationCode.id, settings: { binding: 'dpop' } },
 	{
 		id: 'dpop-nonce',
@@ -48,6 +61,7 @@ export const presets: readonly Preset[] = [
 		flow: authorizationCode.id,
 		settings: {
 			oidc: true,
+			pkce: true,
 			binding: 'dpop',
 			dpopNonce: true,
 			broker: true,

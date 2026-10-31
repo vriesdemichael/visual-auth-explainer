@@ -49,6 +49,78 @@
 				"landed": "http://localhost:9100/callback?error=invalid_request&error_description=Missing+parameter%3A+code_challenge_method"
 			}
 		},
+		"interceptedCode": {
+			"publicWithoutPkce": {
+				"status": 200,
+				"error": null,
+				"description": null,
+				"gotTokens": true,
+				"theRealAppAfterwards": {
+					"status": 400,
+					"description": "Code not valid"
+				}
+			},
+			"publicWithPkceNoVerifier": {
+				"status": 400,
+				"error": "invalid_grant",
+				"description": "PKCE code verifier not specified",
+				"gotTokens": false,
+				"theRealAppAfterwards": {
+					"status": 400,
+					"description": "Code not valid"
+				}
+			},
+			"publicWithPkceWrongVerifier": {
+				"status": 400,
+				"error": "invalid_grant",
+				"description": "PKCE verification failed: Code mismatch",
+				"gotTokens": false,
+				"theRealAppAfterwards": {
+					"status": 400,
+					"description": "Code not valid"
+				}
+			},
+			"publicWithPkceRightVerifier": {
+				"status": 200,
+				"error": null,
+				"description": null,
+				"gotTokens": true,
+				"theRealAppAfterwards": {
+					"status": 400,
+					"description": "Code not valid"
+				}
+			},
+			"confidentialNoPkceNoSecret": {
+				"status": 401,
+				"error": "unauthorized_client",
+				"description": "Invalid client or Invalid client credentials",
+				"gotTokens": false,
+				"theRealAppAfterwards": {
+					"status": 200,
+					"description": null
+				}
+			},
+			"confidentialWithPkceSecretButNoVerifier": {
+				"status": 400,
+				"error": "invalid_grant",
+				"description": "PKCE code verifier not specified",
+				"gotTokens": false,
+				"theRealAppAfterwards": {
+					"status": 400,
+					"description": "Code not valid"
+				}
+			},
+			"confidentialWithPkceSecretButWrongVerifier": {
+				"status": 400,
+				"error": "invalid_grant",
+				"description": "PKCE verification failed: Code mismatch",
+				"gotTokens": false,
+				"theRealAppAfterwards": {
+					"status": 400,
+					"description": "Code not valid"
+				}
+			}
+		},
 		"wrongRedirectUri": {
 			"status": 400,
 			"location": null,

@@ -1,6 +1,14 @@
 /** The things that get passed around, drawn as objects because that is what they are. */
 export type ArtifactId =
-	'password' | 'code' | 'secret' | 'access-token' | 'id-token' | 'proof' | 'upstream-token';
+	| 'password'
+	| 'code'
+	| 'secret'
+	| 'verifier'
+	| 'challenge'
+	| 'access-token'
+	| 'id-token'
+	| 'proof'
+	| 'upstream-token';
 
 export const artifacts: Readonly<
 	Record<ArtifactId, { label: string; short: string; explains: string }>
@@ -22,6 +30,18 @@ export const artifacts: Readonly<
 		short: 'secret',
 		explains:
 			'Like a password, but for the app. It is agreed during setup, and shows that this really is the registered app when it trades a code for tokens. An app running on someone else’s device cannot keep one.'
+	},
+	verifier: {
+		label: 'code verifier',
+		short: 'verifier',
+		explains:
+			'A random value the app makes up for this one login and keeps to itself. It is sent once, directly, when the app trades the code, and never through the browser. So someone who saw the code still does not have it.'
+	},
+	challenge: {
+		label: 'code challenge',
+		short: 'challenge',
+		explains:
+			'A fingerprint of the verifier. It can be worked out from the verifier but not the other way round, so it is safe to send through the browser. The identity provider keeps it with the code, and compares it with the verifier later.'
 	},
 	'access-token': {
 		label: 'access token',

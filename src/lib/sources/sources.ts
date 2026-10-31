@@ -1,5 +1,12 @@
 export type SourceId =
-	'rfc6749' | 'rfc6750' | 'rfc9449' | 'oidc-core' | 'keycloak-brokering' | 'keycloak-stored-tokens';
+	| 'rfc6749'
+	| 'rfc6750'
+	| 'rfc7636'
+	| 'rfc9449'
+	| 'rfc9700'
+	| 'oidc-core'
+	| 'keycloak-brokering'
+	| 'keycloak-stored-tokens';
 
 export interface SourceDef {
 	label: string;
@@ -39,6 +46,15 @@ export const sources: Record<SourceId, SourceDef> = {
 		url: 'https://www.rfc-editor.org/rfc/rfc6750.html',
 		textFile: 'rfc6750.txt'
 	},
+	rfc7636: {
+		label: 'RFC 7636',
+		title: 'Proof Key for Code Exchange by OAuth Public Clients',
+		status: 'Proposed Standard, September 2015.',
+		summary:
+			'Protects the authorization code. For each login the app makes up a random value and sends a hash of it with the authorization request. It sends the value itself when it trades the code, and the server checks that the two match, so someone who intercepted the code cannot use it. It was written for public clients, such as apps on a phone, where another app can get at the code on its way.',
+		url: 'https://www.rfc-editor.org/rfc/rfc7636.html',
+		textFile: 'rfc7636.txt'
+	},
 	rfc9449: {
 		label: 'RFC 9449',
 		title: 'OAuth 2.0 Demonstrating Proof of Possession (DPoP)',
@@ -47,6 +63,15 @@ export const sources: Record<SourceId, SourceDef> = {
 			'Ties a token to a key. The app proves it holds a private key by sending a signed JWT in a DPoP header, and the server binds the tokens it issues to the matching public key. The aim is that a leaked or stolen token cannot be used without the key. It works at the application level, so it also suits apps in a browser, where binding through TLS does not work.',
 		url: 'https://www.rfc-editor.org/rfc/rfc9449.html',
 		textFile: 'rfc9449.txt'
+	},
+	rfc9700: {
+		label: 'RFC 9700',
+		title: 'Best Current Practice for OAuth 2.0 Security',
+		status: 'Best Current Practice, January 2025. Updates RFC 6749, RFC 6750 and RFC 6819.',
+		summary:
+			'The current security advice for OAuth 2.0, written with what has gone wrong since OAuth was published. It describes the attacks and says what clients and servers have to do about them: for example PKCE to protect the code, exact matching of redirect addresses, and no more implicit or password grants.',
+		url: 'https://www.rfc-editor.org/rfc/rfc9700.html',
+		textFile: 'rfc9700.txt'
 	},
 	'oidc-core': {
 		label: 'OpenID Connect Core 1.0',

@@ -4,6 +4,9 @@
 	"presets": [
 		"oauth",
 		"oidc",
+		"pkce",
+		"public",
+		"public-pkce",
 		"dpop",
 		"dpop-nonce",
 		"broker",

@@ -287,6 +287,75 @@ describe('DPoP', () => {
 	});
 });
 
+describe('PKCE', () => {
+	const change = diff({}, { pkce: true });
+	const fieldsOf = (id: string, settings: Partial<Settings> = { pkce: true }) =>
+		view(settings)
+			.steps.find((step) => step.id === id)
+			?.fields.map((field) => field.name);
+
+	it('adds the challenge going out and the verifier coming back', () => {
+		expect(fieldsOf('authorize')).toEqual(
+			expect.arrayContaining(['code_challenge', 'code_challenge_method=S256'])
+		);
+		expect(fieldsOf('token-request')).toContain('code_verifier');
+		expect(fieldsOf('authorize')).not.toContain('code_verifier');
+	});
+
+	it('adds the app making them and the identity provider checking them', () => {
+		expect(change.addedSteps).toEqual(['make-verifier', 'check-verifier']);
+		expect(change.addedLifelines).toEqual([]);
+		const steps = view({ pkce: true }).steps.map((step) => step.id);
+		expect(steps.indexOf('make-verifier')).toBeLessThan(steps.indexOf('redirect-to-idp'));
+		expect(steps.indexOf('check-verifier')).toBe(steps.indexOf('token-response') - 1);
+	});
+
+	it('never sends the verifier through the browser, whatever the settings', () => {
+		for (const settings of allValidSettings()) {
+			const flowView = evaluate(flow, settings);
+			const held = holdingsAt(flowView, flowView.steps.at(-1)!.id);
+			expect(held.browser).not.toContain('verifier');
+			if (settings.pkce) expect(held.browser).toContain('challenge');
+		}
+	});
+
+	it('leaves the secret with the app, so a verifier does not replace it', () => {
+		const heldAt = (id: string) => holdingsAt(view({ pkce: true }), id);
+		expect(heldAt('make-verifier').app).toEqual(['secret', 'verifier', 'challenge']);
+		expect(heldAt('authorize').idp).toEqual(['secret', 'challenge']);
+		expect(heldAt('callback').idp).not.toContain('verifier');
+		expect(heldAt('token-request').idp).toContain('verifier');
+	});
+
+	// Keycloak takes all four, which is what makes the two settings independent (questions.json).
+	it('does not depend on the client type', () => {
+		const combinations = allValidSettings();
+		for (const clientType of ['public', 'confidential'] as const) {
+			for (const pkce of [false, true]) {
+				expect(combinations).toContainEqual({ ...defaultSettings, clientType, pkce });
+			}
+		}
+	});
+
+	it('says what a stolen code is worth, and that differs for each case', () => {
+		const stolen = (settings: Partial<Settings>) =>
+			view(settings).steps.find((step) => step.id === 'token-request')?.pitfall;
+		expect(stolen({ clientType: 'public' })?.text).toMatch(/gets the tokens/);
+		expect(stolen({ clientType: 'public', pkce: true })?.text).toMatch(/get nothing/);
+		expect(stolen({})?.text).toMatch(/hand the code to the real app/);
+		expect(stolen({ pkce: true })?.text).toMatch(/get nothing/);
+		expect(stolen({ oidc: true })?.text).toMatch(/nonce/);
+	});
+
+	it('takes back what the app says about a code being worth little, when it is not', () => {
+		const said = (settings: Partial<Settings>) =>
+			view(settings).steps.find((step) => step.id === 'callback')?.concept;
+		expect(said({})).toMatch(/worth little/);
+		expect(said({ clientType: 'public', pkce: true })).toMatch(/worth little/);
+		expect(said({ clientType: 'public' })).toMatch(/all anyone needs/);
+	});
+});
+
 describe('brokering', () => {
 	const change = diff({}, { broker: true });
 

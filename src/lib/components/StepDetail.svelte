@@ -56,7 +56,8 @@
 		body: 'body',
 		token: 'in the token',
 		setting: 'setting',
-		path: 'path'
+		path: 'path',
+		memory: 'in memory'
 	};
 
 	const count = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
@@ -268,43 +269,6 @@
 		color: var(--chip);
 		font-size: 12px;
 		font-weight: 600;
-		--chip: var(--muted);
-		--chip-soft: var(--panel);
-	}
-
-	.artifact[data-artifact='password'] {
-		--chip: var(--password);
-		--chip-soft: var(--password-soft);
-	}
-
-	.artifact[data-artifact='code'] {
-		--chip: var(--code);
-		--chip-soft: var(--code-soft);
-	}
-
-	.artifact[data-artifact='secret'] {
-		--chip: var(--secret);
-		--chip-soft: var(--secret-soft);
-	}
-
-	.artifact[data-artifact='access-token'] {
-		--chip: var(--access);
-		--chip-soft: var(--access-soft);
-	}
-
-	.artifact[data-artifact='id-token'] {
-		--chip: var(--identity);
-		--chip-soft: var(--identity-soft);
-	}
-
-	.artifact[data-artifact='proof'] {
-		--chip: var(--proof);
-		--chip-soft: var(--proof-soft);
-	}
-
-	.artifact[data-artifact='upstream-token'] {
-		--chip: var(--upstream);
-		--chip-soft: var(--upstream-soft);
 	}
 
 	.change ul {

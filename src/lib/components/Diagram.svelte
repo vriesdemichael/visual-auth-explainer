@@ -565,6 +565,9 @@
 
 	.chip {
 		pointer-events: none;
+	}
+
+	.chip:not([data-artifact]) {
 		--chip: var(--muted);
 		--chip-soft: var(--panel);
 	}
@@ -597,41 +600,6 @@
 
 	.chip.future:not(.fresh) {
 		opacity: 0 !important;
-	}
-
-	[data-artifact='password'] {
-		--chip: var(--password);
-		--chip-soft: var(--password-soft);
-	}
-
-	[data-artifact='code'] {
-		--chip: var(--code);
-		--chip-soft: var(--code-soft);
-	}
-
-	[data-artifact='secret'] {
-		--chip: var(--secret);
-		--chip-soft: var(--secret-soft);
-	}
-
-	[data-artifact='access-token'] {
-		--chip: var(--access);
-		--chip-soft: var(--access-soft);
-	}
-
-	[data-artifact='id-token'] {
-		--chip: var(--identity);
-		--chip-soft: var(--identity-soft);
-	}
-
-	[data-artifact='proof'] {
-		--chip: var(--proof);
-		--chip-soft: var(--proof-soft);
-	}
-
-	[data-artifact='upstream-token'] {
-		--chip: var(--upstream);
-		--chip-soft: var(--upstream-soft);
 	}
 
 	.chip.fresh {

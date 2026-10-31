@@ -193,6 +193,49 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 		};
 	}
 
+	// What can someone do with a code they intercepted? Every try here is a code from a real login.
+	{
+		const verifier = random() + random();
+		const pkce = { code_challenge: sha256(verifier), code_challenge_method: 'S256' };
+		const attempt = async (clientId: string, extra: Record<string, string>, send: object) => {
+			const { code } = await codeFor(browser, demo, LOCAL_REALM, clientId, extra);
+			const body = { grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI };
+			const tried = await token(LOCAL_REALM, { ...body, client_id: clientId, ...send });
+			// What the real app would send next, with what it holds, once someone else has tried.
+			const again = await token(LOCAL_REALM, {
+				...body,
+				client_id: clientId,
+				...('code_challenge' in extra ? { code_verifier: verifier } : {}),
+				...(clientId === CONFIDENTIAL_CLIENT ? { client_secret: CLIENT_SECRET } : {})
+			});
+			return {
+				status: tried.status,
+				error: tried.json.error ?? null,
+				description: tried.json.error_description ?? null,
+				gotTokens: 'access_token' in tried.json,
+				theRealAppAfterwards: {
+					status: again.status,
+					description: again.json.error_description ?? null
+				}
+			};
+		};
+		const secret = { client_secret: CLIENT_SECRET };
+		answers.interceptedCode = {
+			publicWithoutPkce: await attempt(PUBLIC_CLIENT, {}, {}),
+			publicWithPkceNoVerifier: await attempt(PUBLIC_CLIENT, pkce, {}),
+			publicWithPkceWrongVerifier: await attempt(PUBLIC_CLIENT, pkce, {
+				code_verifier: random() + random()
+			}),
+			publicWithPkceRightVerifier: await attempt(PUBLIC_CLIENT, pkce, { code_verifier: verifier }),
+			confidentialNoPkceNoSecret: await attempt(CONFIDENTIAL_CLIENT, {}, {}),
+			confidentialWithPkceSecretButNoVerifier: await attempt(CONFIDENTIAL_CLIENT, pkce, secret),
+			confidentialWithPkceSecretButWrongVerifier: await attempt(CONFIDENTIAL_CLIENT, pkce, {
+				...secret,
+				code_verifier: random() + random()
+			})
+		};
+	}
+
 	// A wrong redirect URI, which is the most-viewed Keycloak question there is.
 	{
 		const bad = await fetch(
