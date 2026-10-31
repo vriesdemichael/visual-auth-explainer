@@ -43,6 +43,29 @@ Other points:
 - **History:** V2 arrived as a preview in 26.6.0, and in 26.7.0 it became supported and V1 was deprecated.
 - **Not settled by these pages:** whether enabling V2 turns V1 off.
 
+## SvelteKit as static files on GitHub Pages
+
+Tested on 2026-10-31, because the maintainer doubted that SvelteKit hosts easily as static files. The same small app, a map, two named states and an OIDC toggle in the query string, was built on `@sveltejs/kit` 3.1.1 with `adapter-static` 4.0.1, and on plain Svelte 5.57.3 with Vite 8.3.5. A local server mimicked a Pages project site: plain files under a subpath, no rewrite rules, and `404.html` for anything else. Playwright 1.64.1 drove both in Chromium. **This has not run on real GitHub Pages,** because the repo is still private.
+
+| | SvelteKit | Plain Svelte on Vite |
+|---|---|---|
+| Output | One HTML file per state, `404.html`, and hashed JS and CSS | `index.html` and one JS file |
+| Opening a named state by link | 200 | 404 |
+| The same link with `?oidc=1` | Right diagram once JS has run | Blank page |
+| Clicking from the map, toggling, the back button | Work | Work |
+| Diagram in the raw HTML, and with JS off | Yes | No |
+| Title and description per state | Yes | No |
+| JS, each file gzipped and summed | 39 KB | 16 KB |
+| Under `/pr-preview/pr-2/` | Works | Not tested |
+
+Other points:
+
+- **Kit 3 is new.** 3.0.0 was published on 2026-10-01. `svelte.config.js` is gone, `$lib` became `#lib`, and `$app/environment` became `$app/env`. The [docs](https://svelte.dev/docs/kit/adapter-static) have a GitHub Pages section with a workflow.
+- **Storybook 10.6.5 on Kit 3, through `@storybook/sveltekit`:** a plain component renders. A component importing `$app/state`, `$app/env` and `$app/paths` fails with `__SVELTEKIT_PAYLOAD__ is not defined`. Which import causes it was not isolated.
+- **The query string is not available while prerendering.** A link with non-default settings shows the default state until JS runs. This flash was not measured.
+- **Windows paths:** in a folder that made paths exceed 260 characters, Kit's config failed to load with `ERR_PACKAGE_IMPORT_NOT_DEFINED`. A shorter folder with `node-linker=hoisted` fixed it. Nothing suggests this is specific to Kit.
+- **Previews on a sub page:** the `preview` input of `actions/deploy-pages` is marked alpha and not public. [pr-preview-action](https://github.com/rossjrw/pr-preview-action) (MIT, 448 stars, pushed 2026-10-27) deploys to a branch, so Pages has to deploy from that branch. Jekyll would then be expected to skip Kit's `_app` folder unless the site has a `.nojekyll` file. None of this has been tried.
+
 ## The entry and the format
 
 Looked at on 2026-10-31, because the maintainer named both as the references to follow.

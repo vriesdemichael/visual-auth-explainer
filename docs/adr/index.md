@@ -11,3 +11,5 @@ How this project is built and worked on, one rule to a record. Each record says 
 - [ADR-007: Every component has a Storybook story from the start](007-every-component-has-a-story.md)
 - [ADR-008: Desktop comes first, and nothing may rule out phones](008-desktop-first-without-ruling-out-phones.md)
 - [ADR-009: Code is Apache-2.0, and content is CC BY 4.0](009-code-is-apache-and-content-is-cc-by.md)
+- [ADR-010: The site is static files on GitHub Pages, with all state in the browser](010-static-files-on-github-pages.md)
+- [ADR-011: Tooling follows the JavaScript ecosystem](011-tooling-follows-the-javascript-ecosystem.md)

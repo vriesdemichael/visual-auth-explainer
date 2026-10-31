@@ -311,6 +311,8 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 - CI blocks merges from the first code commit ([ADR-006](adr/006-ci-gates-every-change-from-the-first-commit.md)).
 - **Storybook** is there from the start, to set the precedent ([ADR-007](adr/007-every-component-has-a-story.md)).
 - The repository goes public, with a licence that allows reuse and modification and requires attribution ([ADR-009](adr/009-code-is-apache-and-content-is-cc-by.md)).
+- The site is completely static, with no state outside the visitor's browser, and on GitHub Pages for now ([ADR-010](adr/010-static-files-on-github-pages.md)).
+- Tooling is whatever suits the JavaScript ecosystem, so no Taskfile ([ADR-011](adr/011-tooling-follows-the-javascript-ecosystem.md)).
 
 **Proposed: what CI should prove**, because the toggles make this more than a generic end-to-end suite:
 
@@ -323,6 +325,8 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 | Keycloak recordings | Regenerate on demand against a pinned Keycloak, 26.8.1 for now, and check weekly against new releases to detect drift. Not on every pull request |
 
 **Proposed: choose the stack as for an application, to discuss with step 0.** Client-side state (flow, settings, mode, step) drives everything on screen. The flow model and engine are plain TypeScript, with flow definitions as typed data, so they do not depend on the view framework. The view is Svelte on SvelteKit with its static adapter, because a public audience has to find the map and named states through search, and those can be prerendered while the application stays client-side. GSAP or Motion handles transitions.
+
+The maintainer doubted SvelteKit because it might be harder to host as static files. A test on a Pages-style server did not bear that out, and it was plain Svelte on Vite that had the problem with deep links. It did find other costs. Details are in [research/followup-checks.md](research/followup-checks.md). The maintainer has not yet chosen between the two.
 
 A content-site setup, with prose pages and the diagram as one embedded island, is what the research suggested. It is not the default, because it treats the diagram as an illustration.
 
@@ -352,9 +356,7 @@ Still to settle:
 - **State and routing:** the URL shape. **Proposed:** the flow in the path, with settings, mode and step in the query, and a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting or mode adds one.
 - **Control model:** the schema for base flows, modifiers, exclusive choices, constraints and presets. Discuss and then run step 0 from section 8.
 - **Recording pipeline:** how to capture Keycloak traffic per combination.
-- **Stack and test tooling:** confirm section 9 when discussing step 0.
-- **Repository conventions:** which conventions from the maintainer's other repositories to carry over, such as Taskfile, Conventional Commits and lefthook.
-- **Hosting:** where the public site runs, and whether it gives a preview link per pull request.
+- **Framework:** SvelteKit or plain Svelte on Vite (section 9), when discussing step 0.
 - **Name and domain:** `visual-auth-explainer` is a working name only.
 
 ## 12. How to know it is working

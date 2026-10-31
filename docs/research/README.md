@@ -7,7 +7,7 @@ Research done on 2026-10-30 to answer: does an interactive visual explainer for 
 | File | Contents |
 |---|---|
 | [report.md](report.md) | The synthesis, and the best place to start |
-| [followup-checks.md](followup-checks.md) | Later checks on Keycloak feature flags, federation vs brokering, the setup and external IdP gaps, the OIDC toggle on a real Keycloak, and upstream token storage |
+| [followup-checks.md](followup-checks.md) | Later checks on Keycloak feature flags, federation vs brokering, the setup and external IdP gaps, the OIDC toggle on a real Keycloak, upstream token storage, and SvelteKit as static files |
 | [notes/interactive_tools.md](notes/interactive_tools.md) | About 40 interactive tools, with how deeply each was checked |
 | [notes/advanced_spec_coverage.md](notes/advanced_spec_coverage.md) | Coverage per spec and topic, Keycloak's docs, and CIMD and MCP status |
 | [notes/static_explainers_demand.md](notes/static_explainers_demand.md) | Articles, videos and books, what confuses people, and demand evidence |

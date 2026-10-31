@@ -86,3 +86,13 @@ Given on 2026-10-31, by number. The left column summarises the question, and the
 | Which sites look right | the format of identiflows is definitely the one to match or improve upon, thr rest was worse |
 | The ADR skills | not the skills, but i do want an adr like with bitbucket-data-center-cli or mm-mcp |
 | Depending on the Keycloak repos | no let's not force ourselves into that straightjacket |
+
+## On the stack and hosting
+
+> Im not sure about sveltekit, i believe it is a bit harder to host as static code (feel free to prove me wrong if this is my misconception).
+> The site could be completely static, there is no need for any statefulness outside of the users browser.
+>
+> I'd tend to github pages for the ease of use at this stage, later perhaps a dedicated place.
+> Reviewing PRs could be a separate sub page or a local preview on my machine.
+>
+> Taskfile fits the go ecosystem, no need to pick that one here as well, pick whatever suits the ecosystem.
