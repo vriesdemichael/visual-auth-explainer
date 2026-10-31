@@ -1,4 +1,4 @@
-import{t as e}from"./rolldown-runtime-Dh6celcD.js";import{i as t,t as n}from"./sources-DIAcWscn.js";import{n as r,t as i}from"./SourcePanel-DhM49RHX.js";var a,o,s,c,l,u,d,f,p;function m(){return(m=e((()=>{r(),n(),a=`Request for Comments: 0000
+import{t as e}from"./rolldown-runtime-Dh6celcD.js";import{i as t,t as n}from"./sources-DIAcWscn.js";import{n as r,t as i}from"./SourcePanel-BUrPWemM.js";var a,o,s,c,l,u,d,f,p;function m(){return(m=e((()=>{r(),n(),a=`Request for Comments: 0000
 
 Table of Contents
 
