@@ -1,6 +1,77 @@
 # Follow-up checks
 
-Done on 2026-10-30, after the main research, to test points the maintainer raised in response to it. These were quick checks and not a survey.
+Done on 2026-10-30 and 2026-10-31, after the main research, to test points the maintainer raised in response to it. These were quick checks and not a survey.
+
+## OAuth to OIDC on a real Keycloak
+
+Run on 2026-10-30 against `quay.io/keycloak/keycloak:26.8.1` in `start-dev`: the authorization code flow with a public client, through the real login form. There were four runs, with and without `openid`, on a default client and on a client with `profile`, `email` and `roles` removed from its default client scopes.
+
+| | `openid` off | `openid` on |
+|---|---|---|
+| `id_token` in the token response | No | Yes |
+| UserInfo | 403, `insufficient_scope`, "Missing openid scope" | 200 |
+| `scope` in the response, default client | `profile email` | `openid profile email` |
+| Access token, default client | Has `name`, `email` and `preferred_username` | Same claims |
+| Access token, stripped client | `sub` and technical claims, no `aud` | Same claims |
+| ID token, stripped client | None issued | `sub` and technical claims, no name or email |
+
+**The toggle is real, but the access token does not change.** On a default client it already says who the user is with OIDC off. Those claims come from client scopes, not from `openid`.
+
+Also seen in these runs:
+
+- **Wrong `redirect_uri`:** 400 with `Invalid parameter: redirect_uri` and no redirect.
+- **Discovery:** 200 at `/realms/{realm}/.well-known/openid-configuration`, `/realms/{realm}/.well-known/oauth-authorization-server` and `/.well-known/oauth-authorization-server/realms/{realm}`.
+- **A new client's default client scopes:** `web-origins`, `acr`, `profile`, `roles`, `basic` and `email`.
+
+## What "token brokering" refers to
+
+On 2026-10-31 the maintainer said it means upstream token storage. **This was read from Keycloak's 26.8.1 docs and has not been run.** The sources are the [developer guide](https://www.keycloak.org/docs/26.8.1/server_development/#_identity-brokering-apis-tokens), the [admin guide](https://www.keycloak.org/docs/latest/server_admin/index.html), the [features page](https://www.keycloak.org/server/features) and the [release notes](https://www.keycloak.org/docs/latest/release_notes/index.html). This explains the brief's "feature flags of keycloak like cimd and token brokering", because the retrieval API sits behind a flag.
+
+| | `identity-brokering-api:v1` | `identity-brokering-api:v2` |
+|---|---|---|
+| Status | Deprecated, on by default, to be removed | Supported, off by default, to become the default |
+| Request | `GET /realms/{realm}/broker/{alias}/token` | `POST` to the same path, with a form body |
+| Authentication | The user's Keycloak access token as a bearer token | Client authentication plus the access token. Confidential clients only |
+| Authorization | The user's `read-token` role on the `broker` client | Client settings: "Allow retrieve external tokens" and "Allowed Identity Providers for External Tokens" |
+| Storage | "Store Tokens": in the database, per user and IdP | "Store token in session", or "Store tokens". The session is tried first, with the database as a fallback |
+| Response | Format not specified | Always a JSON access token response |
+
+Other points:
+
+- **Defaults:** the pages read do not state the defaults of "Store Tokens" and "Stored Tokens Readable". The developer guide's wording implies they start off.
+- **"Stored Tokens Readable":** assigns the `read-token` role to newly imported users.
+- **History:** V2 arrived as a preview in 26.6.0, and in 26.7.0 it became supported and V1 was deprecated.
+- **Not settled by these pages:** whether enabling V2 turns V1 off.
+
+## SvelteKit as static files on GitHub Pages
+
+Tested on 2026-10-31, because the maintainer doubted that SvelteKit hosts easily as static files. The same small app, a map, two named states and an OIDC toggle in the query string, was built on `@sveltejs/kit` 3.1.1 with `adapter-static` 4.0.1, and on plain Svelte 5.57.3 with Vite 8.3.5. A local server mimicked a Pages project site: plain files under a subpath, no rewrite rules, and `404.html` for anything else. Playwright 1.64.1 drove both in Chromium. **This has not run on real GitHub Pages,** because the repo is still private.
+
+| | SvelteKit | Plain Svelte on Vite |
+|---|---|---|
+| Output | One HTML file per state, `404.html`, and hashed JS and CSS | `index.html` and one JS file |
+| Opening a named state by link | 200 | 404 |
+| The same link with `?oidc=1` | Right diagram once JS has run | Blank page |
+| Clicking from the map, toggling, the back button | Work | Work |
+| Diagram in the raw HTML, and with JS off | Yes | No |
+| Title and description per state | Yes | No |
+| JS, each file gzipped and summed | 39 KB | 16 KB |
+| Under `/pr-preview/pr-2/` | Works | Not tested |
+
+Other points:
+
+- **Kit 3 is new.** 3.0.0 was published on 2026-10-01. `svelte.config.js` is gone, `$lib` became `#lib`, and `$app/environment` became `$app/env`. The [docs](https://svelte.dev/docs/kit/adapter-static) have a GitHub Pages section with a workflow.
+- **Storybook 10.6.5 on Kit 3, through `@storybook/sveltekit`:** a plain component renders. A component importing `$app/state`, `$app/env` and `$app/paths` fails with `__SVELTEKIT_PAYLOAD__ is not defined`. Which import causes it was not isolated.
+- **The query string is not available while prerendering.** A link with non-default settings shows the default state until JS runs. This flash was not measured.
+- **Windows paths:** in a folder that made paths exceed 260 characters, Kit's config failed to load with `ERR_PACKAGE_IMPORT_NOT_DEFINED`. A shorter folder with `node-linker=hoisted` fixed it. Nothing suggests this is specific to Kit.
+- **Previews on a sub page:** the `preview` input of `actions/deploy-pages` is marked alpha and not public. [pr-preview-action](https://github.com/rossjrw/pr-preview-action) (MIT, 448 stars, pushed 2026-10-27) deploys to a branch, so Pages has to deploy from that branch. Jekyll would then be expected to skip Kit's `_app` folder unless the site has a `.nojekyll` file. None of this has been tried.
+
+## The entry and the format
+
+Looked at on 2026-10-31, because the maintainer named both as the references to follow.
+
+- **roadmap.sh:** the home page has a search box, category chips and cards for 96 roadmaps. A roadmap is a node map on one long page, with a spine, branches, a legend, and progress marks on the nodes. It also carries accounts, ads and an AI tutor. Seen in screenshots of the home page and `/frontend`. What opening a node does was not confirmed.
+- **IdentiFlows:** the home page has a search and a category filter over flow cards. A flow page has a description and tags, then the diagram, with five lifelines and 18 messages on code + PKCE, then links to specs. Interactive Mode adds Previous and Next, and the theme can be auto, light or dark. This check read the page text and DOM only, because the browser pane was hidden. The rendering itself was seen only in the earlier research.
 
 ## Keycloak feature flags
 

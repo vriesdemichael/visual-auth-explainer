@@ -1,6 +1,6 @@
 # Premise
 
-Starting point as of 2026-10-31. Nothing is built yet. The next step is working out the structure of the application (section 11).
+Starting point as of 2026-10-31. Nothing is built yet. The next step is agreeing step 0 (section 8), which the maintainer wants to discuss before it is built, and settling what is left in section 11.
 
 **This is an interactive web application, not an article.** Read section 2 first, because everything else depends on it.
 
@@ -10,13 +10,13 @@ Labels used throughout:
 - **Proposed:** a recommendation from the review with Claude. The maintainer asked for these nuances to be recorded but has not ruled on each one, so challenge them if the work shows they are wrong.
 - **Open:** not decided.
 
-The maintainer's own words are in [original-brief.md](original-brief.md). The evidence is in [research/](research/README.md).
+The maintainer's own words are in [original-brief.md](original-brief.md). The evidence is in [research/](research/README.md). This file holds intent. The rules for how it is built and worked on are in the [decision records](adr/index.md).
 
 ## 1. The problem
 
 The maintainer has become the local expert on Keycloak, OAuth, authn and authz in their team. They keep building presentations and struggle to explain the concepts at different levels. These concepts are hard to grasp from text, and sequence diagrams work much better.
 
-So the first user is the maintainer, and the first audience is their team. A public audience comes second.
+**Decided.** The application is public, for a wide audience on the internet, in English only. There is no separate team audience to serve first.
 
 Presentations are why the idea came up, not what is being built. The maintainer has not named a talk or a deadline.
 
@@ -49,18 +49,19 @@ The spirit is that of the visual guides to transformers, but authn/authz is a mu
 | What finishing means | Publishing | It keeps growing, and each addition is a small change that CI validates |
 | How quality is checked | Proofreading | Automated click-through, plus review of protocol claims |
 
-So design the screens, controls, state and routing first. Explanations are content attached to steps and settings, not pages of prose. There is no fixed reading order, though there is a sensible default state to open in.
+So design the screens, controls, state and routing first. Explanations are content attached to steps and settings, not pages of prose. There is no fixed reading order. People choose where to go from a map (section 5.9).
 
 ## 3. What to take from existing work
 
 ### How it should work: interactive tools
 
-These are the references for the form.
+These are the references for the form. **Decided:** the format of IdentiFlows is the one to match or improve upon. The maintainer found the others worse.
 
 | Source | Take | Leave |
 |---|---|---|
 | [IdentiFlows](https://identiflows.dev/) (Auth0) | Step-through where each step shows only what is relevant at that point, in detail. **The maintainer's favourite quality.** | A separate page per variant. In depth from the first step. Auth0 branding. |
-| [AuthPlayground](https://www.authplayground.dev/) (Ping) | `Execute` on each step, a fake execution with raw request and response. Advanced topics. | A static diagram that does not follow execution. No user options. |
+| [roadmap.sh](https://roadmap.sh/) | An entry where you navigate to what you want to learn about. | Accounts and ads. |
+| [AuthPlayground](https://www.authplayground.dev/) (Ping) | `Execute`, a fake execution with raw request and response. Advanced topics. | `Execute` on every step. A static diagram that does not follow execution. No user options. |
 | [ProtocolSoup](https://protocolsoup.com/) | Evidence of how much a toggle can teach: on Client Credentials, Bearer gave 12 events and DPoP gave 27, including the nonce retry. | Options change a timeline, not the lifeline diagram. |
 | [MCPJam](https://docs.mcpjam.com/inspector/guided-oauth) | Proof that a function from options to diagram steps works. Its diagram depends on protocol version and registration method. | MCP only, and needs a live server. |
 | [Authlete Playground](https://github.com/authlete/oauth-playground) | The widest option surface, with a live preview of the wire request. | No sequence diagram. |
@@ -99,7 +100,7 @@ The caveat is that the basic code flow is also the most saturated area, and a wa
 
 **Decided.** Others treat toggleable parts as separate concepts. Here they are a set of toggles on one diagram, so a visitor can see that DPoP is a change to the flow they already understand, not a new flow.
 
-**Proposed: the transition is the centrepiece.** Stable step IDs let a toggle animate as a change, with an arrow sliding in and rows shifting, instead of a redraw. No precedent found does this for general OAuth, and it is the moment the idea either lands or does not.
+**Proposed: the transition is the centrepiece.** Stable step IDs let a toggle animate as a change, with an arrow sliding in and rows shifting, instead of a redraw. No precedent found does this for general OAuth, and it is the moment the idea either lands or does not. It has to work inside a message as well as between messages: OAuth to OIDC adds at most one arrow, and most of the change is in fields.
 
 ### 5.3 Setup is a phase of the same diagram
 
@@ -116,7 +117,7 @@ Three things follow:
 
 - **Registration is the setup.** Manual registration, DCR and CIMD are three answers to one question: how does the IdP get to know this app? So the CIMD toggle lives in this phase and fits the story rather than being an advanced extra.
 - **Setup and login can be linked visually.** The redirect URI registered in setup is checked during login. Showing that link explains the most-viewed Keycloak error.
-- **The setup phase differs from runtime.** Manual setup is mostly people, an application team and an IdP admin copying values between consoles, not HTTP messages. DCR and CIMD turn those human hand-offs into HTTP calls, which could be a striking toggle, but a sequence diagram may need adapting to carry human steps. Work this out during design.
+- **The setup phase differs from runtime.** Manual setup is mostly people, an application team and an IdP admin copying values between consoles, not HTTP messages. DCR and CIMD turn those human hand-offs into HTTP calls, which could be a striking toggle, but a sequence diagram may need adapting to carry human steps. **Proposed:** draw them as dashed hand-offs between the same app and IdP lifelines, so that DCR and CIMD turn them into solid HTTP arrows as a transition.
 
 ### 5.4 Limited context per step
 
@@ -130,22 +131,23 @@ Three things follow:
 
 | | Simple mode (the default) | Advanced mode |
 |---|---|---|
-| Settings on offer | A few, in plain language | All of them, including Keycloak feature flags |
+| Settings on offer | A few, in plain language | All of them, with Keycloak feature flags as badges |
 | Each step shows | The concept and why it happens | Parameters and raw request and response |
-| `Execute` | To be decided | Available |
+| `Execute` | Only where it adds something (section 5.6) | Only where it adds something (section 5.6) |
 
 - Default to simple. A meta-analysis of 60 experiments found novices gain from high assistance (d = 0.505) and experts from low (d = −0.428), with help for novices the stronger effect. It did not test this kind of mode, so this is reasoning from adjacent evidence.
 - A step can also expand for more detail within a mode. That supplements the modes and does not replace them.
-- Keep **settings** (PKCE on or off) separate from the **mode**. A setting changes the flow, and the mode changes how much is exposed. Switching mode should not change which flow is on screen. What happens to an advanced setting when someone switches back to simple is an open question (section 11).
+- Keep **settings** (PKCE on or off) separate from the **mode**. A setting changes the flow, and the mode changes how much is exposed. Switching mode does not change which flow is on screen ([ADR-004](adr/004-modes-never-change-the-flow.md)). **Decided:** an advanced setting stays on when someone switches back to simple, as a chip they can remove, and the text drops to concept level. So DPoP can be shown simply.
 
 ### 5.6 Execute
 
-**Decided as desirable:** the maintainer liked AuthPlayground's fake execution.
+**Decided as desirable:** the maintainer liked AuthPlayground's fake execution. **Decided:** it appears only on steps where it adds something, and it is honest: a combination with no recording says so and shows no payload ([ADR-005](adr/005-payloads-are-recorded-never-invented.md)).
 
 **Proposed:**
 
 - It is application behaviour, not a code sample. Executing a step produces values that later steps use, so the code returned in one step is the code sent in the next, and that state carries through the flow.
 - It replays traffic recorded from a real Keycloak. That gives the same feel with real payloads and no backend to host, secure or have abused. Re-recording on each Keycloak release also catches drift. Illustrated TLS is the precedent for reproducibility, and it uses real captures.
+- A recording is one real run, so values carry across steps without simulation. Earlier steps always count as executed, so a link only needs the step.
 
 ### 5.7 Keycloak as the reference
 
@@ -158,11 +160,24 @@ Three things follow:
 - The stronger edge is that **anyone can run it**. Every diagram can be reproduced against a real server, and vendors have little reason to build this layer.
 - So keep the **protocol layer neutral, with Keycloak as an overlay** on each message: this setting controls this behaviour. Someone on another IdP still gets the protocol explanation.
 
+**Decided:** recordings use a default Keycloak client, which is what people meet. On one, the access token carries the same identity claims with or without `openid`, so the overlay has to explain client scopes. Details are in [research/followup-checks.md](research/followup-checks.md).
+
 ### 5.8 Grow from a small start
 
 **Decided.** It starts small and builds itself up with more and more functionality, all within the same application. Growth is the point, so the first version is the start of the product and not a one-off piece.
 
 **Proposed:** build the engine so that adding a toggle is mostly flow data, recordings and tests. If each new toggle forces changes to the engine, the model is wrong.
+
+### 5.9 The entry and the application screen
+
+**Decided:** the entry is more like [roadmap.sh](https://roadmap.sh/), where you navigate to what you want to learn about. Everything else happens on one application screen, with settings on the left, the diagram in the centre, step detail on the right, and step controls below.
+
+**Proposed: how the two relate.**
+
+- The map is the home screen.
+- A node is a named state, not a page: it opens the application screen at a base flow, settings, mode and step. So variants still never get a new page, and adding a toggle adds a node.
+- The way back to the map stays one click away, and the node matching the current state is marked.
+- A state reached by flipping settings by hand still has a URL, with or without a node.
 
 ## 6. Nuances that must not get lost
 
@@ -196,11 +211,11 @@ This contrast makes a good toggle: same app, same token, different middle.
 
 The maintainer named "feature flags of keycloak like cimd and token brokering" as especially interesting. From the current docs:
 
-- Core brokering is not listed as a flag, only `identity-brokering-api` versions and some specific providers.
+- Core brokering is not listed as a flag. **Decided:** by "token brokering" the maintainer means upstream token storage, and that is what the `identity-brokering-api` flags govern: `v1` is deprecated and on by default, `v2` is supported and off by default. Identity brokering and token exchange remain relevant too.
 - `cimd` is a flag, and the specifications page marks it experimental.
 - `token-exchange-standard:v2` is supported and on by default, but handles only the internal-to-internal case. `token-exchange:v1` is preview.
 
-So organise the site by protocol concept and show Keycloak's status as a badge. Do not organise it around flags. "Token brokering" also needs clarifying (section 11). Details are in [research/followup-checks.md](research/followup-checks.md).
+So organise the site by protocol concept and show Keycloak's status as a badge. Do not organise it around flags. The maintainer agrees with a badge for now, and the details get settled during implementation. More is in [research/followup-checks.md](research/followup-checks.md).
 
 ### Scope has to be bounded (Proposed)
 
@@ -224,7 +239,7 @@ In Transformer Explainer's study, video viewers felt they understood as well as 
 
 ### Accessibility and fallback (Proposed)
 
-Plan early for step text outside the SVG, reduced motion, keyboard control and a static render for print and search. Wide diagrams on phones are a known risk.
+Plan early for step text outside the SVG, reduced motion, keyboard control and a static render for print and search. Wide diagrams on phones are a known risk. **Decided:** desktop comes first, and phone support comes later once it is clear which functionality fits a smaller workspace. Nothing may make that impossible ([ADR-008](adr/008-desktop-first-without-ruling-out-phones.md)).
 
 ### Competition and demand (Proposed)
 
@@ -245,11 +260,12 @@ An order for later releases. **Proposed**, and expected to change.
 | Actors, issuer, tokens | Concept layer | Explained on the lifelines themselves |
 | Client registration, discovery | Setup phase | Steps before any user arrives |
 | Authorization code | Base flow | The main flow |
-| OIDC | Modifier | Adds the `openid` scope, an ID token and UserInfo |
+| OIDC | Modifier | Adds the `openid` scope, an ID token and UserInfo. The access token does not change on a default Keycloak client |
 | PKCE | Modifier | Adds `code_challenge` and `code_verifier` |
 | Public or confidential client | Exclusive | Changes setup and the token request |
 | Pre-registered, DCR or CIMD | Exclusive | Changes the setup phase. CIMD is the `cimd` flag, experimental |
 | External IdP (brokering) | Modifier | Adds a lifeline and a nested flow |
+| Stored upstream tokens | Modifier on brokering, then API V1 or V2 | Adds a retrieval call after login. V2 needs a confidential client |
 | User federation | Modifier | Adds a server-side lookup, no redirect |
 | PAR | Modifier | Adds a back-channel push and changes the front channel |
 | Bearer, DPoP or mTLS | Exclusive | Cross-cutting, and DPoP adds a nonce retry |
@@ -263,24 +279,26 @@ An order for later releases. **Proposed**, and expected to change.
 
 **Proposed.**
 
-**Step 0: test the model and the transition before polish.** The riskiest assumption is that one data model can absorb very different kinds of change. Model three toggles that change the diagram in different ways:
+**Step 0: test the model and the transition before polish.** The riskiest assumption is that one data model can absorb very different kinds of change. Model toggles that change the diagram in different ways:
 
 - **OIDC:** adds a scope, a token and an endpoint.
 - **DPoP:** touches several steps and adds a retry.
 - **Brokering:** adds a lifeline and a nested flow.
+- **Stored upstream tokens:** only valid with brokering, with an exclusive choice of API version, so it tests constraints.
 
-Then build a rough animated prototype, because the data model alone will not show whether the transition lands. If one model handles all three, the toggle idea holds. If brokering breaks it, it is better to know now. A starting sketch is in [notes/format_benchmark.md](research/notes/format_benchmark.md), under the technical approaches section. These three are test cases for the prototype, and brokering is not part of the first version.
+Then build a rough animated prototype, because the data model alone will not show whether the transition lands. If one model handles all three, the toggle idea holds. If brokering breaks it, it is better to know now. A starting sketch is in [notes/format_benchmark.md](research/notes/format_benchmark.md), under the technical approaches section. These are test cases for the prototype, and brokering is not part of the first version. The maintainer wants to discuss this step before it is built ([ADR-001](adr/001-an-agent-builds-and-the-maintainer-reviews.md)).
 
 **Then the first version, as a working application:**
 
-1. **Application shell:** the diagram, step controls, settings, simple and advanced mode, and all state in the URL.
-2. **Concept layer on the diagram:** select a lifeline to learn what the user, app, IdP and API are, and what an issuer is.
-3. **Setup phase:** client registration, redirect URI and discovery.
-4. **Authorization code flow:** stepped through with only what is relevant at each step.
-5. **One toggle, OAuth to OIDC:** with the animated transition.
-6. **Advanced mode:** parameters and raw request and response for these steps, with `Execute`.
-7. **Keycloak overlay:** a first few settings, such as valid redirect URIs and client scopes.
-8. **CI from the first code commit:** build, flow model tests and the automated click-through.
+1. **Entry map:** the home screen, with a node for each state this version offers.
+2. **Application shell:** the diagram, step controls, settings, simple and advanced mode, and all state in the URL.
+3. **Concept layer on the diagram:** select a lifeline to learn what the user, app, IdP and API are, and what an issuer is.
+4. **Setup phase:** client registration, redirect URI and discovery.
+5. **Authorization code flow:** stepped through with only what is relevant at each step.
+6. **One toggle, OAuth to OIDC:** with the animated transition.
+7. **Advanced mode:** parameters and raw request and response for these steps, with `Execute` where it adds something.
+8. **Keycloak overlay:** a first few settings, such as valid redirect URIs and client scopes.
+9. **CI and Storybook from the first code commit:** build, type checks, flow model tests, the Storybook build and the automated click-through, all blocking merges.
 
 OAuth to OIDC comes first because it takes on the most reported confusion with a single switch, where IdentiFlows uses separate pages.
 
@@ -290,19 +308,25 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 
 - This is a web application in its own proper repository.
 - CI runs an **automated click-through** that validates the site through changes.
-- **Storybook** might be beneficial. Not yet decided.
+- CI blocks merges from the first code commit ([ADR-006](adr/006-ci-gates-every-change-from-the-first-commit.md)).
+- **Storybook** is there from the start, to set the precedent ([ADR-007](adr/007-every-component-has-a-story.md)).
+- The repository goes public, with a licence that allows reuse and modification and requires attribution ([ADR-009](adr/009-code-is-apache-and-content-is-cc-by.md)).
+- The site is completely static, with no state outside the visitor's browser, and on GitHub Pages for now ([ADR-010](adr/010-static-files-on-github-pages.md)).
+- Tooling is whatever suits the JavaScript ecosystem, so no Taskfile ([ADR-011](adr/011-tooling-follows-the-javascript-ecosystem.md)).
 
 **Proposed: what CI should prove**, because the toggles make this more than a generic end-to-end suite:
 
 | Layer | Checks |
 |---|---|
 | Flow model | Every valid combination builds, invalid ones are rejected, step IDs stay stable |
-| Component states (Storybook or similar) | Each step, field and depth state renders in isolation |
-| Click-through (Playwright or similar) | For each named preset: walk every step, flip toggles, assert the visible steps match the model, use keyboard control |
-| Visual regression | Screenshots of key states, with animation frozen through reduced motion |
-| Keycloak recordings | Regenerate against a pinned Keycloak in CI, and check on a schedule against new releases to detect drift |
+| Component states (Storybook) | Each component renders in each of its states in isolation, such as step, field and mode |
+| Click-through (Playwright) | For each named state: walk every step, flip toggles, switch mode, assert the visible steps match the model, use keyboard control, and open a fixed list of URLs that must keep showing the same state |
+| Visual regression | Screenshots of key states, with animation frozen through reduced motion. Added once the visual language has settled |
+| Keycloak recordings | Regenerate on demand against a pinned Keycloak, 26.8.1 for now, and check weekly against new releases to detect drift. Not on every pull request |
 
-**Proposed: choose the stack as for an application.** Client-side state (flow, settings, mode, step) drives everything on screen. So use an application framework whose components work with Storybook and Playwright, for example React or Svelte on Vite, with flow definitions as typed data and GSAP or Motion for transitions. The choice is open.
+**Proposed: choose the stack as for an application, to discuss with step 0.** Client-side state (flow, settings, mode, step) drives everything on screen. The flow model and engine are plain TypeScript, with flow definitions as typed data, so they do not depend on the view framework. The view is Svelte on SvelteKit with its static adapter, because a public audience has to find the map and named states through search, and those can be prerendered while the application stays client-side. GSAP or Motion handles transitions.
+
+The maintainer doubted SvelteKit because it might be harder to host as static files. A test on a Pages-style server did not bear that out, and it was plain Svelte on Vite that had the problem with deep links. It did find other costs. Details are in [research/followup-checks.md](research/followup-checks.md). The maintainer has not yet chosen between the two.
 
 A content-site setup, with prose pages and the diagram as one embedded island, is what the research suggested. It is not the default, because it treats the diagram as an illustration.
 
@@ -315,6 +339,7 @@ A content-site setup, with prose pages and the diagram as one embedded island, i
 
 - An article, blog post, scrolling essay or slide deck.
 - A presenter view or slide export.
+- Designing for phones first (section 6).
 - A debugger for your own server. oauth.tools, OAuth Debugger and others already do this.
 - Comparing vendors or IdPs.
 - A tour of Keycloak features.
@@ -323,35 +348,23 @@ A content-site setup, with prose pages and the diagram as one embedded island, i
 
 ## 11. Open questions, and the next session's job
 
-**The next session should work out the structure of the application.** The questions it needs to settle or raise:
+Still to settle:
 
-- **Screens and layout:** where the diagram, step detail, settings and mode control sit, and how this works on a phone.
-- **First use:** what someone sees and does in their first 30 seconds, and the default state, such as opening on login with setup collapsed.
-- **State and routing:** the shape of the state (flow, settings, mode, step), its URLs, and how the concept layer, setup phase and flows relate within it.
-- **Control model:** the schema for base flows, modifiers, exclusive choices, constraints and presets. Run step 0 from section 8.
-- **Modes:** what happens to an advanced setting when someone switches back to simple mode, and whether simple mode has `Execute`.
-- **Execute:** how values carry across steps, and how replayed recordings fit with free combinations of toggles.
-- **Setup phase:** how to draw human steps in a sequence-style diagram.
-- **Recording pipeline:** how to capture Keycloak traffic per combination, and which version to pin.
-- **Stack and test tooling:** confirm or replace section 9, including Storybook, and how the click-through runs in CI from the start.
-
-A talk, a slide deck or a list of colleagues' questions is not needed before this work. Such input can help order the toggles and shape the content later.
-
-For the maintainer to decide:
-
-- **"Token brokering":** does this mean identity brokering, token exchange, or stored upstream tokens? They differ in Keycloak.
-- **Audience and language:** team first in which language? English for the public site?
-- **Visibility and licence:** the repo is private for now. Public repos get different GitHub Actions minutes, which matters once CI runs Playwright. No licence is chosen.
+- **Entry map:** whether a node is a named state as proposed in section 5.9, which nodes the first version has, and whether it shows planned ones.
+- **First use of the application screen:** **Proposed:** faint arrows, setup collapsed, the cast of lifelines in the step detail, and Next as the obvious action.
+- **Keycloak overlay:** whether visitors can turn it off.
+- **State and routing:** the URL shape. **Proposed:** the flow in the path, with settings, mode and step in the query, and a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting or mode adds one.
+- **Control model:** the schema for base flows, modifiers, exclusive choices, constraints and presets. Discuss and then run step 0 from section 8.
+- **Recording pipeline:** how to capture Keycloak traffic per combination.
+- **Framework:** SvelteKit or plain Svelte on Vite (section 9), when discussing step 0.
 - **Name and domain:** `visual-auth-explainer` is a working name only.
-- **Process:** whether to adopt the maintainer's [ADR and GitHub issues skills](https://github.com/vriesdemichael/skills-adr-with-gh-issues), which expect `docs/decisions/`.
-- **Reuse:** whether [keycloak-gitops](https://github.com/vriesdemichael/keycloak-gitops) or [keycloak-operator](https://github.com/vriesdemichael/keycloak-operator) can provide realm configuration or CI patterns.
 
 ## 12. How to know it is working
 
 **Proposed.** No deadline has been set. Success means people use the application and it stays cheap to grow.
 
 - The maintainer reaches for it instead of drawing a new diagram, including when presenting.
-- Colleagues open it unprompted and can get to the settings that match their question.
+- People find it, come back to it unprompted, and can get to the settings that match their question.
 - Adding a toggle is a small change of flow data, recordings and tests, and the click-through still passes.
 - If new toggles keep forcing engine changes, rethink the model before adding more.
 - If IdentiFlows ships toggles first, drop the general mechanic as the differentiator and keep the Keycloak layer.
