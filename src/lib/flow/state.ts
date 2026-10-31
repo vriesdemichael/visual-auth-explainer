@@ -16,12 +16,21 @@ import {
 	type SettingId,
 	type Settings
 } from '#lib/flow/settings.ts';
+import { sources, type SourceId, type SourceRef } from '#lib/sources/sources.ts';
+
+/** A source someone opened from a setting, which is what says what it means here. */
+export interface OpenSource {
+	id: SourceId;
+	setting: SettingId;
+	section: string | null;
+}
 
 export interface AppState {
 	flow: string;
 	diagram: DiagramId;
 	settings: Settings;
 	step: string;
+	source: OpenSource | null;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
@@ -53,6 +62,16 @@ function diagramFor(base: BaseFlow, onPath: DiagramId, params: URLSearchParams):
 	return params.get('setup') === '1' ? 'setup' : onPath;
 }
 
+/** A link naming something that does not exist opens nothing, as other unknown values do. */
+function parseSource(params: URLSearchParams): OpenSource | null {
+	const setting = settingIds.find((id) => settingDefs[id].param === params.get('for'));
+	if (!setting) return null;
+	const ref = settingDefs[setting].sources.find((r) => r.source === params.get('source'));
+	if (!ref) return null;
+	const section = sources[ref.source].textFile ? params.get('section') : null;
+	return { id: ref.source, setting, section };
+}
+
 export function parseState(base: BaseFlow, onPath: DiagramId, search: string): AppState {
 	const params = new URLSearchParams(search);
 	const requested = Object.fromEntries(
@@ -65,7 +84,8 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 		flow: base.id,
 		diagram,
 		settings,
-		step: resolveStep(flow, evaluate(flow, settings), params.get('step'))
+		step: resolveStep(flow, evaluate(flow, settings), params.get('step')),
+		source: parseSource(params)
 	};
 }
 
@@ -78,6 +98,11 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 		params.set(settingDefs[id].param, typeof value === 'boolean' ? (value ? '1' : '0') : value);
 	}
 	if (state.step !== viewOf(base, state).steps[0].id) params.set('step', state.step);
+	if (state.source) {
+		params.set('source', state.source.id);
+		params.set('for', settingDefs[state.source.setting].param);
+		if (state.source.section) params.set('section', state.source.section);
+	}
 	return params.toString();
 }
 
@@ -88,7 +113,8 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		flow: base.id,
 		diagram: 'flow',
 		settings: merged,
-		step: resolveStep(flow, evaluate(flow, merged), null)
+		step: resolveStep(flow, evaluate(flow, merged), null),
+		source: null
 	});
 }
 
@@ -113,6 +139,18 @@ export function withDiagram(
 ): AppState {
 	const flow = base.diagrams[diagram];
 	return { ...state, diagram, step: resolveStep(flow, evaluate(flow, state.settings), step) };
+}
+
+export function withSourceOpen(state: AppState, setting: SettingId, ref: SourceRef): AppState {
+	return { ...state, source: { id: ref.source, setting, section: ref.section ?? null } };
+}
+
+export function withSourceSection(state: AppState, section: string | null): AppState {
+	return state.source ? { ...state, source: { ...state.source, section } } : state;
+}
+
+export function withSourceClosed(state: AppState): AppState {
+	return { ...state, source: null };
 }
 
 export function nextStep(base: BaseFlow, state: AppState): AppState | null {

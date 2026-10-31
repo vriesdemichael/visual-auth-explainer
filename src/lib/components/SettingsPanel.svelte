@@ -8,13 +8,15 @@
 		type SettingId,
 		type Settings
 	} from '#lib/flow/settings.ts';
+	import { refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	interface Props {
 		settings: Settings;
 		onchange: <K extends SettingId>(id: K, value: Settings[K]) => void;
+		onopensource: (setting: SettingId, ref: SourceRef) => void;
 	}
 
-	let { settings, onchange }: Props = $props();
+	let { settings, onchange, onopensource }: Props = $props();
 
 	const offered = $derived(settingIds.filter((id) => isOffered(id, settings)));
 	const defOf = (id: SettingId): SettingDef => settingDefs[id];
@@ -57,7 +59,19 @@
 			</fieldset>
 		{/if}
 		<p>{def.summary}</p>
-		<p class="source">{def.source}</p>
+		<ul class="sources">
+			{#each def.sources as ref (ref.source)}
+				<li>
+					<button
+						type="button"
+						data-source-ref={`${id}:${ref.source}`}
+						onclick={() => onopensource(id, ref)}
+					>
+						{refLabel(ref)}
+					</button>
+				</li>
+			{/each}
+		</ul>
 	</section>
 {/each}
 
@@ -110,8 +124,22 @@
 		font-size: 12px;
 	}
 
-	.source {
-		font-size: 11px;
-		opacity: 0.8;
+	.sources {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 2px 10px;
+		margin: 3px 0 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.sources button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font-size: 11.5px;
+		text-align: left;
+		text-decoration: underline;
 	}
 </style>

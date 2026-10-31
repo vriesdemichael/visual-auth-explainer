@@ -6,3 +6,8 @@ Code is licensed under the Apache License, Version 2.0 (see LICENSE).
 Content is licensed under Creative Commons Attribution 4.0 International
 (see LICENSE-CONTENT). See docs/adr/009-code-is-apache-and-content-is-cc-by.md
 for what counts as which.
+
+The RFCs in static/rfc are not under those licences. They are copyright the
+IETF Trust and the persons identified as the document authors, and are
+reproduced in full and without modification under the IETF Trust Legal
+Provisions (https://trustee.ietf.org/license-info).

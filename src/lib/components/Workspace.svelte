@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import Diagram from '#lib/components/Diagram.svelte';
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import SettingsPanel from '#lib/components/SettingsPanel.svelte';
+	import SourcePanel from '#lib/components/SourcePanel.svelte';
 	import StepControls from '#lib/components/StepControls.svelte';
 	import StepDetail from '#lib/components/StepDetail.svelte';
 	import { freshIds } from '#lib/diagram/fresh.ts';
@@ -15,14 +16,18 @@
 		type DiagramId,
 		type ViewDiff
 	} from '#lib/flow/model.ts';
-	import type { Reset, SettingId, Settings } from '#lib/flow/settings.ts';
+	import { settingDefs, type Reset, type SettingId, type Settings } from '#lib/flow/settings.ts';
 	import {
 		nextStep,
 		previousStep,
 		withDiagram,
 		withSetting,
+		withSourceClosed,
+		withSourceOpen,
+		withSourceSection,
 		type AppState
 	} from '#lib/flow/state.ts';
+	import { sources } from '#lib/sources/sources.ts';
 
 	interface Props {
 		base: BaseFlow;
@@ -30,10 +35,19 @@
 		animate?: boolean;
 		homeHref: string;
 		hrefFor: (state: AppState) => string;
+		loadText: (file: string) => Promise<string>;
 		onnavigate: (next: AppState, history: 'push' | 'replace') => void;
 	}
 
-	let { base, state: appState, animate = true, homeHref, hrefFor, onnavigate }: Props = $props();
+	let {
+		base,
+		state: appState,
+		animate = true,
+		homeHref,
+		hrefFor,
+		loadText,
+		onnavigate
+	}: Props = $props();
 
 	const flow = $derived(base.diagrams[appState.diagram]);
 	const view = $derived(evaluate(flow, appState.settings));
@@ -112,10 +126,35 @@
 	const back = () => go(previousStep(base, appState));
 	const forward = () => go(nextStep(base, appState));
 
+	const openSource = $derived(appState.source);
+	const openWhy = $derived(
+		openSource
+			? settingDefs[openSource.setting].sources.find((ref) => ref.source === openSource.id)?.why
+			: undefined
+	);
+	const closeSource = () => onnavigate(withSourceClosed(appState), 'push');
+
+	// Back to the source that opened it, however it closed, so a keyboard user keeps their place.
+	let lastSource = untrack(() => appState.source);
+	$effect(() => {
+		const source = appState.source;
+		untrack(() => {
+			if (lastSource && !source) {
+				const opener = `[data-source-ref="${lastSource.setting}:${lastSource.id}"]`;
+				tick().then(() => window.document.querySelector<HTMLElement>(opener)?.focus());
+			}
+			lastSource = source;
+		});
+	});
+
 	function onkeydown(event: KeyboardEvent) {
 		if (event.altKey || event.ctrlKey || event.metaKey) return;
+		if (event.key === 'Escape' && appState.source) {
+			closeSource();
+			return;
+		}
 		const target = event.target as HTMLElement;
-		if (target.closest('input, select, textarea')) return;
+		if (target.closest('input, select, textarea, [data-testid="source-panel"]')) return;
 		if (event.key === 'ArrowRight') {
 			event.preventDefault();
 			forward();
@@ -139,7 +178,11 @@
 	</header>
 
 	<aside class="settings">
-		<SettingsPanel settings={appState.settings} onchange={setSetting} />
+		<SettingsPanel
+			settings={appState.settings}
+			onchange={setSetting}
+			onopensource={(setting, ref) => onnavigate(withSourceOpen(appState, setting, ref), 'push')}
+		/>
 	</aside>
 
 	<main class="diagram">
@@ -171,6 +214,21 @@
 			onnext={forward}
 		/>
 	</footer>
+
+	{#if openSource && openWhy}
+		<div class="source" class:wide={sources[openSource.id].textFile}>
+			{#key `${openSource.setting}:${openSource.id}`}
+				<SourcePanel
+					source={sources[openSource.id]}
+					why={openWhy}
+					section={openSource.section}
+					{loadText}
+					onsection={(section) => onnavigate(withSourceSection(appState, section), 'replace')}
+					onclose={closeSource}
+				/>
+			{/key}
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -236,5 +294,22 @@
 		grid-area: controls;
 		border-top: 1px solid var(--line);
 		padding: 8px 16px;
+	}
+
+	/* Over the step detail, so the diagram stays put. An RFC's lines need a little more room. */
+	.source {
+		grid-row: 2 / 4;
+		grid-column: 2 / 4;
+		justify-self: end;
+		z-index: 2;
+		width: 330px;
+		overflow-y: auto;
+		background: var(--bg);
+		border-left: 1px solid var(--line);
+		box-shadow: -8px 0 24px rgb(0 0 0 / 0.12);
+	}
+
+	.source.wide {
+		width: min(570px, 100%);
 	}
 </style>

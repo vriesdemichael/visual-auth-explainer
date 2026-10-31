@@ -1,1 +1,3 @@
 * text=auto eol=lf
+# Each one has to stay byte for byte what was published (ADR-009).
+static/rfc/*.txt -text

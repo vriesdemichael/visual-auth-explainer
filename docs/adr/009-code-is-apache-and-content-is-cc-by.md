@@ -2,9 +2,12 @@
 
 Code is under Apache-2.0 (`LICENSE`). Content is under CC BY 4.0 (`LICENSE-CONTENT`): explanations, flow definitions, diagrams, recordings and documents. `NOTICE` says what to credit. Text from others that the research notes quote or summarise stays with its authors.
 
+RFC text stays under the IETF Trust's Legal Provisions. Section 3.c of version 5.0 allows anyone to display an RFC "in full and without modification", so `static/rfc/` holds whole documents exactly as published, a test pins the hash of each file, and the application never trims one to excerpts. What the application says about a source is in our own words. Other sources get a summary and a link, and their text is not copied.
+
 The maintainer wants reuse and modification allowed, with attribution required, and both licences do that. Apache-2.0 requires a derivative to keep `NOTICE`, and CC BY requires credit for reused content. Neither forces a visible credit on a site that only reuses the code. Apache-2.0 is also what mm-mcp, bitbucket-data-center-cli and Keycloak use. There are two licences because Creative Commons advises against its licences for software.
 
 ## Not chosen
 
 - **MIT for everything**: Its notice stays with copies of the source, and does not ask for credit when someone reuses the explanations.
 - **CC BY-SA or a copyleft code licence**: They add share-alike, which was not asked for.
+- **Fetching RFCs from rfc-editor.org in the browser**: It allows that, but every reader would call a third party, and an RFC never changes, so a copy costs nothing.

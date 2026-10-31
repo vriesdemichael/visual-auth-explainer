@@ -13,6 +13,7 @@ const meta = {
 		animate: false,
 		homeHref: '#',
 		hrefFor: () => '#',
+		loadText: () => Promise.resolve('1.  Introduction\n\n   A stand-in for the text of an RFC.\n'),
 		onnavigate: () => {}
 	}
 } satisfies Meta<typeof Workspace>;
@@ -32,4 +33,8 @@ export const Setup: Story = {
 
 export const SetupWithAnExternalIdP: Story = {
 	args: { state: parseState(base, 'setup', 'broker=1&upstream=v2&step=enable-token-storage') }
+};
+
+export const WithASourceOpen: Story = {
+	args: { state: parseState(base, 'flow', 'binding=dpop&source=rfc9449&for=binding') }
 };
