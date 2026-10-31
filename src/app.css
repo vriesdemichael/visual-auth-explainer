@@ -1,17 +1,54 @@
+@import '@fontsource-variable/ibm-plex-sans';
+@import '@fontsource/ibm-plex-mono/400.css';
+@import '@fontsource/ibm-plex-mono/500.css';
+
+/*
+ * A colour means one thing everywhere (ADR-014). src/theme.test.ts holds these to WCAG AA, in both
+ * themes, so a new pair of text and background belongs in that test as well.
+ */
 :root {
 	color-scheme: light dark;
-	--bg: light-dark(#ffffff, #14161a);
-	--panel: light-dark(#f6f7f9, #1b1e24);
-	--fg: light-dark(#14171f, #e9ebf0);
-	--muted: light-dark(#5c6470, #9aa2af);
-	--line: light-dark(#d5d9e0, #343943);
-	--strong-line: light-dark(#8a92a0, #6d7583);
-	--accent: light-dark(#3346d3, #8a9bff);
-	--accent-soft: light-dark(#e8ebff, #252a4d);
-	--fresh: light-dark(#b34700, #ffa666);
-	--fresh-soft: light-dark(#fff0e4, #3d2a1a);
-	--human: light-dark(#7a3fb5, #c79bf2);
-	--mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+	--bg: light-dark(#fbfbfd, #12141a);
+	--panel: light-dark(#f1f2f6, #1a1d25);
+	--raised: light-dark(#ffffff, #20242e);
+	--fg: light-dark(#141720, #eceef3);
+	--muted: light-dark(#555d6c, #a3abb9);
+	--line: light-dark(#dcdfe7, #323743);
+	--strong-line: light-dark(#8b93a3, #6f7787);
+	--on-tone: light-dark(#ffffff, #12141a);
+
+	/* Where you are. */
+	--accent: light-dark(#3b37d6, #a5aeff);
+	--accent-soft: light-dark(#ecebff, #262a52);
+
+	/* What a setting just changed. */
+	--fresh: light-dark(#be185d, #f688bd);
+	--fresh-soft: light-dark(#fde8f1, #3a1a2b);
+
+	/* How a message travels. */
+	--front: light-dark(#b45309, #f5a35c);
+	--back: light-dark(#0f766e, #4fd1c5);
+	--people: light-dark(#7a3fb5, #c79bf2);
+
+	/* What it carries. */
+	--password: light-dark(#b91c1c, #fb8a8a);
+	--password-soft: light-dark(#fdecec, #3b1a1a);
+	--code: light-dark(#926000, #f2c94c);
+	--code-soft: light-dark(#fdf6d8, #37300f);
+	--secret: light-dark(#9f1239, #fb7f99);
+	--secret-soft: light-dark(#ffe9ee, #3b1622);
+	--access: light-dark(#1d4ed8, #93b4ff);
+	--access-soft: light-dark(#e7eefe, #1a2647);
+	--identity: light-dark(#14763a, #4ade80);
+	--identity-soft: light-dark(#e5f6ea, #12301d);
+	--proof: light-dark(#0e7490, #38d6ee);
+	--proof-soft: light-dark(#e0f5f9, #0f2f37);
+	--upstream: light-dark(#4b5563, #aab2bf);
+	--upstream-soft: light-dark(#eceef1, #2a2e36);
+
+	--sans: 'IBM Plex Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+	--mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 }
 
 * {
@@ -24,11 +61,7 @@ body {
 	height: 100%;
 	background: var(--bg);
 	color: var(--fg);
-	font:
-		14px/1.5 system-ui,
-		-apple-system,
-		'Segoe UI',
-		sans-serif;
+	font: 14px/1.5 var(--sans);
 }
 
 .pending .workspace {
@@ -38,10 +71,10 @@ body {
 button {
 	font: inherit;
 	color: inherit;
-	background: var(--panel);
+	background: var(--raised);
 	border: 1px solid var(--line);
-	border-radius: 6px;
-	padding: 5px 12px;
+	border-radius: 7px;
+	padding: 5px 14px;
 	cursor: pointer;
 }
 

@@ -77,14 +77,15 @@
 
 <style>
 	h2 {
-		margin: 0 0 12px;
+		margin: 0 0 10px;
 		font-size: 13px;
 		font-weight: 600;
 		color: var(--muted);
 	}
 
 	section {
-		margin-bottom: 16px;
+		padding: 10px 0;
+		border-top: 1px solid var(--line);
 	}
 
 	label {
@@ -95,6 +96,58 @@
 	.toggle,
 	legend {
 		font-weight: 600;
+	}
+
+	.toggle {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-direction: row-reverse;
+		gap: 8px;
+	}
+
+	.toggle input {
+		appearance: none;
+		flex: none;
+		position: relative;
+		width: 32px;
+		height: 18px;
+		margin: 0;
+		border-radius: 9px;
+		background: var(--strong-line);
+		cursor: pointer;
+		transition: background 0.15s;
+	}
+
+	.toggle input::after {
+		content: '';
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: var(--bg);
+		transition: transform 0.15s;
+	}
+
+	.toggle input:checked {
+		background: var(--accent);
+	}
+
+	.toggle input:checked::after {
+		transform: translateX(14px);
+	}
+
+	input[type='radio'] {
+		accent-color: var(--accent);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.toggle input,
+		.toggle input::after {
+			transition: none;
+		}
 	}
 
 	fieldset {

@@ -93,6 +93,7 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 		rows: blend(from.rows, to.rows, t, (a, b, p) => ({
 			...b,
 			y: lerp(a.y, b.y, p),
+			band: lerp(a.band, b.band, p),
 			x1: lerp(a.x1, b.x1, p),
 			x2: lerp(a.x2, b.x2, p),
 			label: p < 0.5 ? a.label : b.label

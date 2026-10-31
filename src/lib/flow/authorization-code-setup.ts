@@ -21,12 +21,14 @@ export const authorizationCodeSetup: FlowDef = {
 			id: 'app-team',
 			name: 'App team',
 			role: 'People',
+			icon: 'people',
 			concept: 'The people who build and run the app. They know where it runs.'
 		},
 		{
 			id: 'app',
 			name: 'App',
 			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
+			icon: 'app',
 			concept: 'The application being set up. It has to learn about the IdP before anyone logs in.'
 		},
 		{
@@ -37,18 +39,21 @@ export const authorizationCodeSetup: FlowDef = {
 				{ when: oidc, text: 'OpenID provider' },
 				{ text: 'Authorization server' }
 			],
+			icon: 'idp',
 			concept: 'The identity provider. It has to know about the app, and the issuer names it.'
 		},
 		{
 			id: 'idp-admin',
 			name: 'IdP admin',
 			role: 'People',
+			icon: 'people',
 			concept: 'The people who run the IdP. They register apps in its admin console.'
 		},
 		{
 			id: 'upstream',
 			name: 'Upstream IdP',
 			role: 'External provider',
+			icon: 'upstream',
 			concept: 'Another identity provider, which the IdP will trust to log users in.',
 			when: broker
 		}
@@ -81,7 +86,7 @@ export const authorizationCodeSetup: FlowDef = {
 				'The admin enters those values in the admin console. From here on, the IdP knows this app.',
 			fields: [
 				{ name: 'client_id', place: 'setting' },
-				{ name: 'client_secret', place: 'setting', when: confidential }
+				{ name: 'client_secret', place: 'setting', artifact: 'secret', when: confidential }
 			]
 		},
 		{
@@ -102,7 +107,7 @@ export const authorizationCodeSetup: FlowDef = {
 			],
 			fields: [
 				{ name: 'client_id', place: 'setting' },
-				{ name: 'client_secret', place: 'setting', when: confidential }
+				{ name: 'client_secret', place: 'setting', artifact: 'secret', when: confidential }
 			]
 		},
 		{
@@ -158,7 +163,7 @@ export const authorizationCodeSetup: FlowDef = {
 			fields: [
 				{ name: 'issuer', place: 'setting' },
 				{ name: 'client_id', place: 'setting' },
-				{ name: 'client_secret', place: 'setting', when: confidential }
+				{ name: 'client_secret', place: 'setting', artifact: 'secret', when: confidential }
 			]
 		},
 		{

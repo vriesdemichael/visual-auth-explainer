@@ -16,6 +16,8 @@ jobs:
   verify:
     name: CI Complete
     runs-on: ubuntu-latest
+    # The screenshot baselines come from this image. Keep its version the same as @playwright/test.
+    container: mcr.microsoft.com/playwright:v1.64.1-noble
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
@@ -29,7 +31,6 @@ jobs:
       - run: pnpm lint
       - run: pnpm check
       - run: pnpm test:unit
-      - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
       - uses: actions/upload-artifact@v7
         if: failure()
