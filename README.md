@@ -1,6 +1,6 @@
 # visual-auth-explainer
 
-An interactive visual explainer for OAuth, OIDC and authn/authz. It starts from the most basic concepts and one flow, then builds up through toggles on the same sequence diagram, with each step showing only what is relevant at that point. Keycloak is the reference that flows are traced against.
+An interactive web application for exploring OAuth, OIDC and authn/authz visually. It starts from the most basic concepts and one flow, then builds up through toggles on the same sequence diagram, with each step showing only what is relevant at that point. Keycloak is the reference that flows are traced against.
 
 There is no application code yet. This is a working name, and the repo currently holds the premise and the research behind it.
 

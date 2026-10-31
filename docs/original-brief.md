@@ -56,3 +56,7 @@ The maintainer's messages from the conversation that started this project on 202
 > Can you put the premise in the repository so session can be triggered from there (instead of this repo focussed on blogs)
 >
 > Then in the other session, with the premise clear it could start working out details such as the structure of the site.
+
+## After the first session read the premise
+
+> There is a new session that read your premise and read it like a blog instead of an interactive website.
