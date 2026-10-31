@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/sveltekit';
 import StepDetail from '#lib/components/StepDetail.svelte';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
+import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { diffViews, evaluate } from '#lib/flow/model.ts';
 import { defaultSettings, type Settings } from '#lib/flow/settings.ts';
 
@@ -36,7 +37,18 @@ export const Internal: Story = {
 };
 
 export const PeopleNotHttp: Story = {
-	args: { step: stepIn('register-client') }
+	args: {
+		step: evaluate(setup, defaultSettings).steps[0],
+		lifelines: evaluate(setup, defaultSettings).lifelines
+	}
+};
+
+export const WithALinkToTheOtherDiagram: Story = {
+	args: { links: [{ text: 'See where the redirect URI was registered', href: '#' }] }
+};
+
+export const ASettingThatOnlyChangesTheOtherDiagram: Story = {
+	args: { elsewhere: { text: 'It changes the user flow.', href: '#' } }
 };
 
 export const OnlyBecauseOfASetting: Story = {

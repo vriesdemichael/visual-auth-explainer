@@ -18,11 +18,6 @@ export interface LifelineDef {
 	when?: Condition;
 }
 
-export interface PhaseDef {
-	id: string;
-	label: string;
-}
-
 export interface GroupDef {
 	id: string;
 	label: string;
@@ -38,15 +33,24 @@ export interface FieldDef {
 	when?: Condition;
 }
 
+export type DiagramId = 'flow' | 'setup';
+
+/** A way from a step to a related one in the other diagram. */
+export interface StepLink {
+	diagram: DiagramId;
+	step: string;
+	text: string;
+}
+
 export interface StepDef {
 	id: string;
-	phase: string;
 	from: string;
 	to: string;
 	kind: StepKind;
 	label: Text;
 	concept: Text;
 	group?: string;
+	links?: readonly StepLink[];
 	fields?: readonly FieldDef[];
 	when?: Condition;
 }
@@ -57,9 +61,14 @@ export interface FlowDef {
 	title: string;
 	summary: string;
 	lifelines: readonly LifelineDef[];
-	phases: readonly PhaseDef[];
 	groups: readonly GroupDef[];
 	steps: readonly StepDef[];
+}
+
+/** A base flow has two diagrams, because nobody in the user flow does the setup. */
+export interface BaseFlow {
+	id: string;
+	diagrams: Readonly<Record<DiagramId, FlowDef>>;
 }
 
 export interface Lifeline {
@@ -81,13 +90,13 @@ export interface Field {
 
 export interface Step {
 	id: string;
-	phase: string;
 	from: string;
 	to: string;
 	kind: StepKind;
 	label: string;
 	concept: string;
 	group?: string;
+	links: readonly StepLink[];
 	fields: Field[];
 	causes: SettingId[];
 }
@@ -97,7 +106,6 @@ export interface FlowView {
 	lifelines: Lifeline[];
 	steps: Step[];
 	groups: GroupDef[];
-	phases: readonly PhaseDef[];
 }
 
 function resolve(text: Text, settings: Settings): string {
@@ -115,13 +123,13 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 		.filter((step) => present(step.when, settings))
 		.map((step) => ({
 			id: step.id,
-			phase: step.phase,
 			from: step.from,
 			to: step.to,
 			kind: step.kind,
 			label: resolve(step.label, settings),
 			concept: resolve(step.concept, settings),
 			group: step.group,
+			links: step.links ?? [],
 			causes: causes(step.when),
 			fields: (step.fields ?? [])
 				.filter((field) => present(field.when, settings))
@@ -146,8 +154,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 				causes: causes(lifeline.when)
 			})),
 		steps,
-		groups: flow.groups.filter((group) => present(group.when, settings)),
-		phases: flow.phases
+		groups: flow.groups.filter((group) => present(group.when, settings))
 	};
 }
 

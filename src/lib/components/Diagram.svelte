@@ -9,23 +9,19 @@
 		fresh?: ReadonlySet<string>;
 		animate?: boolean;
 		onselect?: (step: string) => void;
-		ontogglesetup?: () => void;
 	}
 
-	let {
-		layout,
-		currentStep,
-		fresh = new Set(),
-		animate = true,
-		onselect,
-		ontogglesetup
-	}: Props = $props();
+	let { layout, currentStep, fresh = new Set(), animate = true, onselect }: Props = $props();
 
 	let frame = $state<Frame>(untrack(() => toFrame(layout)));
 	let animating = $state(false);
 	let scroller = $state<HTMLElement>();
+	let drawn = untrack(() => layout);
 
 	$effect(() => {
+		// The first frame is already this layout, so a new diagram appears without moving.
+		if (layout === drawn) return;
+		drawn = layout;
 		const target = toFrame(layout);
 		const start = untrack(() => $state.snapshot(frame)) as Frame;
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -106,27 +102,6 @@
 					style:opacity={lane.opacity}
 				/>
 			{/each}
-
-			<g
-				class="band"
-				role="button"
-				tabindex="0"
-				aria-expanded={frame.band.open}
-				data-testid="setup-band"
-				onclick={ontogglesetup}
-				onkeydown={(event) => {
-					if (event.key === 'Enter' || event.key === ' ') {
-						event.preventDefault();
-						ontogglesetup?.();
-					}
-				}}
-			>
-				<rect x="8" y={frame.band.y} width={frame.width - 16} height="30" rx="6" />
-				<text x="22" y={frame.band.y + 20}>
-					{frame.band.open ? '▾' : '▸'}
-					{frame.band.label} ({frame.band.count} steps)
-				</text>
-			</g>
 
 			{#each frame.groups as group (group.id)}
 				<g
@@ -263,23 +238,6 @@
 	.lifeline {
 		stroke: var(--line);
 		stroke-dasharray: 3 4;
-	}
-
-	.band {
-		cursor: pointer;
-	}
-
-	.band rect {
-		fill: var(--panel);
-		stroke: var(--line);
-	}
-
-	.band text {
-		fill: var(--muted);
-	}
-
-	.band:hover rect {
-		stroke: var(--strong-line);
 	}
 
 	.group rect {

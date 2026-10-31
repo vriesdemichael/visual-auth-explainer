@@ -1,4 +1,10 @@
-import { evaluate, type FlowDef, type FlowView, type Step } from '#lib/flow/model.ts';
+import {
+	evaluate,
+	type BaseFlow,
+	type DiagramId,
+	type FlowDef,
+	type FlowView
+} from '#lib/flow/model.ts';
 import {
 	change,
 	defaultSettings,
@@ -11,32 +17,26 @@ import {
 	type Settings
 } from '#lib/flow/settings.ts';
 
-const SETUP_PHASE = 'setup';
-
 export interface AppState {
 	flow: string;
+	diagram: DiagramId;
 	settings: Settings;
 	step: string;
-	setupOpen: boolean;
 }
 
-export function visibleSteps(view: FlowView, setupOpen: boolean): Step[] {
-	return view.steps.filter((step) => setupOpen || step.phase !== SETUP_PHASE);
-}
+const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
+
+const flowOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
+const viewOf = (base: BaseFlow, state: AppState) => evaluate(flowOf(base, state), state.settings);
 
 /** The requested step if it is on screen, otherwise the nearest earlier one that is (ADR-003). */
-export function resolveStep(
-	flow: FlowDef,
-	view: FlowView,
-	setupOpen: boolean,
-	requested: string | null
-): string {
-	const visible = new Set(visibleSteps(view, setupOpen).map((step) => step.id));
+export function resolveStep(flow: FlowDef, view: FlowView, requested: string | null): string {
+	const visible = new Set(view.steps.map((step) => step.id));
 	const index = flow.steps.findIndex((step) => step.id === requested);
 	for (let i = index; i >= 0; i--) {
 		if (visible.has(flow.steps[i].id)) return flow.steps[i].id;
 	}
-	return visibleSteps(view, setupOpen)[0].id;
+	return view.steps[0].id;
 }
 
 function parseValue(def: SettingDef, raw: string | null): boolean | string {
@@ -45,77 +45,84 @@ function parseValue(def: SettingDef, raw: string | null): boolean | string {
 	return def.options.some((option) => option.value === raw) ? raw : def.default;
 }
 
-export function parseState(flow: FlowDef, search: string): AppState {
+/** A step belongs to one diagram, wherever the link was pointing. `setup=1` is what older links say. */
+function diagramFor(base: BaseFlow, onPath: DiagramId, params: URLSearchParams): DiagramId {
+	const step = params.get('step');
+	const holder = diagramIds.find((id) => base.diagrams[id].steps.some((s) => s.id === step));
+	if (holder) return holder;
+	return params.get('setup') === '1' ? 'setup' : onPath;
+}
+
+export function parseState(base: BaseFlow, onPath: DiagramId, search: string): AppState {
 	const params = new URLSearchParams(search);
 	const requested = Object.fromEntries(
 		settingIds.map((id) => [id, parseValue(settingDefs[id], params.get(settingDefs[id].param))])
 	) as unknown as Settings;
 	const { settings } = normalize(requested);
-	const stepParam = params.get('step');
-	const inSetup = flow.steps.some((step) => step.id === stepParam && step.phase === SETUP_PHASE);
-	const setupOpen = params.get('setup') === '1' || inSetup;
+	const diagram = diagramFor(base, onPath, params);
+	const flow = base.diagrams[diagram];
 	return {
-		flow: flow.id,
+		flow: base.id,
+		diagram,
 		settings,
-		setupOpen,
-		step: resolveStep(flow, evaluate(flow, settings), setupOpen, stepParam)
+		step: resolveStep(flow, evaluate(flow, settings), params.get('step'))
 	};
 }
 
 /** Only what differs from the defaults goes in the URL, so links stay short. */
-export function serializeState(flow: FlowDef, state: AppState): string {
+export function serializeState(base: BaseFlow, state: AppState): string {
 	const params = new URLSearchParams();
 	for (const id of settingIds) {
 		const value = state.settings[id];
 		if (value === defaultSettings[id]) continue;
 		params.set(settingDefs[id].param, typeof value === 'boolean' ? (value ? '1' : '0') : value);
 	}
-	if (state.setupOpen) params.set('setup', '1');
-	const first = visibleSteps(evaluate(flow, state.settings), state.setupOpen)[0].id;
-	if (state.step !== first) params.set('step', state.step);
+	if (state.step !== viewOf(base, state).steps[0].id) params.set('step', state.step);
 	return params.toString();
 }
 
-export function presetSearch(flow: FlowDef, settings: Partial<Settings>): string {
+export function presetSearch(base: BaseFlow, settings: Partial<Settings>): string {
 	const merged = normalize({ ...defaultSettings, ...settings }).settings;
-	const view = evaluate(flow, merged);
-	return serializeState(flow, {
-		flow: flow.id,
+	const flow = base.diagrams.flow;
+	return serializeState(base, {
+		flow: base.id,
+		diagram: 'flow',
 		settings: merged,
-		setupOpen: false,
-		step: resolveStep(flow, view, false, null)
+		step: resolveStep(flow, evaluate(flow, merged), null)
 	});
 }
 
 export function withSetting<K extends SettingId>(
-	flow: FlowDef,
+	base: BaseFlow,
 	state: AppState,
 	id: K,
 	value: Settings[K]
 ): { state: AppState; resets: Reset[] } {
 	const { settings, resets } = change(state.settings, id, value);
-	const step = resolveStep(flow, evaluate(flow, settings), state.setupOpen, state.step);
+	const flow = flowOf(base, state);
+	const step = resolveStep(flow, evaluate(flow, settings), state.step);
 	return { state: { ...state, settings, step }, resets };
 }
 
-export function withSetupOpen(flow: FlowDef, state: AppState, setupOpen: boolean): AppState {
-	const step = resolveStep(flow, evaluate(flow, state.settings), setupOpen, state.step);
-	return { ...state, setupOpen, step };
+/** Switching diagrams keeps the settings. A step only means something in its own diagram. */
+export function withDiagram(
+	base: BaseFlow,
+	state: AppState,
+	diagram: DiagramId,
+	step: string | null = null
+): AppState {
+	const flow = base.diagrams[diagram];
+	return { ...state, diagram, step: resolveStep(flow, evaluate(flow, state.settings), step) };
 }
 
-export function nextStep(flow: FlowDef, state: AppState): AppState | null {
-	const steps = visibleSteps(evaluate(flow, state.settings), state.setupOpen);
+export function nextStep(base: BaseFlow, state: AppState): AppState | null {
+	const steps = viewOf(base, state).steps;
 	const index = steps.findIndex((step) => step.id === state.step);
 	return index < steps.length - 1 ? { ...state, step: steps[index + 1].id } : null;
 }
 
-/** Going back from the first login step opens setup, because that is what happened before it. */
-export function previousStep(flow: FlowDef, state: AppState): AppState | null {
-	const view = evaluate(flow, state.settings);
-	const steps = visibleSteps(view, state.setupOpen);
+export function previousStep(base: BaseFlow, state: AppState): AppState | null {
+	const steps = viewOf(base, state).steps;
 	const index = steps.findIndex((step) => step.id === state.step);
-	if (index > 0) return { ...state, step: steps[index - 1].id };
-	if (state.setupOpen) return null;
-	const setup = view.steps.filter((step) => step.phase === SETUP_PHASE);
-	return setup.length ? { ...state, setupOpen: true, step: setup[setup.length - 1].id } : null;
+	return index > 0 ? { ...state, step: steps[index - 1].id } : null;
 }

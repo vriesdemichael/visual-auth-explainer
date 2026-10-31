@@ -1,5 +1,4 @@
 import type {
-	BandLayout,
 	ChipLayout,
 	DiagramLayout,
 	GroupLayout,
@@ -28,7 +27,6 @@ export interface Frame {
 	rows: FrameRow[];
 	chips: FrameChip[];
 	groups: FrameGroup[];
-	band: BandLayout;
 }
 
 const settled = <T>(item: T) => ({ ...item, opacity: 1, draw: 1, leaving: false });
@@ -40,8 +38,7 @@ export function toFrame(layout: DiagramLayout): Frame {
 		lanes: layout.lanes.map(settled),
 		rows: layout.rows.map(settled),
 		chips: layout.chips.map(settled),
-		groups: layout.groups.map(settled),
-		band: layout.band
+		groups: layout.groups.map(settled)
 	};
 }
 
@@ -88,7 +85,6 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 	return {
 		width: to.width,
 		height: lerp(from.height, to.height, moveAt(t)),
-		band: to.band,
 		lanes: blend(from.lanes, to.lanes, t, (a, b, p) => ({
 			...b,
 			x: lerp(a.x, b.x, p),
