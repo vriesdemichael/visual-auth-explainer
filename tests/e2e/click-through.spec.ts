@@ -26,7 +26,7 @@ const STABLE_URLS = [
 	{ search: 'setup=1', step: 'register-client', stepCount: 6, lifelines: 4 },
 	{ search: 'step=discover', step: 'discover', stepCount: 6, lifelines: 4 },
 	{
-		search: 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v2&step=call-upstream',
+		search: 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1&step=call-upstream',
 		step: 'call-upstream',
 		stepCount: 28,
 		lifelines: 5
@@ -211,7 +211,7 @@ test.describe('settings', () => {
 		await open(page, 'client=public&broker=1');
 		await expect(option(page, 'upstreamTokens', 'v2')).toBeDisabled();
 		await expect(page.locator('[data-setting="upstreamTokens"]')).toContainText(
-			'API V2 only accepts confidential clients.'
+			'API V2 only works with a confidential client and a Bearer token.'
 		);
 	});
 
@@ -220,8 +220,14 @@ test.describe('settings', () => {
 		await option(page, 'clientType', 'public').check();
 		await expectMatchesModel(page, 'client=public&broker=1');
 		await expect(page.getByTestId('change-summary')).toContainText(
-			'API V2 only accepts confidential clients.'
+			'API V2 only works with a confidential client and a Bearer token.'
 		);
+	});
+
+	test('a link to what is no longer offered falls back to what still is', async ({ page }) => {
+		// This one worked until a recording showed that Keycloak refuses it.
+		await open(page, 'binding=dpop&broker=1&upstream=v2');
+		await expectMatchesModel(page, 'binding=dpop&broker=1');
 	});
 
 	test('an invalid link falls back to a valid state', async ({ page }) => {

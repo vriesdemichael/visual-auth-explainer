@@ -16,6 +16,7 @@ export const authorizationCodeSetup: FlowDef = {
 	id: 'authorization-code-setup',
 	title: 'Setting up the authorization code flow',
 	summary: 'What people do before any user arrives, so the app and the IdP know each other.',
+	specs: ['rfc6749'],
 	lifelines: [
 		{
 			id: 'app-team',

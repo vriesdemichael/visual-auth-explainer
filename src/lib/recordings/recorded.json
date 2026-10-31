@@ -1,0 +1,41 @@
+{
+	"keycloak": "26.8.1",
+	"recordedAt": "2026-10-31",
+	"presets": [
+		"oauth",
+		"oidc",
+		"dpop",
+		"dpop-nonce",
+		"broker",
+		"upstream-v1",
+		"upstream-v2",
+		"everything"
+	],
+	"steps": [
+		"api-request",
+		"api-response",
+		"authorize",
+		"call-upstream",
+		"callback",
+		"discover",
+		"discovery-document",
+		"login-page",
+		"open-app",
+		"redirect-to-idp",
+		"redirect-to-upstream",
+		"redirect-with-code",
+		"retrieve-upstream-token",
+		"submit-credentials",
+		"token-request",
+		"token-response",
+		"upstream-authorize",
+		"upstream-callback",
+		"upstream-redirect-back",
+		"upstream-sign-in",
+		"upstream-token",
+		"upstream-token-request",
+		"upstream-token-response",
+		"userinfo-request",
+		"userinfo-response"
+	]
+}

@@ -67,7 +67,7 @@ export const EverythingOn: Story = {
 			binding: 'dpop',
 			dpopNonce: true,
 			broker: true,
-			upstreamTokens: 'v2'
+			upstreamTokens: 'v1'
 		}),
 		currentStep: 'token-request'
 	}

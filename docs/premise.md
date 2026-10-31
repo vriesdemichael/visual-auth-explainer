@@ -294,7 +294,7 @@ An order for later releases. **Proposed**, and expected to change.
 
 Then build a rough animated prototype, because the data model alone will not show whether the transition lands. If one model handles all three, the toggle idea holds. If brokering breaks it, it is better to know now. A starting sketch is in [notes/format_benchmark.md](research/notes/format_benchmark.md), under the technical approaches section. These are test cases for the prototype, and brokering is not part of the first version.
 
-**Result of step 0.** One model handled all of them with no special cases, across 42 valid combinations ([ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md)). Whether the transition lands is the maintainer's call and is still open. The message shapes come from the specs and docs named on each setting, and most have not been run against a real server (see [research/followup-checks.md](research/followup-checks.md)).
+**Result of step 0.** One model handled all of them with no special cases, across all its valid combinations ([ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md)). Whether the transition lands is the maintainer's call and is still open. Every message has since been recorded from a real Keycloak, which corrected the flow data in several places (see [research/followup-checks.md](research/followup-checks.md)).
 
 **Then the first version, as a working application:**
 
@@ -330,7 +330,7 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 | Component states (Storybook) | Each component renders in each of its states in isolation, such as step, field and mode |
 | Click-through (Playwright) | For each named state: walk every step, flip toggles, switch mode, assert the visible steps match the model, use keyboard control, and open a fixed list of URLs that must keep showing the same state |
 | Visual regression | Screenshots of key states in both themes, with animation frozen through reduced motion, and an automated accessibility check on each screen |
-| Keycloak recordings | Regenerate on demand against a pinned Keycloak, 26.8.1 for now, and check weekly against new releases to detect drift. Not on every pull request |
+| Keycloak recordings | Regenerate on demand against a pinned Keycloak, 26.8.1 for now, and check weekly against new releases to detect drift ([ADR-005](adr/005-payloads-are-recorded-never-invented.md)). Not on every pull request. A test holds the flow data to the recordings on every change |
 
 **Decided: the stack.** SvelteKit for the view, with its static adapter, and plain TypeScript for the flow model and engine ([ADR-012](adr/012-sveltekit-for-the-view-and-plain-typescript-for-the-engine.md)). The maintainer first doubted that SvelteKit hosts easily as static files, and chose it after a test on a Pages-style server, in [research/followup-checks.md](research/followup-checks.md).
 
@@ -361,7 +361,6 @@ Still to settle:
 - **Keycloak overlay:** whether visitors can turn it off.
 - **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). **Proposed:** a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows and how presets relate to map nodes. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md).
-- **Recording pipeline:** how to capture Keycloak traffic per combination, including the questions step 0 raised in [research/followup-checks.md](research/followup-checks.md).
 - **Name and domain:** `visual-auth-explainer` is a working name only.
 
 ## 12. How to know it is working

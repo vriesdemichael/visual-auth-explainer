@@ -1,0 +1,56 @@
+name: Recordings
+
+# Records against a real Keycloak and compares the shape with what is committed, so a release that
+# changes what the diagram shows gets noticed. Not on pull requests (ADR-006).
+on:
+  schedule:
+    - cron: '17 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      keycloak:
+        description: Keycloak version, or latest
+        default: latest
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      KEYCLOAK_VERSION: ${{ inputs.keycloak || 'latest' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - id: record
+        shell: bash
+        run: pnpm record --keycloak "$KEYCLOAK_VERSION" --check 2>&1 | tee drift.txt
+      - if: failure() && steps.record.conclusion == 'failure'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          title="Recordings differ on Keycloak $KEYCLOAK_VERSION"
+          {
+            echo "The weekly recording did not match what is committed, on Keycloak \`$KEYCLOAK_VERSION\`."
+            echo
+            echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+            echo
+            echo '```'
+            grep -v -E 'ExperimentalWarning|trace-warnings' drift.txt | tail -n 120
+            echo '```'
+          } > body.md
+          existing=$(gh issue list --state open --search "\"$title\" in:title" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file body.md
+          else
+            gh issue create --title "$title" --body-file body.md
+          fi

@@ -12,13 +12,14 @@ const apiV1 = is('upstreamTokens', 'v1');
 const apiV2 = is('upstreamTokens', 'v2');
 
 /**
- * Prototype content for step 0. Message shapes come from the specs named on each setting, and only
- * the OpenID Connect toggle has been run against a real Keycloak (docs/research/followup-checks.md).
+ * Every field here is held to the recordings of a real Keycloak by src/lib/recordings/recordings.test.ts.
+ * The concept texts are not, because they explain and do not describe the wire.
  */
 export const authorizationCode: FlowDef = {
 	id: 'authorization-code',
 	title: 'Authorization code flow',
 	summary: 'An app gets access on behalf of a user, without ever seeing their password.',
+	specs: ['rfc6749', 'rfc6750'],
 	lifelines: [
 		{
 			id: 'browser',
@@ -181,9 +182,12 @@ export const authorizationCode: FlowDef = {
 			concept: 'The same request the app made, but now the IdP is the client asking for a login.',
 			when: broker,
 			fields: [
+				{ name: 'response_type=code', place: 'query' },
 				{ name: 'client_id', place: 'query', note: "The IdP's own client ID at the upstream" },
 				{ name: 'redirect_uri', place: 'query', note: "The IdP's broker endpoint" },
-				{ name: 'state', place: 'query' }
+				{ name: 'state', place: 'query' },
+				{ name: 'scope=openid', place: 'query' },
+				{ name: 'nonce', place: 'query' }
 			]
 		},
 		{
@@ -206,7 +210,12 @@ export const authorizationCode: FlowDef = {
 			kind: 'response',
 			label: '302 back with a code',
 			concept: 'The upstream IdP sends the browser back to the IdP with a one-time code.',
-			when: broker
+			when: broker,
+			fields: [
+				{ name: 'code', place: 'query' },
+				{ name: 'state', place: 'query' },
+				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+			]
 		},
 		{
 			id: 'upstream-callback',
@@ -216,7 +225,12 @@ export const authorizationCode: FlowDef = {
 			kind: 'request',
 			label: 'Deliver the code',
 			concept: "The browser delivers the code to the IdP's broker endpoint.",
-			when: broker
+			when: broker,
+			fields: [
+				{ name: 'code', place: 'query' },
+				{ name: 'state', place: 'query' },
+				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+			]
 		},
 		{
 			id: 'upstream-token-request',
@@ -230,6 +244,7 @@ export const authorizationCode: FlowDef = {
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
 				{ name: 'code', place: 'body' },
+				{ name: 'redirect_uri', place: 'body' },
 				{ name: 'client_id', place: 'body' },
 				{ name: 'client_secret', place: 'body' }
 			]
@@ -245,7 +260,11 @@ export const authorizationCode: FlowDef = {
 			when: broker,
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'upstream-token' },
-				{ name: 'id_token', place: 'body' }
+				{ name: 'id_token', place: 'body' },
+				{ name: 'token_type=Bearer', place: 'body' },
+				{ name: 'expires_in', place: 'body' },
+				{ name: 'refresh_token', place: 'body' },
+				{ name: 'scope', place: 'body' }
 			]
 		},
 		{
@@ -284,7 +303,8 @@ export const authorizationCode: FlowDef = {
 				'The IdP sends the browser back to the redirect URI with a short-lived, one-time code.',
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
-				{ name: 'state', place: 'query' }
+				{ name: 'state', place: 'query' },
+				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
 			]
 		},
 		{
@@ -296,7 +316,8 @@ export const authorizationCode: FlowDef = {
 			concept: 'The code reaches the app. On its own it is worth little, which is the point.',
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
-				{ name: 'state', place: 'query', note: 'Must match what the app sent' }
+				{ name: 'state', place: 'query', note: 'Must match what the app sent' },
+				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
 			]
 		},
 		{
@@ -330,6 +351,7 @@ export const authorizationCode: FlowDef = {
 			label: '400 use_dpop_nonce',
 			concept: 'The server rejects the proof and hands the app a nonce to sign into the next one.',
 			when: all(dpop, nonce),
+			specOnly: 'RFC 9449 section 8',
 			fields: [
 				{ name: 'error=use_dpop_nonce', place: 'body' },
 				{ name: 'DPoP-Nonce', place: 'header' }
@@ -344,6 +366,7 @@ export const authorizationCode: FlowDef = {
 			label: 'POST /token',
 			concept: 'The same request again, with a new proof that includes the nonce.',
 			when: all(dpop, nonce),
+			specOnly: 'RFC 9449 section 8',
 			fields: [{ name: 'DPoP', place: 'header', note: 'A proof with the nonce', artifact: 'proof' }]
 		},
 		{
@@ -363,7 +386,14 @@ export const authorizationCode: FlowDef = {
 				{ name: 'access_token', place: 'body', artifact: 'access-token' },
 				{ name: 'token_type=Bearer', place: 'body', when: bearer },
 				{ name: 'token_type=DPoP', place: 'body', when: dpop },
-				{ name: 'id_token', place: 'body', artifact: 'id-token', when: oidc }
+				{ name: 'id_token', place: 'body', artifact: 'id-token', when: oidc },
+				{ name: 'expires_in', place: 'body' },
+				{
+					name: 'refresh_token',
+					place: 'body',
+					note: 'Gets a new access token later, which this diagram does not follow'
+				},
+				{ name: 'scope', place: 'body' }
 			]
 		},
 		{
@@ -484,7 +514,25 @@ export const authorizationCode: FlowDef = {
 			],
 			when: storedTokens,
 			fields: [
-				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: apiV1 },
+				{
+					name: 'Authorization: Bearer',
+					place: 'header',
+					artifact: 'access-token',
+					when: all(apiV1, bearer)
+				},
+				{
+					name: 'Authorization: DPoP',
+					place: 'header',
+					artifact: 'access-token',
+					when: all(apiV1, dpop)
+				},
+				{
+					name: 'DPoP',
+					place: 'header',
+					note: 'A proof tied to this access token',
+					artifact: 'proof',
+					when: all(apiV1, dpop)
+				},
 				{ name: 'client_id', place: 'body', when: apiV2 },
 				{ name: 'client_secret', place: 'body', artifact: 'secret', when: apiV2 },
 				{
@@ -502,9 +550,25 @@ export const authorizationCode: FlowDef = {
 			to: 'app',
 			kind: 'response',
 			label: 'Upstream access token',
-			concept: 'The token the upstream IdP issued, handed over by the IdP.',
+			concept: [
+				{
+					when: apiV2,
+					text: 'Only the access token the upstream IdP issued, handed over by the IdP.'
+				},
+				{
+					text: 'Everything the upstream IdP issued, handed over by the IdP: the access token, and its ID and refresh tokens too.'
+				}
+			],
 			when: storedTokens,
-			fields: [{ name: 'access_token', place: 'body', artifact: 'upstream-token' }]
+			fields: [
+				{ name: 'access_token', place: 'body', artifact: 'upstream-token' },
+				{ name: 'expires_in', place: 'body' },
+				{ name: 'id_token', place: 'body', when: apiV1 },
+				{ name: 'token_type=Bearer', place: 'body', when: apiV1 },
+				{ name: 'refresh_token', place: 'body', when: apiV1 },
+				{ name: 'scope', place: 'body', when: apiV1 },
+				{ name: 'issued_token_type', place: 'body', when: apiV2 }
+			]
 		},
 		{
 			id: 'call-upstream',

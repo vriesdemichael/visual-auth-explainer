@@ -7,3 +7,5 @@ docs/
 LICENSE
 LICENSE-CONTENT
 NOTICE
+static/
+src/lib/recordings/recorded.json

@@ -83,7 +83,7 @@ describe('layout', () => {
 				binding: 'dpop',
 				dpopNonce: true,
 				broker: true,
-				upstreamTokens: 'v2'
+				upstreamTokens: 'v1'
 			}),
 			'call-upstream'
 		);

@@ -1,0 +1,32 @@
+import type { Settings } from '#lib/flow/settings.ts';
+
+/** One half of an HTTP exchange, because a request and its response are separate steps on the diagram. */
+export interface RecordedMessage {
+	/** Null for a hop the diagram does not show, such as a redirect inside Keycloak. */
+	step: string | null;
+	direction: 'request' | 'response';
+	method?: string;
+	url?: string;
+	status?: number;
+	headers: Record<string, string>;
+	body?: unknown;
+	/** What was left out, such as a whole HTML page. */
+	bodyNote?: string;
+}
+
+/** One real run, so the code returned in one step is the code sent in the next (ADR-005). */
+export interface Recording {
+	preset: string;
+	keycloak: string;
+	recordedAt: string;
+	settings: Settings;
+	messages: RecordedMessage[];
+}
+
+/** The small part the application needs up front. The recordings themselves load when asked for. */
+export interface RecordingIndex {
+	keycloak: string;
+	recordedAt: string;
+	presets: string[];
+	steps: string[];
+}

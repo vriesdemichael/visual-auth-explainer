@@ -29,6 +29,7 @@
 		withSourceSection,
 		type AppState
 	} from '#lib/flow/state.ts';
+	import { provenance } from '#lib/recordings/known.ts';
 	import { sources } from '#lib/sources/sources.ts';
 
 	interface Props {
@@ -59,6 +60,7 @@
 	const current = $derived(steps[position]);
 	const holdings = $derived(holdingsAt(view, appState.step));
 	const channelsHere = $derived([...new Set(steps.map((step) => step.channel))]);
+	const origin = $derived(provenance(flow, appState.settings));
 
 	// What the last change of settings did. Stays until the visitor moves on, so it can be read.
 	let change = $state<ViewDiff | null>(null);
@@ -177,7 +179,10 @@
 		<a class="brand" href={homeHref}>Visual auth explainer</a>
 		<span class="slash" aria-hidden="true">/</span>
 		<h1>{flow.title}</h1>
-		<p class="status">Prototype. Most messages are not yet checked on a real server.</p>
+		<p class="status" data-testid="provenance">
+			Prototype. Based on {origin.specs.join(', ')}. Recorded from Keycloak {origin.keycloak} on
+			{origin.date}.
+		</p>
 	</header>
 
 	<aside class="settings" aria-label="Settings">

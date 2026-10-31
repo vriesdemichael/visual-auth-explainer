@@ -2,6 +2,7 @@
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
 	import { channels } from '#lib/flow/vocabulary.ts';
+	import { knownFrom } from '#lib/recordings/known.ts';
 
 	/** A link the route has already resolved. */
 	interface Link {
@@ -28,6 +29,7 @@
 		elsewhere = null
 	}: Props = $props();
 
+	const known = $derived(knownFrom(step));
 	const nameOf = (id: string) => lifelines.find((line) => line.id === id)?.name ?? id;
 	const labelOf = (id: SettingId) => settingDefs[id].label;
 	const places: Record<string, string> = {
@@ -93,6 +95,17 @@
 		<strong>{channels[step.channel].label}.</strong>
 		{channels[step.channel].explains}
 	</p>
+	{#if known}
+		<p class="known" data-known={known.kind} data-testid="step-known">
+			{#if known.kind === 'recorded'}
+				Recorded from Keycloak {known.keycloak} on {known.date}.
+			{:else if known.kind === 'spec'}
+				From {known.source} only. Keycloak did not do this when it was recorded.
+			{:else}
+				Not checked against a real server yet.
+			{/if}
+		</p>
+	{/if}
 	{#if step.causes.length}
 		<p class="cause">Here because of: {step.causes.map(labelOf).join(', ')}</p>
 	{/if}
@@ -170,6 +183,15 @@
 	.channel strong {
 		color: var(--fg);
 		font-weight: 600;
+	}
+
+	.known {
+		color: var(--muted);
+		font-size: 12px;
+	}
+
+	.known[data-known='spec'] {
+		color: var(--fresh);
 	}
 
 	.channel[data-channel='front'] {

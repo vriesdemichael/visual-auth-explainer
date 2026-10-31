@@ -1,7 +1,7 @@
 {
 	"extends": "$app/tsconfig",
-	"include": ["src", "tests", "*"],
-	"exclude": ["src/service-worker", "tests/support"],
+	"include": ["src", "tests", "scripts", "*"],
+	"exclude": ["src/service-worker", "tests/support", "scripts/*.mjs"],
 	"compilerOptions": {
 		"strict": true,
 		"skipLibCheck": true,
