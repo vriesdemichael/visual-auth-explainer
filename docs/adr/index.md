@@ -13,3 +13,5 @@ How this project is built and worked on, one rule to a record. Each record says 
 - [ADR-009: Code is Apache-2.0, and content is CC BY 4.0](009-code-is-apache-and-content-is-cc-by.md)
 - [ADR-010: The site is static files on GitHub Pages, with all state in the browser](010-static-files-on-github-pages.md)
 - [ADR-011: Tooling follows the JavaScript ecosystem](011-tooling-follows-the-javascript-ecosystem.md)
+- [ADR-012: SvelteKit for the view, and plain TypeScript for the engine](012-sveltekit-for-the-view-and-plain-typescript-for-the-engine.md)
+- [ADR-013: A flow is one ordered list of conditional steps](013-a-flow-is-one-ordered-list-of-conditional-steps.md)

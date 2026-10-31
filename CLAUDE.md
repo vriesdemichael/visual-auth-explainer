@@ -1,6 +1,6 @@
 # visual-auth-explainer
 
-An interactive web application for exploring OAuth, OIDC and authn/authz visually. It is not an article or a blog: people operate it through a diagram, settings and step controls. There is no application code yet. The next step is agreeing step 0 (section 8 of the premise) with the maintainer.
+An interactive web application for exploring OAuth, OIDC and authn/authz visually. It is not an article or a blog: people operate it through a diagram, settings and step controls. Step 0 is built as a rough prototype, and the next step is the maintainer's judgement of it (section 8 of the premise). `pnpm verify` runs every check CI runs.
 
 @docs/premise.md
 @docs/adr/index.md

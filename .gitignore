@@ -12,3 +12,11 @@ desktop.ini
 
 # Local secrets
 .env
+
+# Dependencies and build output
+node_modules/
+.svelte-kit/
+build/
+storybook-static/
+test-results/
+playwright-report/

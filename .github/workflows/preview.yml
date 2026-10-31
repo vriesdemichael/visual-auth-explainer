@@ -1,0 +1,39 @@
+name: Preview
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  preview:
+    # Waits for a public repository, as deploy.yml does. Forks cannot write to gh-pages.
+    if: ${{ !github.event.repository.private && !github.event.pull_request.head.repo.fork }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        if: github.event.action != 'closed'
+      - uses: actions/setup-node@v7
+        if: github.event.action != 'closed'
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+        if: github.event.action != 'closed'
+      - run: pnpm build
+        if: github.event.action != 'closed'
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}
+      - uses: rossjrw/pr-preview-action@v1
+        with:
+          source-dir: build
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
