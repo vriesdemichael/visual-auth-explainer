@@ -1,6 +1,6 @@
 # Premise
 
-Starting point as of 2026-10-31. Nothing is built yet. The next step is agreeing step 0 (section 8), which the maintainer wants to discuss before it is built, and settling what is left in section 11.
+Starting point as of 2026-10-31. Step 0 is built as a rough prototype (section 8). The next step is the maintainer's judgement of its transition, then the first version, and settling what is left in section 11.
 
 **This is an interactive web application, not an article.** Read section 2 first, because everything else depends on it.
 
@@ -286,7 +286,9 @@ An order for later releases. **Proposed**, and expected to change.
 - **Brokering:** adds a lifeline and a nested flow.
 - **Stored upstream tokens:** only valid with brokering, with an exclusive choice of API version, so it tests constraints.
 
-Then build a rough animated prototype, because the data model alone will not show whether the transition lands. If one model handles all three, the toggle idea holds. If brokering breaks it, it is better to know now. A starting sketch is in [notes/format_benchmark.md](research/notes/format_benchmark.md), under the technical approaches section. These are test cases for the prototype, and brokering is not part of the first version. The maintainer wants to discuss this step before it is built ([ADR-001](adr/001-an-agent-builds-and-the-maintainer-reviews.md)).
+Then build a rough animated prototype, because the data model alone will not show whether the transition lands. If one model handles all three, the toggle idea holds. If brokering breaks it, it is better to know now. A starting sketch is in [notes/format_benchmark.md](research/notes/format_benchmark.md), under the technical approaches section. These are test cases for the prototype, and brokering is not part of the first version.
+
+**Result of step 0.** One model handled all of them with no special cases, across 42 valid combinations ([ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md)). Whether the transition lands is the maintainer's call and is still open. The message shapes come from the specs and docs named on each setting, and most have not been run against a real server (see [research/followup-checks.md](research/followup-checks.md)).
 
 **Then the first version, as a working application:**
 
@@ -324,9 +326,7 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 | Visual regression | Screenshots of key states, with animation frozen through reduced motion. Added once the visual language has settled |
 | Keycloak recordings | Regenerate on demand against a pinned Keycloak, 26.8.1 for now, and check weekly against new releases to detect drift. Not on every pull request |
 
-**Proposed: choose the stack as for an application, to discuss with step 0.** Client-side state (flow, settings, mode, step) drives everything on screen. The flow model and engine are plain TypeScript, with flow definitions as typed data, so they do not depend on the view framework. The view is Svelte on SvelteKit with its static adapter, because a public audience has to find the map and named states through search, and those can be prerendered while the application stays client-side. GSAP or Motion handles transitions.
-
-The maintainer doubted SvelteKit because it might be harder to host as static files. A test on a Pages-style server did not bear that out, and it was plain Svelte on Vite that had the problem with deep links. It did find other costs. Details are in [research/followup-checks.md](research/followup-checks.md). The maintainer has not yet chosen between the two.
+**Decided: the stack.** SvelteKit for the view, with its static adapter, and plain TypeScript for the flow model and engine ([ADR-012](adr/012-sveltekit-for-the-view-and-plain-typescript-for-the-engine.md)). The maintainer first doubted that SvelteKit hosts easily as static files, and chose it after a test on a Pages-style server, in [research/followup-checks.md](research/followup-checks.md).
 
 A content-site setup, with prose pages and the diagram as one embedded island, is what the research suggested. It is not the default, because it treats the diagram as an illustration.
 
@@ -354,9 +354,8 @@ Still to settle:
 - **First use of the application screen:** **Proposed:** faint arrows, setup collapsed, the cast of lifelines in the step detail, and Next as the obvious action.
 - **Keycloak overlay:** whether visitors can turn it off.
 - **State and routing:** the URL shape. **Proposed:** the flow in the path, with settings, mode and step in the query, and a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting or mode adds one.
-- **Control model:** the schema for base flows, modifiers, exclusive choices, constraints and presets. Discuss and then run step 0 from section 8.
-- **Recording pipeline:** how to capture Keycloak traffic per combination.
-- **Framework:** SvelteKit or plain Svelte on Vite (section 9), when discussing step 0.
+- **Control model:** base flows and how presets relate to map nodes. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md).
+- **Recording pipeline:** how to capture Keycloak traffic per combination, including the questions step 0 raised in [research/followup-checks.md](research/followup-checks.md).
 - **Name and domain:** `visual-auth-explainer` is a working name only.
 
 ## 12. How to know it is working

@@ -1,0 +1,54 @@
+{
+	"name": "visual-auth-explainer",
+	"private": true,
+	"type": "module",
+	"packageManager": "pnpm@10.29.3",
+	"imports": {
+		"#lib/*": "./src/lib/*"
+	},
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "node tests/support/pages-server.mjs build /visual-auth-explainer 4173",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"lint": "eslint .",
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"test:unit": "vitest run",
+		"test:e2e": "playwright test",
+		"storybook": "storybook dev -p 6006 --disable-telemetry",
+		"build-storybook": "storybook build --disable-telemetry",
+		"verify": "pnpm format:check && pnpm lint && pnpm check && pnpm test:unit && pnpm build-storybook && pnpm test:e2e",
+		"prepare": "lefthook install"
+	},
+	"devDependencies": {
+		"@commitlint/cli": "^21.2.4",
+		"@commitlint/config-conventional": "^21.2.4",
+		"@eslint/js": "^10.0.1",
+		"@playwright/test": "^1.64.1",
+		"@storybook/sveltekit": "^10.6.5",
+		"@sveltejs/adapter-static": "^4.0.1",
+		"@sveltejs/kit": "^3.1.1",
+		"@sveltejs/vite-plugin-svelte": "^7.3.1",
+		"@types/node": "^22.20.5",
+		"eslint": "^10.14.0",
+		"eslint-plugin-svelte": "^3.23.1",
+		"globals": "^17.13.0",
+		"lefthook": "^2.2.2",
+		"prettier": "^3.9.10",
+		"prettier-plugin-svelte": "^4.1.1",
+		"storybook": "^10.6.5",
+		"svelte": "^5.57.3",
+		"svelte-check": "^4.7.7",
+		"typescript": "6.0.3",
+		"typescript-eslint": "^8.72.1",
+		"vite": "^8.3.5",
+		"vitest": "^5.0.5"
+	},
+	"pnpm": {
+		"ignoredBuiltDependencies": [
+			"esbuild",
+			"lefthook"
+		]
+	}
+}

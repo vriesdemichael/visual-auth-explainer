@@ -66,6 +66,22 @@ Other points:
 - **Windows paths:** in a folder that made paths exceed 260 characters, Kit's config failed to load with `ERR_PACKAGE_IMPORT_NOT_DEFINED`. A shorter folder with `node-linker=hoisted` fixed it. Nothing suggests this is specific to Kit.
 - **Previews on a sub page:** the `preview` input of `actions/deploy-pages` is marked alpha and not public. [pr-preview-action](https://github.com/rossjrw/pr-preview-action) (MIT, 448 stars, pushed 2026-10-27) deploys to a branch, so Pages has to deploy from that branch. Jekyll would then be expected to skip Kit's `_app` folder unless the site has a `.nojekyll` file. None of this has been tried.
 
+## What the step 0 content has and has not been checked against
+
+On 2026-10-31, for the content of the step 0 prototype. The prototype says on screen that most message shapes are unchecked.
+
+- **Run on Keycloak 26.8.1:** only the OIDC toggle, and discovery at both paths, as recorded above.
+- **Read in RFC 9449:** the `DPoP` header, `token_type: DPoP`, `cnf.jkt`, `ath`, the optional `dpop_jkt`, and the nonce retry with `use_dpop_nonce` and `DPoP-Nonce`. The nonce is the server's choice, so the prototype makes it a setting and not part of DPoP itself.
+- **Read in Keycloak's docs, not run:** stored upstream tokens, as recorded above, and the outline of a brokered login.
+- **From general knowledge, not checked:** the steps inside the brokered login, and the concept texts.
+
+Questions the model raised, to answer against a real Keycloak before recording:
+
+- Does Keycloak ever ask for a DPoP nonce? If not, the nonce retry stays spec-only and needs saying so.
+- Does the broker token endpoint accept a DPoP-bound access token? The prototype shows `Authorization: Bearer` there whatever the token type, which may be wrong.
+- Does UserInfo take a DPoP-bound token the way the prototype shows?
+- Is a public client without PKCE accepted? The prototype offers it, and warns that PKCE is not modelled yet.
+
 ## The entry and the format
 
 Looked at on 2026-10-31, because the maintainer named both as the references to follow.

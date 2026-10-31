@@ -1,0 +1,10 @@
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm exec commitlint --edit {1}
+
+pre-commit:
+  commands:
+    format:
+      glob: '*.{ts,js,mjs,svelte,json,css,html,yml,yaml}'
+      run: pnpm exec prettier --check {staged_files}

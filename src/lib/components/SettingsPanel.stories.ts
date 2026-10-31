@@ -1,0 +1,26 @@
+import type { Meta, StoryObj } from '@storybook/sveltekit';
+import SettingsPanel from '#lib/components/SettingsPanel.svelte';
+import { defaultSettings } from '#lib/flow/settings.ts';
+
+const meta = {
+	title: 'SettingsPanel',
+	component: SettingsPanel,
+	args: { settings: defaultSettings, onchange: () => {} }
+} satisfies Meta<typeof SettingsPanel>;
+
+export default meta;
+type Story = StoryObj<typeof meta>;
+
+export const Defaults: Story = {};
+
+export const DPoPOffersANonce: Story = {
+	args: { settings: { ...defaultSettings, binding: 'dpop' } }
+};
+
+export const BrokerOffersUpstreamTokens: Story = {
+	args: { settings: { ...defaultSettings, broker: true, upstreamTokens: 'v1' } }
+};
+
+export const OptionUnavailableWithReason: Story = {
+	args: { settings: { ...defaultSettings, broker: true, clientType: 'public' } }
+};

@@ -1,0 +1,149 @@
+import type { FlowView, StepKind } from '#lib/flow/model.ts';
+import { visibleSteps } from '#lib/flow/state.ts';
+
+export const WIDTH = 880;
+const LANE_MARGIN = 90;
+const BAND_HEIGHT = 30;
+const ROW_HEIGHT = 46;
+const CHIP_LINE_HEIGHT = 22;
+const GROUP_TOP = 36;
+const GROUP_BOTTOM = 10;
+const GROUP_SIDE = 62;
+const CHIP_CHAR_WIDTH = 6.6;
+const CHIP_PADDING = 12;
+const CHIP_GAP = 6;
+const SELF_LOOP_WIDTH = 34;
+const SELF_LABEL_ROOM = 240;
+
+export interface LaneLayout {
+	id: string;
+	x: number;
+	name: string;
+	role: string;
+}
+
+export interface RowLayout {
+	id: string;
+	y: number;
+	x1: number;
+	x2: number;
+	self: boolean;
+	/** Which way a message to itself loops, so its label stays inside the diagram. */
+	selfSide: 1 | -1;
+	kind: StepKind;
+	label: string;
+}
+
+export interface ChipLayout {
+	id: string;
+	step: string;
+	x: number;
+	y: number;
+	width: number;
+	text: string;
+}
+
+export interface GroupLayout {
+	id: string;
+	x: number;
+	y: number;
+	width: number;
+	height: number;
+	label: string;
+}
+
+export interface BandLayout {
+	y: number;
+	label: string;
+	open: boolean;
+	count: number;
+}
+
+export interface DiagramLayout {
+	width: number;
+	height: number;
+	lanes: LaneLayout[];
+	rows: RowLayout[];
+	chips: ChipLayout[];
+	groups: GroupLayout[];
+	band: BandLayout;
+}
+
+const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
+
+function layChips(id: string, names: string[], center: number, y: number): ChipLayout[] {
+	const widths = names.map((name) => name.length * CHIP_CHAR_WIDTH + CHIP_PADDING);
+	const total = widths.reduce((sum, width) => sum + width + CHIP_GAP, -CHIP_GAP);
+	let x = clamp(center - total / 2, 6, Math.max(6, WIDTH - total - 6));
+	return names.map((name, i) => {
+		const chip = { id: `${id}:${name}`, step: id, x, y, width: widths[i], text: name };
+		x += widths[i] + CHIP_GAP;
+		return chip;
+	});
+}
+
+/** A pure function of the view, so the prerendered page and every test see the same geometry. */
+export function layoutDiagram(view: FlowView, setupOpen: boolean): DiagramLayout {
+	const spacing = (WIDTH - LANE_MARGIN * 2) / Math.max(1, view.lifelines.length - 1);
+	const lanes: LaneLayout[] = view.lifelines.map((line, i) => ({
+		id: line.id,
+		x: LANE_MARGIN + i * spacing,
+		name: line.name,
+		role: line.role
+	}));
+	const laneX = new Map(lanes.map((lane) => [lane.id, lane.x]));
+
+	const setupSteps = view.steps.filter((step) => step.phase === 'setup');
+	const band: BandLayout = {
+		y: 8,
+		label: view.phases.find((phase) => phase.id === 'setup')?.label ?? 'Setup',
+		open: setupOpen,
+		count: setupSteps.length
+	};
+
+	let cursor = band.y + BAND_HEIGHT + 32;
+	const rows: RowLayout[] = [];
+	const chips: ChipLayout[] = [];
+	const groups: GroupLayout[] = [];
+	const steps = visibleSteps(view, setupOpen);
+
+	for (let i = 0; i < steps.length; i++) {
+		const step = steps[i];
+		const previous = steps[i - 1];
+		const next = steps[i + 1];
+		const self = step.from === step.to;
+		const x1 = laneX.get(step.from) ?? 0;
+		const x2 = laneX.get(step.to) ?? 0;
+		const selfSide = x1 > WIDTH - SELF_LABEL_ROOM ? -1 : 1;
+
+		if (step.group && previous?.group !== step.group) cursor += GROUP_TOP;
+		const y = cursor;
+		rows.push({ id: step.id, y, x1, x2, self, selfSide, kind: step.kind, label: step.label });
+
+		const changed = step.fields.filter((field) => field.changed).map((field) => field.name);
+		const center = self ? x1 + selfSide * (SELF_LOOP_WIDTH + 90) : (x1 + x2) / 2;
+		chips.push(...layChips(step.id, changed, center, y + (self ? 22 : 8)));
+		cursor += ROW_HEIGHT + (changed.length ? CHIP_LINE_HEIGHT : 0);
+
+		if (step.group && next?.group !== step.group) {
+			const members = rows.filter(
+				(row) => steps.find((s) => s.id === row.id)?.group === step.group
+			);
+			const xs = members.flatMap((row) => [row.x1, row.x2]);
+			const top = members[0].y - GROUP_TOP - 8;
+			groups.push({
+				id: step.group,
+				x: Math.min(...xs) - GROUP_SIDE,
+				y: top,
+				width: Math.max(...xs) - Math.min(...xs) + GROUP_SIDE * 2,
+				height: cursor - top - GROUP_BOTTOM,
+				label: view.groups.find((group) => group.id === step.group)?.label ?? step.group
+			});
+			cursor += GROUP_BOTTOM;
+		}
+	}
+
+	return { width: WIDTH, height: cursor, lanes, rows, chips, groups, band };
+}
+
+export const SELF_LOOP = { width: SELF_LOOP_WIDTH, height: 18 };
