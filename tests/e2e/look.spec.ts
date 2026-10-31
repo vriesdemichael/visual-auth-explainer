@@ -102,9 +102,8 @@ test.describe('what each has seen', () => {
 
 	test('is there for a screen reader too', async ({ page }) => {
 		await open(page, 'step=token-response');
-		await expect(page.getByTestId('diagram-heads')).toHaveAttribute(
-			'aria-label',
-			/App: client secret, code, access token\./
+		await expect(page.locator('[data-lifeline="app"]')).toHaveAccessibleDescription(
+			'Has seen: client secret, code, access token.'
 		);
 	});
 });
@@ -141,6 +140,8 @@ test.describe('nothing an automated check can find', () => {
 	const screens: readonly [string, string][] = [
 		['the start page', './'],
 		['the user flow', 'authorization-code/?oidc=1&step=token-response'],
+		['advanced mode', 'authorization-code/?mode=advanced&oidc=1&step=token-response'],
+		['an explanation', 'authorization-code/?step=authorize&explain=lifeline.idp'],
 		['setup', 'authorization-code/setup/?broker=1'],
 		['an open source', 'authorization-code/?source=rfc6749&for=client&section=2.1']
 	];

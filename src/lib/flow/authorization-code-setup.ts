@@ -15,11 +15,16 @@ const apiV2 = is('upstreamTokens', 'v2');
 export const authorizationCodeSetup: FlowDef = {
 	id: 'authorization-code-setup',
 	title: 'Setting up the authorization code flow',
-	summary: 'What people do before any user arrives, so the app and the IdP know each other.',
+	summary:
+		'What people do before any user arrives, so the app and the identity provider know each other.',
+	intro:
+		'Before anyone can log in, two things have to happen. The identity provider has to learn about the app: what it is called, whether it can keep a secret, and where users may be sent back to. And the app has to learn about the identity provider: its address, where to send people, and how to check its tokens.',
 	specs: ['rfc6749'],
 	lifelines: [
 		{
 			id: 'app-team',
+			plainName: 'App team',
+			plainRole: 'People',
 			name: 'App team',
 			role: 'People',
 			icon: 'people',
@@ -27,13 +32,18 @@ export const authorizationCodeSetup: FlowDef = {
 		},
 		{
 			id: 'app',
+			plainName: 'App',
+			plainRole: 'The one being set up',
 			name: 'App',
 			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
 			icon: 'app',
-			concept: 'The application being set up. It has to learn about the IdP before anyone logs in.'
+			concept:
+				'The application being set up. It has to learn about the identity provider before anyone logs in.'
 		},
 		{
 			id: 'idp',
+			plainName: 'Identity provider',
+			plainRole: 'Will log users in',
 			name: 'IdP',
 			role: [
 				{ when: broker, text: 'Broker' },
@@ -45,17 +55,21 @@ export const authorizationCodeSetup: FlowDef = {
 		},
 		{
 			id: 'idp-admin',
+			plainName: 'Admin',
+			plainRole: 'People',
 			name: 'IdP admin',
 			role: 'People',
 			icon: 'people',
-			concept: 'The people who run the IdP. They register apps in its admin console.'
+			concept: 'The people who run the identity provider. They register apps in its admin console.'
 		},
 		{
 			id: 'upstream',
+			plainName: 'Other provider',
+			plainRole: 'Will do the login',
 			name: 'Upstream IdP',
 			role: 'External provider',
 			icon: 'upstream',
-			concept: 'Another identity provider, which the IdP will trust to log users in.',
+			concept: 'Another identity provider, which the identity provider will trust to log users in.',
 			when: broker
 		}
 	],
@@ -66,12 +80,11 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'app-team',
 			to: 'idp-admin',
 			kind: 'human',
+			plain: 'Ask to register the app',
 			label: 'Ask to register the app',
 			concept:
-				"The app team gives an IdP admin the app's redirect URIs and client type. People do this, so there is no HTTP message.",
-			links: [
-				{ diagram: 'flow', step: 'authorize', text: 'See where the redirect URI gets checked' }
-			],
+				"The app team gives an admin the app's redirect URIs and client type. People do this, so there is no HTTP message.",
+			links: [{ diagram: 'flow', step: 'authorize', text: 'See where this address gets checked' }],
 			fields: [
 				{ name: 'redirect_uris', place: 'setting', note: 'Checked again during every login' },
 				{ name: 'client type', place: 'setting' }
@@ -82,9 +95,10 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'idp-admin',
 			to: 'idp',
 			kind: 'human',
+			plain: 'Create the client',
 			label: 'Create the client',
 			concept:
-				'The admin enters those values in the admin console. From here on, the IdP knows this app.',
+				'The admin enters those values in the admin console. From here on, the identity provider knows this app.',
 			fields: [
 				{ name: 'client_id', place: 'setting' },
 				{ name: 'client_secret', place: 'setting', artifact: 'secret', when: confidential }
@@ -95,6 +109,10 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'idp-admin',
 			to: 'app-team',
 			kind: 'human',
+			plain: [
+				{ when: confidential, text: 'Hand over the client ID and secret' },
+				{ text: 'Hand over the client ID' }
+			],
 			label: [
 				{ when: confidential, text: 'Hand over client ID and secret' },
 				{ text: 'Hand over client ID' }
@@ -116,12 +134,17 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'idp-admin',
 			to: 'upstream',
 			kind: 'human',
-			label: 'Register the IdP as a client',
+			plain: 'Register with the other provider',
+			label: 'Register the identity provider as a client',
 			concept:
-				'The IdP is itself a client of the upstream IdP, so it has to be registered there the same way.',
+				'The identity provider is itself a client of the other provider, so it has to be registered there the same way.',
 			when: broker,
 			fields: [
-				{ name: 'redirect_uris', place: 'setting', note: "The IdP's broker endpoint" },
+				{
+					name: 'redirect_uris',
+					place: 'setting',
+					note: "The identity provider's broker endpoint"
+				},
 				{ name: 'client_id', place: 'setting' },
 				{ name: 'client_secret', place: 'setting' }
 			]
@@ -131,14 +154,15 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'idp-admin',
 			to: 'idp',
 			kind: 'human',
+			plain: 'Allow keeping its tokens',
 			label: 'Allow token storage',
 			concept: [
 				{
 					when: apiV2,
-					text: 'An admin turns on token storage for the upstream IdP, and allows this client to retrieve the tokens.'
+					text: 'An admin turns on token storage for the other provider, and allows this client to retrieve the tokens.'
 				},
 				{
-					text: 'An admin turns on token storage for the upstream IdP, and gives the user a role to read them.'
+					text: 'An admin turns on token storage for the other provider, and gives the user a role to read them.'
 				}
 			],
 			when: storedTokens,
@@ -153,6 +177,7 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'app-team',
 			to: 'app',
 			kind: 'human',
+			plain: 'Configure the app',
 			label: 'Configure the app',
 			concept: [
 				{
@@ -172,8 +197,10 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
+			plain: "The app looks up the provider's addresses",
 			label: 'GET /.well-known/…',
-			concept: 'The app starts from the issuer URL and asks the IdP where everything else is.',
+			concept:
+				'The app starts from the issuer URL and asks the identity provider where everything else is.',
 			fields: [
 				{ name: '/.well-known/openid-configuration', place: 'path', when: oidc },
 				{ name: '/.well-known/oauth-authorization-server', place: 'path', when: not(oidc) }
@@ -184,8 +211,10 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
+			plain: 'Addresses and keys',
 			label: 'Endpoints and keys',
-			concept: "The IdP's endpoints, and where to find the keys that verify its tokens.",
+			concept:
+				"The identity provider's endpoints, and where to find the keys that verify its tokens.",
 			links: [
 				{
 					diagram: 'flow',

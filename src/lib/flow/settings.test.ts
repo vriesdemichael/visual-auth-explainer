@@ -7,7 +7,10 @@ import {
 	is,
 	not,
 	normalize,
+	settingDefs,
+	settingIds,
 	settingsIn,
+	simpleSettingIds,
 	unavailable,
 	all,
 	any
@@ -27,6 +30,19 @@ describe('conditions', () => {
 			'oidc',
 			'binding'
 		]);
+	});
+});
+
+describe('what a setting says for itself', () => {
+	it('is the problem it solves, for every setting', () => {
+		for (const id of settingIds) expect(settingDefs[id].why.length, id).toBeGreaterThan(40);
+	});
+
+	it('is in plain words for the few simple mode offers', () => {
+		expect(simpleSettingIds).toEqual(['oidc', 'broker']);
+		for (const id of simpleSettingIds) {
+			expect(settingDefs[id].simple?.label).not.toBe(settingDefs[id].label);
+		}
 	});
 });
 

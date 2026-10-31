@@ -16,6 +16,7 @@ import {
 	type SettingId,
 	type Settings
 } from '#lib/flow/settings.ts';
+import { artifacts, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
 import { sources, type SourceId, type SourceRef } from '#lib/sources/sources.ts';
 
 /** A source someone opened from a setting, which is what says what it means here. */
@@ -25,12 +26,20 @@ export interface OpenSource {
 	section: string | null;
 }
 
+/** What someone asked to have explained, by clicking it. */
+export type Explained =
+	| { kind: 'lifeline'; id: string }
+	| { kind: 'artifact'; id: ArtifactId }
+	| { kind: 'setting'; id: SettingId };
+
 export interface AppState {
 	flow: string;
 	diagram: DiagramId;
+	mode: Mode;
 	settings: Settings;
 	step: string;
 	source: OpenSource | null;
+	explained: Explained | null;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
@@ -72,6 +81,18 @@ function parseSource(params: URLSearchParams): OpenSource | null {
 	return { id: ref.source, setting, section };
 }
 
+function parseExplained(base: BaseFlow, diagram: DiagramId, raw: string | null): Explained | null {
+	const [kind, id] = (raw ?? '').split('.');
+	if (kind === 'lifeline' && base.diagrams[diagram].lifelines.some((line) => line.id === id)) {
+		return { kind, id };
+	}
+	if (kind === 'artifact' && id in artifacts) return { kind, id: id as ArtifactId };
+	if (kind === 'setting' && settingIds.includes(id as SettingId)) {
+		return { kind, id: id as SettingId };
+	}
+	return null;
+}
+
 export function parseState(base: BaseFlow, onPath: DiagramId, search: string): AppState {
 	const params = new URLSearchParams(search);
 	const requested = Object.fromEntries(
@@ -83,15 +104,18 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 	return {
 		flow: base.id,
 		diagram,
+		mode: params.get('mode') === 'advanced' ? 'advanced' : 'simple',
 		settings,
 		step: resolveStep(flow, evaluate(flow, settings), params.get('step')),
-		source: parseSource(params)
+		source: parseSource(params),
+		explained: parseExplained(base, diagram, params.get('explain'))
 	};
 }
 
 /** Only what differs from the defaults goes in the URL, so links stay short. */
 export function serializeState(base: BaseFlow, state: AppState): string {
 	const params = new URLSearchParams();
+	if (state.mode !== 'simple') params.set('mode', state.mode);
 	for (const id of settingIds) {
 		const value = state.settings[id];
 		if (value === defaultSettings[id]) continue;
@@ -103,6 +127,7 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 		params.set('for', settingDefs[state.source.setting].param);
 		if (state.source.section) params.set('section', state.source.section);
 	}
+	if (state.explained) params.set('explain', `${state.explained.kind}.${state.explained.id}`);
 	return params.toString();
 }
 
@@ -112,9 +137,11 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 	return serializeState(base, {
 		flow: base.id,
 		diagram: 'flow',
+		mode: 'simple',
 		settings: merged,
 		step: resolveStep(flow, evaluate(flow, merged), null),
-		source: null
+		source: null,
+		explained: null
 	});
 }
 
@@ -138,7 +165,21 @@ export function withDiagram(
 	step: string | null = null
 ): AppState {
 	const flow = base.diagrams[diagram];
-	return { ...state, diagram, step: resolveStep(flow, evaluate(flow, state.settings), step) };
+	return {
+		...state,
+		diagram,
+		step: resolveStep(flow, evaluate(flow, state.settings), step),
+		// A lifeline only means something in its own diagram.
+		explained: state.explained?.kind === 'lifeline' ? null : state.explained
+	};
+}
+
+export function withMode(state: AppState, mode: Mode): AppState {
+	return { ...state, mode };
+}
+
+export function withExplained(state: AppState, explained: Explained | null): AppState {
+	return { ...state, explained };
 }
 
 export function withSourceOpen(state: AppState, setting: SettingId, ref: SourceRef): AppState {

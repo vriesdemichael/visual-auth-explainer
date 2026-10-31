@@ -14,6 +14,9 @@ export type Text = string | readonly { when?: Condition; text: string }[];
 
 export interface LifelineDef {
 	id: string;
+	/** What simple mode calls it, in words that need no explaining first. */
+	plainName: string;
+	plainRole: string;
 	name: string;
 	role: Text;
 	concept: string;
@@ -27,6 +30,7 @@ export interface LifelineDef {
 
 export interface GroupDef {
 	id: string;
+	plain: string;
 	label: string;
 	when?: Condition;
 }
@@ -51,14 +55,24 @@ export interface StepLink {
 	text: string;
 }
 
+/** What goes wrong here, for a message people actually run into trouble with. */
+export interface Pitfall {
+	title: string;
+	text: string;
+	keycloak?: string;
+}
+
 export interface StepDef {
 	id: string;
 	from: string;
 	to: string;
 	kind: StepKind;
+	/** What simple mode says, where `label` is what is on the wire. */
+	plain: Text;
 	label: Text;
 	concept: Text;
 	group?: string;
+	pitfall?: Pitfall;
 	links?: readonly StepLink[];
 	fields?: readonly FieldDef[];
 	/** Where this comes from, when a real Keycloak did not do it and so it could not be recorded. */
@@ -71,6 +85,8 @@ export interface FlowDef {
 	id: string;
 	title: string;
 	summary: string;
+	/** Where someone new starts: what this is for, in their words. */
+	intro: string;
 	/** The specs this diagram rests on, whatever the settings. */
 	specs: readonly SourceId[];
 	lifelines: readonly LifelineDef[];
@@ -86,6 +102,8 @@ export interface BaseFlow {
 
 export interface Lifeline {
 	id: string;
+	plainName: string;
+	plainRole: string;
 	name: string;
 	role: string;
 	concept: string;
@@ -110,9 +128,11 @@ export interface Step {
 	to: string;
 	kind: StepKind;
 	channel: Channel;
+	plain: string;
 	label: string;
 	concept: string;
 	group?: string;
+	pitfall?: Pitfall;
 	links: readonly StepLink[];
 	fields: Field[];
 	specOnly?: string;
@@ -152,9 +172,11 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			to: step.to,
 			kind: step.kind,
 			channel: channelOf(flow, step),
+			plain: resolve(step.plain, settings),
 			label: resolve(step.label, settings),
 			concept: resolve(step.concept, settings),
 			group: step.group,
+			pitfall: step.pitfall,
 			links: step.links ?? [],
 			specOnly: step.specOnly,
 			causes: causes(step.when),
@@ -176,6 +198,8 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			.filter((lifeline) => present(lifeline.when, settings))
 			.map((lifeline) => ({
 				id: lifeline.id,
+				plainName: lifeline.plainName,
+				plainRole: lifeline.plainRole,
 				name: lifeline.name,
 				role: resolve(lifeline.role, settings),
 				concept: lifeline.concept,

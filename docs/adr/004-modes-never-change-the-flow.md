@@ -1,6 +1,8 @@
 # ADR-004: A mode changes what is on offer, never the flow on screen
 
-Simple and advanced mode apply to the whole application, and simple is the default. A mode changes which settings are offered and how much each step shows. It does not change the flow, the settings that are on, or the steps in the diagram.
+Simple and advanced mode apply to the whole application, and simple is the default. A mode changes which settings are offered and how much each step shows. It does not change the flow, the settings that are on, or the steps in the diagram, and no row moves when it switches.
+
+Simple mode says what happens and why, in plain words, and shows no parameters. Credentials and tokens stay on the messages in both modes, because they are the story and not a detail. Each step and lifeline has plain words of its own, and a test keeps words from the wire out of them. Advanced mode shows what is on the wire, with the plain words beside it.
 
 An advanced setting that is on stays on when someone switches back to simple mode. It shows as a chip they can remove, and the step text drops to concept level.
 

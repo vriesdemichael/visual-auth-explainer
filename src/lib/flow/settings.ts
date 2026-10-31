@@ -48,6 +48,10 @@ interface SettingBase {
 	label: string;
 	param: string;
 	summary: string;
+	/** The problem it solves, because a toggle by itself only shows what changed. */
+	why: string;
+	/** Present when simple mode offers this setting, in words that need no explaining first. */
+	simple?: { label: string; summary: string };
 	sources: readonly SourceRef[];
 	requires?: Requirement;
 }
@@ -80,6 +84,11 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'oidc',
 		default: false,
 		summary: 'Adds proof of who logged in on top of the access OAuth grants.',
+		why: 'OAuth tells an app what it may do, not who the user is. An access token is for the API, and nothing promises the app can read it, even where it happens to name the user. OpenID Connect adds an ID token, made for the app, that says who logged in.',
+		simple: {
+			label: 'Know who logged in',
+			summary: 'Turns on OpenID Connect, so the app also gets proof of who the user is.'
+		},
 		sources: [
 			{
 				source: 'oidc-core',
@@ -94,6 +103,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		default: 'confidential',
 		summary:
 			'Whether the app can keep a secret. A public client also needs PKCE, not modelled yet.',
+		why: "A secret inside an app on someone else's device is not secret, because anyone can read it out. So an app in a browser or on a phone cannot prove who it is that way, and is treated differently.",
 		sources: [
 			{
 				source: 'rfc6749',
@@ -112,6 +122,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'binding',
 		default: 'bearer',
 		summary: 'Whether holding the token is enough, or the app must also prove it holds a key.',
+		why: 'Whoever holds a bearer token can use it, so a token that leaks is as good as the real thing. DPoP ties the token to a key that never leaves the app, so a stolen token alone gets nobody in.',
 		sources: [
 			{ source: 'rfc6750', why: 'This is the Bearer option: holding the token is enough.' },
 			{
@@ -130,6 +141,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'nonce',
 		default: false,
 		summary: 'The server rejects the first proof, to limit how long a proof can be used.',
+		why: 'Someone who gets at the app for a moment could make proofs now and use them much later. A nonce from the server has to be in the proof, so a proof made in advance is no use. Keycloak did not ask for one when this was recorded.',
 		sources: [
 			{
 				source: 'rfc9449',
@@ -145,6 +157,11 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'broker',
 		default: false,
 		summary: 'The IdP hands the login to another IdP. The app does not notice.',
+		why: 'Users often already have an account somewhere else, such as at their employer. The IdP hands the login over, so the app needs no changes and never learns how the login happened.',
+		simple: {
+			label: 'Log in with another provider',
+			summary: 'The identity provider hands the login to another one. The app does not notice.'
+		},
 		sources: [
 			{
 				source: 'keycloak-brokering',
@@ -158,6 +175,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'upstream',
 		default: 'off',
 		summary: "The IdP keeps the upstream IdP's tokens, and the app can ask for them.",
+		why: "Sometimes the app has to call the other provider's own APIs for this user, such as their calendar. It has no token for that, but the IdP received one during the login. API V1 hands over everything it stored, and API V2 only the access token.",
 		sources: [
 			{
 				source: 'keycloak-stored-tokens',
@@ -184,6 +202,9 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 };
 
 export const settingIds = Object.keys(settingDefs) as SettingId[];
+
+/** The few that simple mode offers. The rest stay on as chips if someone turned them on (ADR-004). */
+export const simpleSettingIds = settingIds.filter((id) => settingDefs[id].simple);
 
 export const defaultSettings = Object.fromEntries(
 	settingIds.map((id) => [id, settingDefs[id].default])

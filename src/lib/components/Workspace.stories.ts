@@ -35,6 +35,14 @@ export const SetupWithAnExternalIdP: Story = {
 	args: { state: parseState(base, 'setup', 'broker=1&upstream=v2&step=enable-token-storage') }
 };
 
+export const Advanced: Story = {
+	args: { state: parseState(base, 'flow', 'mode=advanced&oidc=1&step=token-response') }
+};
+
+export const WithSomethingExplained: Story = {
+	args: { state: parseState(base, 'flow', 'step=callback&explain=artifact.code') }
+};
+
 export const WithASourceOpen: Story = {
 	args: { state: parseState(base, 'flow', 'binding=dpop&source=rfc9449&for=binding') }
 };

@@ -3,7 +3,8 @@ import {
 	artifacts,
 	type ArtifactId,
 	type Channel,
-	type LifelineIcon
+	type LifelineIcon,
+	type Mode
 } from '#lib/flow/vocabulary.ts';
 
 export const WIDTH = 880;
@@ -127,13 +128,14 @@ function layChips(
 }
 
 /** A pure function of the view, so the prerendered page and every test see the same geometry. */
-export function layoutDiagram(view: FlowView): DiagramLayout {
+export function layoutDiagram(view: FlowView, mode: Mode = 'simple'): DiagramLayout {
+	const simple = mode === 'simple';
 	const spacing = (WIDTH - LANE_MARGIN * 2) / Math.max(1, view.lifelines.length - 1);
 	const lanes: LaneLayout[] = view.lifelines.map((line, i) => ({
 		id: line.id,
 		x: LANE_MARGIN + i * spacing,
-		name: line.name,
-		role: line.role,
+		name: simple ? line.plainName : line.name,
+		role: simple ? line.plainRole : line.role,
 		icon: line.icon
 	}));
 	const laneX = new Map(lanes.map((lane) => [lane.id, lane.x]));
@@ -157,11 +159,11 @@ export function layoutDiagram(view: FlowView): DiagramLayout {
 		if (step.group && previous?.group !== step.group) cursor += GROUP_TOP;
 		const y = cursor;
 		// A setting's change and a credential or token go on the message. The rest is in the detail.
-		const onMessage: { name: string; artifact?: ArtifactId }[] = step.fields.filter(
+		const onMessage: { name: string; artifact?: ArtifactId; mark?: boolean }[] = step.fields.filter(
 			(field) => field.changed || field.artifact
 		);
 		// Something a real server did not do should not look the same as what it did.
-		if (step.specOnly) onMessage.push({ name: 'spec only' });
+		if (step.specOnly) onMessage.push({ name: 'spec only', mark: true });
 		const chipLines = onMessage.length ? CHIP_LINE_HEIGHT : 0;
 		rows.push({
 			id: step.id,
@@ -176,14 +178,16 @@ export function layoutDiagram(view: FlowView): DiagramLayout {
 			selfSide,
 			kind: step.kind,
 			channel: step.channel,
-			label: step.label,
+			label: simple ? step.plain : step.label,
 			route: self
 				? `${nameOf(step.from)}, internally`
 				: `${nameOf(step.from)} to ${nameOf(step.to)}`
 		});
 
 		const center = self ? x1 + selfSide * (SELF_LOOP_WIDTH + 90) : (x1 + x2) / 2;
-		chips.push(...layChips(step.id, onMessage, center, y + (self ? 22 : 8)));
+		// Simple mode leaves out parameter names, but keeps their room, so a mode switch moves no row.
+		const shown = simple ? onMessage.filter((field) => field.artifact || field.mark) : onMessage;
+		chips.push(...layChips(step.id, shown, center, y + (self ? 22 : 8)));
 		cursor += ROW_HEIGHT + chipLines;
 
 		if (step.group && next?.group !== step.group) {
@@ -198,7 +202,10 @@ export function layoutDiagram(view: FlowView): DiagramLayout {
 				y: top,
 				width: Math.max(...xs) - Math.min(...xs) + GROUP_SIDE * 2,
 				height: cursor - top - GROUP_BOTTOM,
-				label: view.groups.find((group) => group.id === step.group)?.label ?? step.group
+				label: (() => {
+					const group = view.groups.find((candidate) => candidate.id === step.group);
+					return (simple ? group?.plain : group?.label) ?? step.group;
+				})()
 			});
 			cursor += GROUP_BOTTOM;
 		}

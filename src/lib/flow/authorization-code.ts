@@ -19,28 +19,37 @@ export const authorizationCode: FlowDef = {
 	id: 'authorization-code',
 	title: 'Authorization code flow',
 	summary: 'An app gets access on behalf of a user, without ever seeing their password.',
+	intro:
+		'An app wants to do something for a user, such as read their calendar, without ever seeing their password. OAuth is how it gets permission. OpenID Connect adds who the user is. Press Next to follow it, one message at a time.',
 	specs: ['rfc6749', 'rfc6750'],
 	lifelines: [
 		{
 			id: 'browser',
+			plainName: "User's browser",
+			plainRole: 'Where the user is',
 			name: "User's browser",
 			role: 'Where the user is',
 			icon: 'browser',
 			front: true,
 			startsWith: [{ artifact: 'password' }],
 			concept:
-				'Where the user is. Messages through the browser can be seen and changed by the user or by software in the browser.'
+				'Where the user is. Anything sent through the browser can be seen, and changed, by the user and by software in the browser. That is why the flow is careful about what goes this way.'
 		},
 		{
 			id: 'app',
+			plainName: 'App',
+			plainRole: 'What the user uses',
 			name: 'App',
 			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
 			icon: 'app',
 			startsWith: [{ artifact: 'secret', when: confidential }],
-			concept: "The application the user wants to use. It never sees the user's password."
+			concept:
+				"The application the user wants to use. In OAuth's terms it is the client, and it never sees the user's password."
 		},
 		{
 			id: 'idp',
+			plainName: 'Identity provider',
+			plainRole: 'Logs users in',
 			name: 'IdP',
 			role: [
 				{ when: broker, text: 'Broker' },
@@ -50,27 +59,38 @@ export const authorizationCode: FlowDef = {
 			icon: 'idp',
 			startsWith: [{ artifact: 'secret', when: confidential }],
 			concept:
-				'The identity provider. It logs the user in and issues tokens, and the issuer names it.'
+				'The identity provider, or IdP, logs users in and issues tokens. Its issuer is the address that names it: every token says who issued it, and everyone checks that against the address they were set up with.'
 		},
 		{
 			id: 'upstream',
+			plainName: 'Other provider',
+			plainRole: 'Does the login',
 			name: 'Upstream IdP',
 			role: 'External provider',
 			icon: 'upstream',
-			concept: 'Another identity provider, which the IdP trusts to log the user in.',
+			concept:
+				"Another identity provider, such as the one at the user's employer, which the identity provider trusts to log the user in.",
 			when: broker
 		},
 		{
 			id: 'api',
+			plainName: 'API',
+			plainRole: 'Has the data',
 			name: 'API',
 			role: 'Resource server',
 			icon: 'api',
-			concept: 'What the app wants to call on behalf of the user. It accepts or rejects the token.'
+			concept:
+				'What the app wants to call on behalf of the user. It decides from the token whether to answer, without ever talking to the user.'
 		}
 	],
 	groups: [
-		{ id: 'brokered-login', label: 'Brokered login: here the IdP is the client', when: broker },
-		{ id: 'nonce-retry', label: 'Nonce retry', when: nonce }
+		{
+			id: 'brokered-login',
+			plain: 'The login at the other provider',
+			label: 'Brokered login: here the identity provider is the client',
+			when: broker
+		},
+		{ id: 'nonce-retry', plain: 'A fresh proof', label: 'Nonce retry', when: nonce }
 	],
 	steps: [
 		{
@@ -78,13 +98,14 @@ export const authorizationCode: FlowDef = {
 			from: 'browser',
 			to: 'app',
 			kind: 'request',
+			plain: 'The user opens the app',
 			label: 'Open the app',
 			concept: 'The user wants something from the app, and the app needs them logged in first.',
 			links: [
 				{
 					diagram: 'setup',
 					step: 'register-client',
-					text: 'See how the app and the IdP got to know each other'
+					text: 'See how the app and the identity provider got to know each other'
 				}
 			]
 		},
@@ -93,6 +114,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'app',
 			kind: 'internal',
+			plain: 'The app makes a key pair',
 			label: 'Generate a key pair',
 			concept:
 				'DPoP ties tokens to a key only this app holds, so a stolen token is useless without the key.',
@@ -103,28 +125,37 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'browser',
 			kind: 'response',
-			label: '302 to the IdP',
+			plain: 'The app sends the browser to log in',
+			label: '302 to the identity provider',
 			concept:
-				'The app sends the browser to the IdP, because the password must never reach the app.'
+				'The app sends the browser to the identity provider, because the password must never reach the app.'
 		},
 		{
 			id: 'authorize',
 			from: 'browser',
 			to: 'idp',
 			kind: 'request',
+			plain: 'The browser asks to log in',
 			label: 'GET /authorize',
 			concept: [
 				{
 					when: oidc,
-					text: 'The browser asks the IdP to log the user in. The openid scope asks for proof of who that was as well.'
+					text: 'The browser asks the identity provider to log the user in. The openid scope asks for proof of who that was as well. The identity provider first checks that the address to send the user back to is one registered in setup.'
 				},
-				{ text: 'The browser asks the IdP to log the user in and grant the app access.' }
+				{
+					text: 'The browser asks the identity provider to log the user in and grant the app access. The identity provider first checks that the address to send the user back to is one registered in setup.'
+				}
 			],
+			pitfall: {
+				title: 'What if the address does not match?',
+				text: 'The identity provider has to stop and show an error, and must not send the browser anywhere. Otherwise an attacker could ask for the code to be sent to them, which is why the match has to be exact.',
+				keycloak: 'Keycloak answers with a 400 and the page says: Invalid parameter: redirect_uri.'
+			},
 			links: [
 				{
 					diagram: 'setup',
 					step: 'register-client',
-					text: 'See where the redirect URI was registered'
+					text: 'See where the address was registered'
 				}
 			],
 			fields: [
@@ -147,8 +178,9 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'browser',
 			kind: 'response',
+			plain: 'The login page',
 			label: 'Login page',
-			concept: 'The IdP asks the user to prove who they are, on its own page.',
+			concept: 'The identity provider asks the user to prove who they are, on its own page.',
 			when: not(broker)
 		},
 		{
@@ -156,8 +188,9 @@ export const authorizationCode: FlowDef = {
 			from: 'browser',
 			to: 'idp',
 			kind: 'request',
+			plain: 'The user enters their password',
 			label: 'Submit credentials',
-			concept: 'The user signs in at the IdP. The app sees none of this.',
+			concept: 'The user signs in at the identity provider. The app sees none of this.',
 			when: not(broker),
 			fields: [{ name: 'username and password', place: 'body', artifact: 'password' }]
 		},
@@ -167,9 +200,10 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'browser',
 			kind: 'response',
-			label: '302 to the upstream IdP',
+			plain: 'Sent on to the other provider',
+			label: '302 to the other provider',
 			concept:
-				'The IdP does not log the user in itself. It sends the browser on to the upstream IdP.',
+				'The identity provider does not log the user in itself. It sends the browser on to the other provider.',
 			when: broker
 		},
 		{
@@ -178,13 +212,19 @@ export const authorizationCode: FlowDef = {
 			from: 'browser',
 			to: 'upstream',
 			kind: 'request',
+			plain: 'The browser asks to log in there',
 			label: 'GET /authorize',
-			concept: 'The same request the app made, but now the IdP is the client asking for a login.',
+			concept:
+				'The same request the app made, but now the identity provider is the client asking for a login.',
 			when: broker,
 			fields: [
 				{ name: 'response_type=code', place: 'query' },
-				{ name: 'client_id', place: 'query', note: "The IdP's own client ID at the upstream" },
-				{ name: 'redirect_uri', place: 'query', note: "The IdP's broker endpoint" },
+				{
+					name: 'client_id',
+					place: 'query',
+					note: "The identity provider's own client ID at the upstream"
+				},
+				{ name: 'redirect_uri', place: 'query', note: "The identity provider's broker endpoint" },
 				{ name: 'state', place: 'query' },
 				{ name: 'scope=openid', place: 'query' },
 				{ name: 'nonce', place: 'query' }
@@ -196,9 +236,10 @@ export const authorizationCode: FlowDef = {
 			from: 'browser',
 			to: 'upstream',
 			kind: 'request',
+			plain: 'The user enters their password there',
 			label: 'Sign in',
 			concept:
-				'The user signs in at the upstream IdP. Neither the app nor the IdP sees the password.',
+				'The user signs in at the other provider. Neither the app nor the identity provider sees the password.',
 			when: broker,
 			fields: [{ name: 'username and password', place: 'body', artifact: 'password' }]
 		},
@@ -208,8 +249,10 @@ export const authorizationCode: FlowDef = {
 			from: 'upstream',
 			to: 'browser',
 			kind: 'response',
+			plain: 'Sent back with a code',
 			label: '302 back with a code',
-			concept: 'The upstream IdP sends the browser back to the IdP with a one-time code.',
+			concept:
+				'The other provider sends the browser back to the identity provider with a one-time code.',
 			when: broker,
 			fields: [
 				{ name: 'code', place: 'query' },
@@ -223,8 +266,9 @@ export const authorizationCode: FlowDef = {
 			from: 'browser',
 			to: 'idp',
 			kind: 'request',
+			plain: 'The code reaches the identity provider',
 			label: 'Deliver the code',
-			concept: "The browser delivers the code to the IdP's broker endpoint.",
+			concept: "The browser delivers the code to the identity provider's broker endpoint.",
 			when: broker,
 			fields: [
 				{ name: 'code', place: 'query' },
@@ -238,8 +282,10 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'upstream',
 			kind: 'request',
+			plain: 'It trades the code for tokens',
 			label: 'POST /token',
-			concept: 'The IdP trades the code for tokens, on a connection the browser never sees.',
+			concept:
+				'The identity provider trades the code for tokens, on a connection the browser never sees.',
 			when: broker,
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
@@ -255,8 +301,10 @@ export const authorizationCode: FlowDef = {
 			from: 'upstream',
 			to: 'idp',
 			kind: 'response',
+			plain: 'Tokens for the identity provider',
 			label: 'Upstream tokens',
-			concept: 'These tokens belong to the IdP. The app will get tokens the IdP issues itself.',
+			concept:
+				'These tokens belong to the identity provider. The app will get tokens the identity provider issues itself.',
 			when: broker,
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'upstream-token' },
@@ -273,13 +321,16 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'idp',
 			kind: 'internal',
+			plain: 'It keeps those tokens',
 			label: 'Store upstream tokens',
 			concept: [
 				{
 					when: apiV2,
-					text: 'The IdP keeps the upstream tokens, in the user session or the database.'
+					text: 'The identity provider keeps the upstream tokens, in the user session or the database.'
 				},
-				{ text: 'The IdP keeps the upstream tokens in its database, per user and upstream IdP.' }
+				{
+					text: 'The identity provider keeps the upstream tokens in its database, per user and upstream IdP.'
+				}
 			],
 			when: storedTokens
 		},
@@ -289,8 +340,10 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'idp',
 			kind: 'internal',
+			plain: 'It links this person to a user',
 			label: 'Match or create the user',
-			concept: 'The IdP links the external identity to a local user, creating one if needed.',
+			concept:
+				'The identity provider links the external identity to a local user, creating one if needed.',
 			when: broker
 		},
 		{
@@ -298,9 +351,10 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'browser',
 			kind: 'response',
+			plain: 'Sent back with a one-time code',
 			label: '302 back with a code',
 			concept:
-				'The IdP sends the browser back to the redirect URI with a short-lived, one-time code.',
+				'The identity provider sends the browser back to the app with a short-lived, one-time code. This goes through the browser, where it can be seen, so it cannot be a token yet.',
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query' },
@@ -312,6 +366,7 @@ export const authorizationCode: FlowDef = {
 			from: 'browser',
 			to: 'app',
 			kind: 'request',
+			plain: 'The code reaches the app',
 			label: 'Deliver the code',
 			concept: 'The code reaches the app. On its own it is worth little, which is the point.',
 			fields: [
@@ -325,8 +380,17 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
+			plain: 'The app trades the code for tokens',
 			label: 'POST /token',
-			concept: 'The app trades the code for tokens, on a direct connection the browser never sees.',
+			concept: [
+				{
+					when: confidential,
+					text: 'The app trades the code for tokens on a direct call, and proves who it is with its secret. Someone who only saw the code in the browser cannot do this.'
+				},
+				{
+					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, so anyone holding the code could do this too, which is the gap PKCE closes. If the app runs in the browser, this call comes from its own JavaScript.'
+				}
+			],
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
 				{ name: 'code', place: 'body', artifact: 'code' },
@@ -348,6 +412,7 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
+			plain: 'The server asks for a fresh proof',
 			label: '400 use_dpop_nonce',
 			concept: 'The server rejects the proof and hands the app a nonce to sign into the next one.',
 			when: all(dpop, nonce),
@@ -363,6 +428,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
+			plain: 'The app tries again',
 			label: 'POST /token',
 			concept: 'The same request again, with a new proof that includes the nonce.',
 			when: all(dpop, nonce),
@@ -374,6 +440,7 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
+			plain: [{ when: oidc, text: 'An access token and an ID token' }, { text: 'An access token' }],
 			label: [{ when: oidc, text: 'Access token and ID token' }, { text: 'Access token' }],
 			concept: [
 				{
@@ -401,6 +468,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'app',
 			kind: 'internal',
+			plain: 'The app checks the ID token',
 			label: 'Validate the ID token',
 			concept:
 				'The app checks signature, issuer, audience, expiry and nonce before it trusts the token.',
@@ -417,6 +485,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
+			plain: 'The app asks about the user',
 			label: 'GET /userinfo',
 			concept: 'The app can ask for more about the user, using the access token.',
 			when: oidc,
@@ -437,6 +506,7 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
+			plain: 'Details about the user',
 			label: 'User claims',
 			concept: 'Who the user is, limited to what the requested scopes allow.',
 			when: oidc,
@@ -447,6 +517,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'api',
 			kind: 'request',
+			plain: 'The app calls the API with the token',
 			label: 'GET /resource',
 			concept: [
 				{
@@ -472,13 +543,14 @@ export const authorizationCode: FlowDef = {
 			from: 'api',
 			to: 'api',
 			kind: 'internal',
+			plain: 'The API checks the token',
 			label: 'Check the token',
 			concept: [
 				{
 					when: dpop,
 					text: 'The API checks the token, and that the proof was signed with the key the token names.'
 				},
-				{ text: 'The API checks that the token is valid, for this API, and not expired.' }
+				{ text: 'The API checks the signature, that the token has not expired, and who it is for.' }
 			],
 			fields: [
 				{ name: 'aud', place: 'token' },
@@ -491,6 +563,7 @@ export const authorizationCode: FlowDef = {
 			from: 'api',
 			to: 'app',
 			kind: 'response',
+			plain: 'The API answers',
 			label: '200 with the resource',
 			concept: 'The app has what it came for, and the user never gave it their password.'
 		},
@@ -499,6 +572,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
+			plain: "The app asks for the other provider's token",
 			label: [
 				{ when: apiV2, text: 'POST /broker/{alias}/token' },
 				{ text: 'GET /broker/{alias}/token' }
@@ -549,14 +623,15 @@ export const authorizationCode: FlowDef = {
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
+			plain: 'The identity provider hands it over',
 			label: 'Upstream access token',
 			concept: [
 				{
 					when: apiV2,
-					text: 'Only the access token the upstream IdP issued, handed over by the IdP.'
+					text: 'Only the access token the other provider issued, handed over by the identity provider.'
 				},
 				{
-					text: 'Everything the upstream IdP issued, handed over by the IdP: the access token, and its ID and refresh tokens too.'
+					text: 'Everything the other provider issued, handed over by the identity provider: the access token, and its ID and refresh tokens too.'
 				}
 			],
 			when: storedTokens,
@@ -575,6 +650,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'upstream',
 			kind: 'request',
+			plain: 'The app calls the other provider',
 			label: "Call the upstream's API",
 			concept: "With that token, the app can call the upstream provider's APIs directly.",
 			when: storedTokens,
