@@ -1,0 +1,120 @@
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
+import { describe, expect, it } from 'vitest';
+import { settingDefs, settingIds } from '#lib/flow/settings.ts';
+import { splitRfc } from '#lib/sources/rfc.ts';
+import { originalUrl, refLabel, sourceIds, sources, type SourceRef } from '#lib/sources/sources.ts';
+
+const refs: { setting: string; ref: SourceRef }[] = settingIds.flatMap((setting) =>
+	settingDefs[setting].sources.map((ref) => ({ setting, ref }))
+);
+const rfcs = sourceIds.filter((id) => sources[id].textFile);
+const textOf = (file: string) => readFileSync(`static/rfc/${file}`, 'utf8');
+
+describe('the RFC files', () => {
+	// Fetched from rfc-editor.org on 2026-10-31. The licence only covers them unmodified (ADR-009).
+	const published: Record<string, string> = {
+		'rfc6749.txt': 'f204fc8661d6c92d2ec6e0b54808f961a9ad26e792f57f312d9528335519bd71',
+		'rfc6750.txt': '9dc385cf4ecdd85024e5a95e447ede9230e11700bf35251906b25b37557d604b',
+		'rfc9449.txt': '3842c58e1f6043389416023b9bb8d765048266024982fbbd90640e05943f4e13'
+	};
+
+	it.each(Object.entries(published))('%s is byte for byte what was published', (file, hash) => {
+		const bytes = readFileSync(`static/rfc/${file}`);
+		expect(createHash('sha256').update(bytes).digest('hex')).toBe(hash);
+	});
+
+	it.each(rfcs)('%s has its file, with its copyright notice', (id) => {
+		const file = sources[id].textFile!;
+		expect(existsSync(`static/rfc/${file}`)).toBe(true);
+		expect(published[file]).toBeDefined();
+		expect(textOf(file)).toContain('IETF Trust and the persons identified as the');
+	});
+});
+
+describe('splitting an RFC', () => {
+	it.each(rfcs)('%s comes back whole when its parts are joined', (id) => {
+		const text = textOf(sources[id].textFile!);
+		const joined = splitRfc(text)
+			.parts.map((part) => part.heading + part.body)
+			.join('');
+		expect(joined).toBe(text);
+	});
+
+	it.each(rfcs)('%s has unique section IDs, in order, without its table of contents', (id) => {
+		const { sections } = splitRfc(textOf(sources[id].textFile!));
+		const ids = sections.map((section) => section.id);
+		expect(new Set(ids).size).toBe(ids.length);
+		expect(ids[0]).toBe('1');
+		expect(sections[0].title).toBe('Introduction');
+	});
+
+	it('finds the sections and appendices by number', () => {
+		const titleOf = (file: string, id: string) =>
+			splitRfc(textOf(file)).sections.find((section) => section.id === id)?.title;
+		expect(titleOf('rfc6749.txt', '2.1')).toBe('Client Types');
+		expect(titleOf('rfc6749.txt', 'A')).toBe('Augmented Backus-Naur Form (ABNF) Syntax');
+		expect(titleOf('rfc6749.txt', 'A.1')).toBe('"client_id" Syntax');
+		expect(titleOf('rfc9449.txt', '8')).toBe('Authorization Server-Provided Nonce');
+	});
+
+	it('leaves a text with no headings whole', () => {
+		expect(splitRfc('Just text.\n')).toEqual({
+			parts: [{ section: null, heading: '', body: 'Just text.\n' }],
+			sections: []
+		});
+	});
+});
+
+describe('sources', () => {
+	it.each(refs.map(({ setting, ref }) => [`${setting} to ${ref.source}`, ref] as const))(
+		'%s says what it means for that setting',
+		(_, ref) => {
+			expect(ref.why).not.toBe('');
+			expect(sources[ref.source]).toBeDefined();
+		}
+	);
+
+	it('every setting has at least one', () => {
+		for (const setting of settingIds) {
+			expect(settingDefs[setting].sources.length, setting).toBeGreaterThan(0);
+		}
+	});
+
+	it('every source is used, so nothing is summarised for no reason', () => {
+		const used = new Set(refs.map(({ ref }) => ref.source));
+		expect(sourceIds.filter((id) => !used.has(id))).toEqual([]);
+	});
+
+	it('every section named exists in the RFC', () => {
+		for (const { ref } of refs.filter(({ ref }) => ref.section)) {
+			const file = sources[ref.source].textFile;
+			expect(file, `${ref.source} has a section but no text`).toBeDefined();
+			const ids = splitRfc(textOf(file!)).sections.map((section) => section.id);
+			expect(ids).toContain(ref.section);
+		}
+	});
+
+	it('are all complete, and link to the original over HTTPS', () => {
+		for (const id of sourceIds) {
+			const source = sources[id];
+			expect(source.title).not.toBe('');
+			expect(source.status).not.toBe('');
+			expect(source.summary).not.toBe('');
+			expect(source.url).toMatch(/^https:\/\//);
+		}
+	});
+
+	it('say which section they point at', () => {
+		expect(refLabel({ source: 'rfc9449', section: '8', why: '' })).toBe('RFC 9449 §8');
+		expect(refLabel({ source: 'rfc9449', why: '' })).toBe('RFC 9449');
+	});
+
+	it('link to the section of an RFC, and only an RFC has sections', () => {
+		expect(originalUrl(sources.rfc9449, '8')).toBe(
+			'https://www.rfc-editor.org/rfc/rfc9449.html#section-8'
+		);
+		expect(originalUrl(sources.rfc9449, null)).toBe(sources.rfc9449.url);
+		expect(originalUrl(sources['oidc-core'], '8')).toBe(sources['oidc-core'].url);
+	});
+});

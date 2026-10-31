@@ -5,7 +5,7 @@ import { defaultSettings } from '#lib/flow/settings.ts';
 const meta = {
 	title: 'SettingsPanel',
 	component: SettingsPanel,
-	args: { settings: defaultSettings, onchange: () => {} }
+	args: { settings: defaultSettings, onchange: () => {}, onopensource: () => {} }
 } satisfies Meta<typeof SettingsPanel>;
 
 export default meta;

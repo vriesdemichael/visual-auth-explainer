@@ -93,6 +93,17 @@ How far production and previews were shown to leave each other alone:
 
 **Not exercised:** a commit failing CI on `main`. Deploy needs the checks and protection on `main` keeps such a commit out, so this rests on the job order.
 
+## Showing RFCs inside the application
+
+Checked on 2026-10-31, because the maintainer asked for an RFC to open in the application when it is just text.
+
+- **Format:** every RFC has a plain text version on rfc-editor.org. RFC 9449 is 92 KB, RFC 6749 is 163 KB and RFC 6750 is 39 KB. The structured XML version only exists for newer RFCs, and RFC 6749 has none, so plain text is the one format they all share. Older ones keep their page headers and form feeds.
+- **Licence:** [IETF Trust Legal Provisions 5.0](https://trustee.ietf.org/documents/trust-legal-provisions/tlp-5/), section 3.c, allows anyone "to copy, publish, display and distribute" them "in full and without modification". This is a reading of the text and not legal advice.
+- **Loading:** rfc-editor.org sends `Access-Control-Allow-Origin: *`, so a browser could fetch the text directly. The application copies the files instead ([ADR-009](../adr/009-code-is-apache-and-content-is-cc-by.md)).
+- **Byte-order mark:** RFC 9449 starts with one, and browsers drop it when they decode a file. The file itself stays as published, and nothing visible changes.
+- **Sections:** a heading starts at the left margin and the table of contents is indented, so the sections can be found without touching the text. RFC 6749 has appendices numbered `A.1`, and RFC pages on rfc-editor.org have an anchor like `#section-8`.
+- **Other sources:** [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html) is 427 KB of HTML whose notice allows reproduction for developing and implementing specifications. That does not obviously cover this, so it gets a summary and a link, as the Keycloak docs do.
+
 ## What the step 0 content has and has not been checked against
 
 On 2026-10-31, for the content of the step 0 prototype. The prototype says on screen that most message shapes are unchecked.

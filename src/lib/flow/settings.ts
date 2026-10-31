@@ -1,3 +1,5 @@
+import type { SourceRef } from '#lib/sources/sources.ts';
+
 export interface Settings {
 	oidc: boolean;
 	clientType: 'public' | 'confidential';
@@ -46,7 +48,7 @@ interface SettingBase {
 	label: string;
 	param: string;
 	summary: string;
-	source: string;
+	sources: readonly SourceRef[];
 	requires?: Requirement;
 }
 
@@ -78,7 +80,12 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'oidc',
 		default: false,
 		summary: 'Adds proof of who logged in on top of the access OAuth grants.',
-		source: 'OpenID Connect Core 1.0'
+		sources: [
+			{
+				source: 'oidc-core',
+				why: 'This switch adds what it defines on top of OAuth: the openid scope, the ID token and UserInfo.'
+			}
+		]
 	},
 	clientType: {
 		kind: 'choice',
@@ -87,7 +94,13 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		default: 'confidential',
 		summary:
 			'Whether the app can keep a secret. A public client also needs PKCE, not modelled yet.',
-		source: 'RFC 6749',
+		sources: [
+			{
+				source: 'rfc6749',
+				section: '2.1',
+				why: 'Section 2.1 defines both types by one thing: whether the client can keep its credentials confidential. An app in a browser cannot.'
+			}
+		],
 		options: [
 			{ value: 'confidential', label: 'Confidential' },
 			{ value: 'public', label: 'Public' }
@@ -99,7 +112,13 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'binding',
 		default: 'bearer',
 		summary: 'Whether holding the token is enough, or the app must also prove it holds a key.',
-		source: 'RFC 6750, RFC 9449',
+		sources: [
+			{ source: 'rfc6750', why: 'This is the Bearer option: holding the token is enough.' },
+			{
+				source: 'rfc9449',
+				why: 'This is the DPoP option: the app also has to prove it holds the key.'
+			}
+		],
 		options: [
 			{ value: 'bearer', label: 'Bearer' },
 			{ value: 'dpop', label: 'DPoP' }
@@ -111,7 +130,13 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'nonce',
 		default: false,
 		summary: 'The server rejects the first proof, to limit how long a proof can be used.',
-		source: 'RFC 9449 section 8',
+		sources: [
+			{
+				source: 'rfc9449',
+				section: '8',
+				why: 'Section 8 lets the server answer a proof without its nonce with use_dpop_nonce, which limits how far ahead a proof can be made.'
+			}
+		],
 		requires: { when: is('binding', 'dpop'), because: 'A DPoP nonce only applies to DPoP tokens.' }
 	},
 	broker: {
@@ -120,7 +145,12 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'broker',
 		default: false,
 		summary: 'The IdP hands the login to another IdP. The app does not notice.',
-		source: 'Keycloak 26.8.1 docs, identity brokering'
+		sources: [
+			{
+				source: 'keycloak-brokering',
+				why: "Keycloak's name for this is identity brokering. The diagram shows a login through an upstream provider that uses the authorization code flow."
+			}
+		]
 	},
 	upstreamTokens: {
 		kind: 'choice',
@@ -128,7 +158,12 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'upstream',
 		default: 'off',
 		summary: "The IdP keeps the upstream IdP's tokens, and the app can ask for them.",
-		source: 'Keycloak 26.8.1 docs, identity-brokering-api flags',
+		sources: [
+			{
+				source: 'keycloak-stored-tokens',
+				why: 'The two API options here are the two versions this page describes.'
+			}
+		],
 		requires: {
 			when: is('broker', true),
 			because: 'Upstream tokens only exist when another IdP handles the login.'

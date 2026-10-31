@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import { evaluate, type DiagramId } from '#lib/flow/model.ts';
-import { allValidSettings, defaultSettings } from '#lib/flow/settings.ts';
+import { allValidSettings, defaultSettings, settingDefs } from '#lib/flow/settings.ts';
 import {
 	nextStep,
 	parseState,
@@ -10,7 +10,10 @@ import {
 	resolveStep,
 	serializeState,
 	withDiagram,
-	withSetting
+	withSetting,
+	withSourceClosed,
+	withSourceOpen,
+	withSourceSection
 } from '#lib/flow/state.ts';
 
 const onFlow = (search: string) => parseState(base, 'flow', search);
@@ -32,7 +35,7 @@ describe('the URL', () => {
 		for (const settings of allValidSettings()) {
 			for (const diagram of diagrams) {
 				for (const step of evaluate(base.diagrams[diagram], settings).steps) {
-					const state = { flow: base.id, diagram, settings, step: step.id };
+					const state = { flow: base.id, diagram, settings, step: step.id, source: null };
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
 				}
 			}
@@ -118,6 +121,52 @@ describe('switching diagrams', () => {
 		const state = withDiagram(base, onSetup(''), 'flow', 'authorize');
 		expect(state.diagram).toBe('flow');
 		expect(state.step).toBe('authorize');
+	});
+});
+
+describe('an open source', () => {
+	const ref = settingDefs.dpopNonce.sources[0];
+
+	it('round-trips through the URL, with its section', () => {
+		const state = withSourceOpen(onFlow('binding=dpop'), 'dpopNonce', ref);
+		const search = serializeState(base, state);
+		expect(search).toBe('binding=dpop&source=rfc9449&for=nonce&section=8');
+		expect(onFlow(search)).toEqual(state);
+	});
+
+	it('survives moving around, because it is beside the diagram', () => {
+		const state = withSourceOpen(onFlow(''), 'binding', settingDefs.binding.sources[0]);
+		expect(nextStep(base, state)?.source).toEqual(state.source);
+		expect(withSetting(base, state, 'oidc', true).state.source).toEqual(state.source);
+		expect(withDiagram(base, state, 'setup').source).toEqual(state.source);
+	});
+
+	it('can move to another section, or to none', () => {
+		const state = withSourceOpen(onFlow('binding=dpop'), 'dpopNonce', ref);
+		expect(withSourceSection(state, '9').source?.section).toBe('9');
+		expect(withSourceSection(state, null).source?.section).toBeNull();
+	});
+
+	it('closes', () => {
+		const state = withSourceOpen(onFlow(''), 'binding', settingDefs.binding.sources[0]);
+		const closed = withSourceClosed(state);
+		expect(closed.source).toBeNull();
+		expect(serializeState(base, closed)).toBe('');
+	});
+
+	it('opens nothing for a link it does not recognise', () => {
+		expect(onFlow('source=rfc9449').source).toBeNull();
+		expect(onFlow('source=rfc1&for=binding').source).toBeNull();
+		expect(onFlow('source=rfc9449&for=nope').source).toBeNull();
+		expect(onFlow('source=rfc6749&for=binding').source).toBeNull();
+	});
+
+	it('has no section when it has no text to open at', () => {
+		expect(onFlow('source=oidc-core&for=oidc&section=8').source).toEqual({
+			id: 'oidc-core',
+			setting: 'oidc',
+			section: null
+		});
 	});
 });
 

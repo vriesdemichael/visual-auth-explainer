@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, tick, untrack } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { resolve } from '$app/paths';
+	import { asset, resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import Workspace from '#lib/components/Workspace.svelte';
 	import { flows } from '#lib/flow/index.ts';
@@ -36,6 +36,12 @@
 		);
 	}
 
+	async function loadText(file: string) {
+		const response = await fetch(asset(`/rfc/${file}` as Parameters<typeof asset>[0]));
+		if (!response.ok) throw new Error(`${file}: ${response.status}`);
+		return response.text();
+	}
+
 	async function navigate(next: AppState, history: 'push' | 'replace') {
 		ahead = next;
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- hrefFor resolves it
@@ -62,5 +68,6 @@
 	animate={settled}
 	homeHref={resolve('/')}
 	{hrefFor}
+	{loadText}
 	onnavigate={navigate}
 />

@@ -179,6 +179,10 @@ Three things follow:
 - The way back to the map stays one click away, and the node matching the current state is marked.
 - A state reached by flipping settings by hand still has a URL, with or without a node.
 
+### 5.10 Sources open in the application
+
+**Decided.** A source named on a setting opens beside the diagram, with a summary in our own words, what it means for that setting, and a link to the original. An RFC is just text, so its full text is shown there as well, at the section that matters ([ADR-009](adr/009-code-is-apache-and-content-is-cc-by.md)). Sources that are not plain text, such as OpenID Connect Core and the Keycloak docs, get the summary and the link.
+
 ## 6. Nuances that must not get lost
 
 ### Not everything is a toggle (Proposed)
