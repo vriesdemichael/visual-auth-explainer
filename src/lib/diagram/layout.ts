@@ -1,9 +1,8 @@
 import type { FlowView, StepKind } from '#lib/flow/model.ts';
-import { visibleSteps } from '#lib/flow/state.ts';
 
 export const WIDTH = 880;
 const LANE_MARGIN = 90;
-const BAND_HEIGHT = 30;
+const FIRST_ROW_Y = 36;
 const ROW_HEIGHT = 46;
 const CHIP_LINE_HEIGHT = 22;
 const GROUP_TOP = 36;
@@ -52,13 +51,6 @@ export interface GroupLayout {
 	label: string;
 }
 
-export interface BandLayout {
-	y: number;
-	label: string;
-	open: boolean;
-	count: number;
-}
-
 export interface DiagramLayout {
 	width: number;
 	height: number;
@@ -66,7 +58,6 @@ export interface DiagramLayout {
 	rows: RowLayout[];
 	chips: ChipLayout[];
 	groups: GroupLayout[];
-	band: BandLayout;
 }
 
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
@@ -83,7 +74,7 @@ function layChips(id: string, names: string[], center: number, y: number): ChipL
 }
 
 /** A pure function of the view, so the prerendered page and every test see the same geometry. */
-export function layoutDiagram(view: FlowView, setupOpen: boolean): DiagramLayout {
+export function layoutDiagram(view: FlowView): DiagramLayout {
 	const spacing = (WIDTH - LANE_MARGIN * 2) / Math.max(1, view.lifelines.length - 1);
 	const lanes: LaneLayout[] = view.lifelines.map((line, i) => ({
 		id: line.id,
@@ -93,19 +84,11 @@ export function layoutDiagram(view: FlowView, setupOpen: boolean): DiagramLayout
 	}));
 	const laneX = new Map(lanes.map((lane) => [lane.id, lane.x]));
 
-	const setupSteps = view.steps.filter((step) => step.phase === 'setup');
-	const band: BandLayout = {
-		y: 8,
-		label: view.phases.find((phase) => phase.id === 'setup')?.label ?? 'Setup',
-		open: setupOpen,
-		count: setupSteps.length
-	};
-
-	let cursor = band.y + BAND_HEIGHT + 32;
+	let cursor = FIRST_ROW_Y;
 	const rows: RowLayout[] = [];
 	const chips: ChipLayout[] = [];
 	const groups: GroupLayout[] = [];
-	const steps = visibleSteps(view, setupOpen);
+	const steps = view.steps;
 
 	for (let i = 0; i < steps.length; i++) {
 		const step = steps[i];
@@ -143,7 +126,7 @@ export function layoutDiagram(view: FlowView, setupOpen: boolean): DiagramLayout
 		}
 	}
 
-	return { width: WIDTH, height: cursor, lanes, rows, chips, groups, band };
+	return { width: WIDTH, height: cursor, lanes, rows, chips, groups };
 }
 
 export const SELF_LOOP = { width: SELF_LOOP_WIDTH, height: 18 };

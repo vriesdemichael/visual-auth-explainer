@@ -96,3 +96,9 @@ Given on 2026-10-31, by number. The left column summarises the question, and the
 > Reviewing PRs could be a separate sub page or a local preview on my machine.
 >
 > Taskfile fits the go ecosystem, no need to pick that one here as well, pick whatever suits the ecosystem.
+
+## After using the first deployed version
+
+> For the rfcs, it would be nice to click them open with a summary + link (although, if the rfc is just text render it int he app instead)
+>
+> I also dont think we should combine the setup and the user flow in one graph, that makes no sense.. it makes it look like the setup is something the user does.

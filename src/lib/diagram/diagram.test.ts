@@ -2,20 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { layoutDiagram, WIDTH } from '#lib/diagram/layout.ts';
 import { interpolate, toFrame, type Frame } from '#lib/diagram/motion.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
+import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { evaluate } from '#lib/flow/model.ts';
 import { allValidSettings, defaultSettings, type Settings } from '#lib/flow/settings.ts';
-import { visibleSteps } from '#lib/flow/state.ts';
 
-const layout = (settings: Partial<Settings> = {}, setupOpen = false) =>
-	layoutDiagram(evaluate(flow, { ...defaultSettings, ...settings }), setupOpen);
+const layout = (settings: Partial<Settings> = {}) =>
+	layoutDiagram(evaluate(flow, { ...defaultSettings, ...settings }));
 
 describe('layout', () => {
 	it.each(allValidSettings().map((settings) => [JSON.stringify(settings), settings] as const))(
-		'gives every visible step a row, top to bottom: %s',
+		'gives every step a row, top to bottom: %s',
 		(_, settings) => {
-			for (const setupOpen of [false, true]) {
-				const result = layoutDiagram(evaluate(flow, settings), setupOpen);
-				const expected = visibleSteps(evaluate(flow, settings), setupOpen).map((s) => s.id);
+			for (const diagram of [flow, setup]) {
+				const result = layoutDiagram(evaluate(diagram, settings));
+				const expected = evaluate(diagram, settings).steps.map((s) => s.id);
 				expect(result.rows.map((row) => row.id)).toEqual(expected);
 				const ys = result.rows.map((row) => row.y);
 				expect(ys).toEqual([...ys].sort((a, b) => a - b));
@@ -63,11 +63,9 @@ describe('layout', () => {
 		expect(frame!.y + frame!.height).toBeLessThanOrEqual(after.y);
 	});
 
-	it('hides setup rows until setup opens', () => {
-		expect(layout().rows.some((row) => row.id === 'discover')).toBe(false);
-		expect(layout({}, true).rows.some((row) => row.id === 'discover')).toBe(true);
-		expect(layout().band.count).toBe(4);
-		expect(layout({ broker: true, upstreamTokens: 'v1' }).band.count).toBe(6);
+	it('keeps setup rows out of the user flow', () => {
+		const rows = layout({ broker: true, upstreamTokens: 'v1' }).rows.map((row) => row.id);
+		for (const step of setup.steps) expect(rows).not.toContain(step.id);
 	});
 });
 

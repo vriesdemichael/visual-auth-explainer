@@ -2,14 +2,30 @@
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
 
+	/** A link the route has already resolved. */
+	interface Link {
+		text: string;
+		href: string;
+	}
+
 	interface Props {
 		step: Step;
 		lifelines: readonly Lifeline[];
 		change?: ViewDiff | null;
 		resets?: readonly Reset[];
+		links?: readonly Link[];
+		/** A setting changed nothing in this diagram, but did in the other one. */
+		elsewhere?: Link | null;
 	}
 
-	let { step, lifelines, change = null, resets = [] }: Props = $props();
+	let {
+		step,
+		lifelines,
+		change = null,
+		resets = [],
+		links = [],
+		elsewhere = null
+	}: Props = $props();
 
 	const nameOf = (id: string) => lifelines.find((line) => line.id === id)?.name ?? id;
 	const labelOf = (id: SettingId) => settingDefs[id].label;
@@ -43,7 +59,7 @@
 	});
 </script>
 
-{#if summary.length}
+{#if summary.length || elsewhere}
 	<section class="change" data-testid="change-summary">
 		<h2>What changed</h2>
 		<ul>
@@ -51,6 +67,13 @@
 			{#each resets as reset (reset.setting)}
 				<li>{labelOf(reset.setting)} was reset. {reset.because}</li>
 			{/each}
+			{#if elsewhere}
+				<li>
+					Nothing in this diagram.
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+					<a href={elsewhere.href} data-testid="changed-elsewhere">{elsewhere.text}</a>
+				</li>
+			{/if}
 		</ul>
 	</section>
 {/if}
@@ -69,6 +92,12 @@
 	{#if step.causes.length}
 		<p class="cause">Here because of: {step.causes.map(labelOf).join(', ')}</p>
 	{/if}
+	{#each links as link (link.href)}
+		<p>
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+			<a href={link.href} data-testid="step-link">{link.text}</a>
+		</p>
+	{/each}
 
 	{#if step.fields.length}
 		<h3>What it carries</h3>

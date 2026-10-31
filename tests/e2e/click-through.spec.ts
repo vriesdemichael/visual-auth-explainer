@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { allValidSettings } from '../../src/lib/flow/settings.ts';
-import { authorizationCode as flow } from '../../src/lib/flow/authorization-code.ts';
-import { presets } from '../../src/lib/flow/index.ts';
+import { authorizationCodeBase as base, presets } from '../../src/lib/flow/index.ts';
 import { presetSearch } from '../../src/lib/flow/state.ts';
 import {
 	currentSearch,
@@ -24,8 +23,8 @@ const STABLE_URLS = [
 	{ search: 'broker=1&upstream=v1', step: 'open-app', stepCount: 22, lifelines: 5 },
 	{ search: 'broker=1&upstream=v2', step: 'open-app', stepCount: 22, lifelines: 5 },
 	{ search: 'oidc=1&step=token-response', step: 'token-response', stepCount: 15, lifelines: 4 },
-	{ search: 'setup=1', step: 'register-client', stepCount: 16, lifelines: 4 },
-	{ search: 'step=discover', step: 'discover', stepCount: 16, lifelines: 4 },
+	{ search: 'setup=1', step: 'register-client', stepCount: 6, lifelines: 4 },
+	{ search: 'step=discover', step: 'discover', stepCount: 6, lifelines: 4 },
 	{
 		search: 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v2&step=call-upstream',
 		step: 'call-upstream',
@@ -71,13 +70,13 @@ test.describe('links', () => {
 		for (const preset of presets) {
 			await page.goto('./');
 			await page.getByTestId(`preset-${preset.id}`).click();
-			await expectMatchesModel(page, presetSearch(flow, preset.settings));
+			await expectMatchesModel(page, presetSearch(base, preset.settings));
 		}
 	});
 });
 
 test.describe('every valid combination', () => {
-	const combinations = allValidSettings().map((settings) => presetSearch(flow, settings));
+	const combinations = allValidSettings().map((settings) => presetSearch(base, settings));
 
 	test('shows what the model says', async ({ page }) => {
 		const check = watchForErrors(page);
@@ -93,7 +92,7 @@ test.describe('walking the steps', () => {
 	for (const preset of presets) {
 		test(`${preset.title}: Next and Back cover every step`, async ({ page }) => {
 			const check = watchForErrors(page);
-			const search = presetSearch(flow, preset.settings);
+			const search = presetSearch(base, preset.settings);
 			const { steps, view } = expectedFor(search);
 			await open(page, search);
 
@@ -146,17 +145,6 @@ test.describe('walking the steps', () => {
 		await page.getByTestId('next').click();
 		await page.goBack();
 		await expect(page).toHaveURL('./');
-	});
-
-	test('Back from the first login step opens setup', async ({ page }) => {
-		await open(page);
-		await page.getByTestId('back').click();
-		await expect(page.locator('[data-state="current"]')).toHaveAttribute(
-			'data-step',
-			'discovery-document'
-		);
-		await expectMatchesModel(page, 'setup=1&step=discovery-document');
-		await expect(page.getByTestId('setup-band')).toHaveAttribute('aria-expanded', 'true');
 	});
 });
 
@@ -239,16 +227,6 @@ test.describe('settings', () => {
 	test('an invalid link falls back to a valid state', async ({ page }) => {
 		await open(page, 'client=public&broker=1&upstream=v2&nonce=1&binding=magic');
 		await expectMatchesModel(page, 'client=public&broker=1');
-	});
-
-	test('setup opens and closes as a change to the same diagram', async ({ page }) => {
-		await open(page);
-		await expect(page.locator('[data-step="discover"]')).toHaveCount(0);
-		await page.getByTestId('setup-band').click();
-		await expect(page.locator('[data-step="discover"]')).toHaveCount(1);
-		await expect.poll(() => currentSearch(page)).toBe('setup=1&step=open-app');
-		await page.getByTestId('setup-band').click();
-		await expect(page.locator('[data-step="discover"]')).toHaveCount(0);
 	});
 });
 

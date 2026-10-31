@@ -6,6 +6,8 @@ What a setting needs is a requirement on the setting or on one of its options, w
 
 A field that differs from the base flow is shown on the message itself, and every other field only in the step detail. So what is on the diagram is what the settings changed.
 
+A base flow has two diagrams, the user flow and its setup, and each is one such list on the same engine. Setup is apart because no user does it: the people who do are lifelines on its diagram, and no user or browser is. Settings apply to both. Back and Next stay inside a diagram, switching between them does not animate, and a step can link to a related step in the other.
+
 OIDC, DPoP with a nonce retry, brokering with its nested flow, and stored upstream tokens with two API versions all fit this model without special cases, and it gives 42 valid combinations. The order is what makes it work: because the list is fixed, a step that disappears has a nearest earlier step to fall back to, and a transition never has to move a row past another. If a later toggle needs to reorder steps, this record has to change first.
 
 ## Not chosen
@@ -13,3 +15,4 @@ OIDC, DPoP with a nonce retry, brokering with its nested flow, and stored upstre
 - **`alt` frames or a tree of branches**: DPoP touches several steps and has no single place to branch.
 - **A separate list of steps per variant**: Stable step IDs would have nothing to hold them together, and the variants would drift.
 - **Conditions as functions**: They read well, but the application could not say which setting caused a step.
+- **Setup at the top of the user flow's diagram**: It reads as something the user does, and the people who do it would have no lifeline.

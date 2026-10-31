@@ -1,8 +1,10 @@
 [
 	"register-client",
+	"create-client",
 	"hand-over-credentials",
 	"register-with-upstream",
 	"enable-token-storage",
+	"configure-app",
 	"discover",
 	"discovery-document",
 	"open-app",

@@ -5,7 +5,7 @@
 
 	const link = (flow: string, settings: (typeof presets)[number]['settings']) => {
 		const search = presetSearch(flows[flow], settings);
-		return resolve('/[flow]', { flow }) + (search ? `?${search}` : '');
+		return resolve('/[flow]/[[diagram]]', { flow }) + (search ? `?${search}` : '');
 	};
 </script>
 

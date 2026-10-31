@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
-import { diffViews, evaluate, isEmptyDiff } from '#lib/flow/model.ts';
-import { presets } from '#lib/flow/index.ts';
+import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
+import { diffViews, evaluate, isEmptyDiff, type DiagramId } from '#lib/flow/model.ts';
+import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
 import { allValidSettings, defaultSettings, type Settings } from '#lib/flow/settings.ts';
 import shippedStepIds from '#lib/flow/shipped-step-ids.json';
 
@@ -9,40 +10,50 @@ const view = (settings: Partial<Settings> = {}) =>
 	evaluate(flow, { ...defaultSettings, ...settings });
 const diff = (before: Partial<Settings>, after: Partial<Settings>) =>
 	diffViews(view(before), view(after));
+const setupView = (settings: Partial<Settings> = {}) =>
+	evaluate(setup, { ...defaultSettings, ...settings });
 
 describe('every valid combination', () => {
 	const combinations = allValidSettings();
+	const diagrams: readonly DiagramId[] = ['flow', 'setup'];
 
-	it('uses unique step IDs in the definition', () => {
-		const ids = flow.steps.map((step) => step.id);
+	it.each(diagrams)('uses unique step IDs in the definition of %s', (diagram) => {
+		const ids = base.diagrams[diagram].steps.map((step) => step.id);
 		expect(new Set(ids).size).toBe(ids.length);
 	});
 
-	it.each(combinations.map((settings) => [JSON.stringify(settings), settings] as const))(
-		'builds a coherent diagram: %s',
-		(_, settings) => {
-			const result = evaluate(flow, settings);
-			const lifelines = new Set(result.lifelines.map((line) => line.id));
-			for (const step of result.steps) {
-				expect(lifelines.has(step.from), `${step.id} from ${step.from}`).toBe(true);
-				expect(lifelines.has(step.to), `${step.id} to ${step.to}`).toBe(true);
-				expect(step.label).not.toBe('');
-				expect(step.concept).not.toBe('');
-				expect(new Set(step.fields.map((f) => f.name)).size).toBe(step.fields.length);
+	describe.each(diagrams)('in %s', (diagram) => {
+		it.each(combinations.map((settings) => [JSON.stringify(settings), settings] as const))(
+			'builds a coherent diagram: %s',
+			(_, settings) => {
+				const result = evaluate(base.diagrams[diagram], settings);
+				const lifelines = new Set(result.lifelines.map((line) => line.id));
+				for (const step of result.steps) {
+					expect(lifelines.has(step.from), `${step.id} from ${step.from}`).toBe(true);
+					expect(lifelines.has(step.to), `${step.id} to ${step.to}`).toBe(true);
+					expect(step.label).not.toBe('');
+					expect(step.concept).not.toBe('');
+					expect(new Set(step.fields.map((f) => f.name)).size).toBe(step.fields.length);
+				}
+				for (const group of result.groups) {
+					const members = result.steps.filter((step) => step.group === group.id);
+					expect(members.length, `group ${group.id}`).toBeGreaterThan(0);
+					const first = result.steps.indexOf(members[0]);
+					expect(result.steps.slice(first, first + members.length)).toEqual(members);
+				}
+				for (const step of result.steps) {
+					if (step.group) expect(result.groups.map((g) => g.id)).toContain(step.group);
+					for (const link of step.links) {
+						const target = evaluate(base.diagrams[link.diagram], settings);
+						expect(link.diagram, `${step.id} links to its own diagram`).not.toBe(diagram);
+						expect(target.steps.map((s) => s.id)).toContain(link.step);
+					}
+				}
 			}
-			for (const group of result.groups) {
-				const members = result.steps.filter((step) => step.group === group.id);
-				expect(members.length, `group ${group.id}`).toBeGreaterThan(0);
-				const first = result.steps.indexOf(members[0]);
-				expect(result.steps.slice(first, first + members.length)).toEqual(members);
-			}
-			for (const step of result.steps) {
-				if (step.group) expect(result.groups.map((g) => g.id)).toContain(step.group);
-			}
-		}
-	);
+		);
+	});
 
-	it('produces a different diagram for each one', () => {
+	it('produces a different user flow for each one', () => {
 		const shapes = combinations.map((settings) => JSON.stringify(evaluate(flow, settings)));
 		expect(new Set(shapes).size).toBe(combinations.length);
 	});
@@ -50,7 +61,62 @@ describe('every valid combination', () => {
 
 describe('step IDs', () => {
 	it('stay stable, because links depend on them (ADR-003)', () => {
-		expect(flow.steps.map((step) => step.id).sort()).toEqual([...shippedStepIds].sort());
+		const ids = [...flow.steps, ...setup.steps].map((step) => step.id);
+		expect(new Set(ids).size).toBe(ids.length);
+		expect(ids.sort()).toEqual([...shippedStepIds].sort());
+	});
+});
+
+describe('the two diagrams', () => {
+	const combinations = allValidSettings();
+
+	it('keep the user and the browser out of setup', () => {
+		for (const settings of combinations) {
+			const ids = evaluate(setup, settings).lifelines.map((line) => line.id);
+			expect(ids).not.toContain('browser');
+			expect(ids).not.toContain('api');
+		}
+	});
+
+	it('put the people who do setup on its diagram', () => {
+		expect(setupView().lifelines.map((line) => line.id)).toEqual([
+			'app-team',
+			'app',
+			'idp',
+			'idp-admin'
+		]);
+	});
+
+	it('keep people out of the user flow', () => {
+		for (const settings of combinations) {
+			expect(evaluate(flow, settings).steps.map((step) => step.kind)).not.toContain('human');
+		}
+	});
+
+	it('draw hand-offs differently from discovery, which really is HTTP', () => {
+		const kindOf = (id: string) => setupView().steps.find((step) => step.id === id)?.kind;
+		expect(kindOf('register-client')).toBe('human');
+		expect(kindOf('hand-over-credentials')).toBe('human');
+		expect(kindOf('discover')).toBe('request');
+		expect(kindOf('discovery-document')).toBe('response');
+	});
+
+	it('link the redirect URI check to where it was registered, and back', () => {
+		const authorize = view().steps.find((step) => step.id === 'authorize');
+		expect(authorize?.links.map((link) => link.step)).toEqual(['register-client']);
+		const register = setupView().steps.find((step) => step.id === 'register-client');
+		expect(register?.links.map((link) => link.step)).toEqual(['authorize']);
+	});
+
+	it('link the start of the user flow to setup, and the end of setup to the user flow', () => {
+		expect(view().steps[0].links[0]).toMatchObject({ diagram: 'setup' });
+		expect(setupView().steps.at(-1)?.links[0]).toMatchObject({ diagram: 'flow', step: 'open-app' });
+	});
+
+	it('let a setting reach into setup', () => {
+		const change = diffViews(setupView(), setupView({ broker: true }));
+		expect(change.addedLifelines).toEqual(['upstream']);
+		expect(change.addedSteps).toEqual(['register-with-upstream']);
 	});
 });
 
@@ -112,9 +178,7 @@ describe('brokering', () => {
 		expect(change.removedFields).toEqual([]);
 		const appSteps = (settings: Partial<Settings>) =>
 			view(settings)
-				.steps.filter(
-					(step) => step.phase !== 'setup' && (step.from === 'app' || step.to === 'app')
-				)
+				.steps.filter((step) => step.from === 'app' || step.to === 'app')
 				.map((step) => step.id);
 		expect(appSteps({ broker: true })).toEqual(appSteps({}));
 	});

@@ -44,7 +44,7 @@ The spirit is that of the visual guides to transformers, but authn/authz is a mu
 |---|---|---|
 | Main thing on screen | Text, with diagrams illustrating it | The diagram and its controls. Text appears for whatever is selected |
 | How you move through it | Reading order, scrolling | Pick a flow, change settings, step forward and back, execute a step |
-| Unit of work | A page or a piece | A state: base flow, settings, mode and current step |
+| Unit of work | A page or a piece | A state: base flow, diagram, settings, mode and current step |
 | What growth means | Another post | Another toggle or flow in the same application |
 | What finishing means | Publishing | It keeps growing, and each addition is a small change that CI validates |
 | How quality is checked | Proofreading | Automated click-through, plus review of protocol claims |
@@ -94,7 +94,7 @@ The maintainer's assessment, with how well each one is supported. "Not found" me
 
 **Decided.** The earlier research report recommended starting with the registration flow and sending people to IdentiFlows for the basics. **That recommendation is superseded**, for three reasons: toggles need a base flow to change, the original problem is explaining at different levels, and the basics are the reported confusion.
 
-The caveat is that the basic code flow is also the most saturated area, and a wave of near-identical simulators in 2026 suggests a plain animated flow is now cheap. The first version must therefore already show what is different: the concept layer, the setup phase and at least one working toggle.
+The caveat is that the basic code flow is also the most saturated area, and a wave of near-identical simulators in 2026 suggests a plain animated flow is now cheap. The first version must therefore already show what is different: the concept layer, the setup diagram and at least one working toggle.
 
 ### 5.2 One diagram, many toggles
 
@@ -102,9 +102,9 @@ The caveat is that the basic code flow is also the most saturated area, and a wa
 
 **Proposed: the transition is the centrepiece.** Stable step IDs let a toggle animate as a change, with an arrow sliding in and rows shifting, instead of a redraw. No precedent found does this for general OAuth, and it is the moment the idea either lands or does not. It has to work inside a message as well as between messages: OAuth to OIDC adds at most one arrow, and most of the change is in fields.
 
-### 5.3 Setup is a phase of the same diagram
+### 5.3 Setup has its own diagram
 
-**Decided:** the application's view of setup is in scope. **Proposed:** it belongs at the top of the same diagram, as what happens before any user arrives, not in a separate section.
+**Decided:** the application's view of setup is in scope, and it is a diagram of its own next to the user flow ([ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md)). The maintainer ruled out combining them, because "it makes it look like the setup is something the user does". The toggles in section 5.2 still act on one diagram at a time, and settings apply to both.
 
 The handshake runs in both directions:
 
@@ -115,9 +115,9 @@ The handshake runs in both directions:
 
 Three things follow:
 
-- **Registration is the setup.** Manual registration, DCR and CIMD are three answers to one question: how does the IdP get to know this app? So the CIMD toggle lives in this phase and fits the story rather than being an advanced extra.
-- **Setup and login can be linked visually.** The redirect URI registered in setup is checked during login. Showing that link explains the most-viewed Keycloak error.
-- **The setup phase differs from runtime.** Manual setup is mostly people, an application team and an IdP admin copying values between consoles, not HTTP messages. DCR and CIMD turn those human hand-offs into HTTP calls, which could be a striking toggle, but a sequence diagram may need adapting to carry human steps. **Proposed:** draw them as dashed hand-offs between the same app and IdP lifelines, so that DCR and CIMD turn them into solid HTTP arrows as a transition.
+- **Registration is the setup.** Manual registration, DCR and CIMD are three answers to one question: how does the IdP get to know this app? So the CIMD toggle lives in the setup diagram and fits the story rather than being an advanced extra.
+- **Setup and login are linked.** The redirect URI registered in setup is checked during login, and those two steps link to each other. That explains the most-viewed Keycloak error.
+- **The setup diagram differs from runtime.** Manual setup is mostly people, an application team and an IdP admin copying values between consoles, not HTTP messages. So those people are lifelines on it, each next to the system they look after, and their hand-offs are drawn differently from HTTP. **Proposed:** DCR and CIMD take the people off the diagram, so that the hand-offs turn into HTTP arrows as a transition.
 
 ### 5.4 Limited context per step
 
@@ -258,12 +258,12 @@ An order for later releases. **Proposed**, and expected to change.
 | Concept | Control | Effect on the diagram |
 |---|---|---|
 | Actors, issuer, tokens | Concept layer | Explained on the lifelines themselves |
-| Client registration, discovery | Setup phase | Steps before any user arrives |
+| Client registration, discovery | Setup diagram | Steps before any user arrives |
 | Authorization code | Base flow | The main flow |
 | OIDC | Modifier | Adds the `openid` scope, an ID token and UserInfo. The access token does not change on a default Keycloak client |
 | PKCE | Modifier | Adds `code_challenge` and `code_verifier` |
 | Public or confidential client | Exclusive | Changes setup and the token request |
-| Pre-registered, DCR or CIMD | Exclusive | Changes the setup phase. CIMD is the `cimd` flag, experimental |
+| Pre-registered, DCR or CIMD | Exclusive | Changes the setup diagram. CIMD is the `cimd` flag, experimental |
 | External IdP (brokering) | Modifier | Adds a lifeline and a nested flow |
 | Stored upstream tokens | Modifier on brokering, then API V1 or V2 | Adds a retrieval call after login. V2 needs a confidential client |
 | User federation | Modifier | Adds a server-side lookup, no redirect |
@@ -295,7 +295,7 @@ Then build a rough animated prototype, because the data model alone will not sho
 1. **Entry map:** the home screen, with a node for each state this version offers.
 2. **Application shell:** the diagram, step controls, settings, simple and advanced mode, and all state in the URL.
 3. **Concept layer on the diagram:** select a lifeline to learn what the user, app, IdP and API are, and what an issuer is.
-4. **Setup phase:** client registration, redirect URI and discovery.
+4. **Setup diagram:** client registration, redirect URI and discovery.
 5. **Authorization code flow:** stepped through with only what is relevant at each step.
 6. **One toggle, OAuth to OIDC:** with the animated transition.
 7. **Advanced mode:** parameters and raw request and response for these steps, with `Execute` where it adds something.
@@ -351,9 +351,9 @@ A content-site setup, with prose pages and the diagram as one embedded island, i
 Still to settle:
 
 - **Entry map:** whether a node is a named state as proposed in section 5.9, which nodes the first version has, and whether it shows planned ones.
-- **First use of the application screen:** **Proposed:** faint arrows, setup collapsed, the cast of lifelines in the step detail, and Next as the obvious action.
+- **First use of the application screen:** **Proposed:** the user flow first, faint arrows, the cast of lifelines in the step detail, and Next as the obvious action.
 - **Keycloak overlay:** whether visitors can turn it off.
-- **State and routing:** the URL shape. **Proposed:** the flow in the path, with settings, mode and step in the query, and a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting or mode adds one.
+- **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). **Proposed:** a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows and how presets relate to map nodes. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md).
 - **Recording pipeline:** how to capture Keycloak traffic per combination, including the questions step 0 raised in [research/followup-checks.md](research/followup-checks.md).
 - **Name and domain:** `visual-auth-explainer` is a working name only.

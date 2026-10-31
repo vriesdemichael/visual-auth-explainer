@@ -19,11 +19,6 @@ export const authorizationCode: FlowDef = {
 	id: 'authorization-code',
 	title: 'Authorization code flow',
 	summary: 'An app gets access on behalf of a user, without ever seeing their password.',
-	phases: [
-		{ id: 'setup', label: 'Setup, before any user arrives' },
-		{ id: 'login', label: 'Login' },
-		{ id: 'use', label: 'Using the tokens' }
-	],
 	lifelines: [
 		{
 			id: 'browser',
@@ -69,121 +64,22 @@ export const authorizationCode: FlowDef = {
 	],
 	steps: [
 		{
-			id: 'register-client',
-			phase: 'setup',
-			from: 'app',
-			to: 'idp',
-			kind: 'human',
-			label: 'Register the app',
-			concept:
-				"The app team gives an IdP admin the app's redirect URIs and client type. People do this in a console, so there is no HTTP message.",
-			fields: [
-				{ name: 'redirect_uris', place: 'setting', note: 'Checked again during every login' },
-				{ name: 'client type', place: 'setting' }
-			]
-		},
-		{
-			id: 'hand-over-credentials',
-			phase: 'setup',
-			from: 'idp',
-			to: 'app',
-			kind: 'human',
-			label: [
-				{ when: confidential, text: 'Hand over client ID and secret' },
-				{ text: 'Hand over client ID' }
-			],
-			concept: [
-				{
-					when: confidential,
-					text: 'The admin passes the client ID and secret back to the app team.'
-				},
-				{ text: 'The admin passes the client ID back. A public client has no secret to keep.' }
-			],
-			fields: [
-				{ name: 'client_id', place: 'setting' },
-				{ name: 'client_secret', place: 'setting', when: confidential }
-			]
-		},
-		{
-			id: 'register-with-upstream',
-			phase: 'setup',
-			from: 'idp',
-			to: 'upstream',
-			kind: 'human',
-			label: 'Register the IdP as a client',
-			concept:
-				'The IdP is itself a client of the upstream IdP, so it has to be registered there the same way.',
-			when: broker,
-			fields: [
-				{ name: 'redirect_uris', place: 'setting', note: "The IdP's broker endpoint" },
-				{ name: 'client_id', place: 'setting' },
-				{ name: 'client_secret', place: 'setting' }
-			]
-		},
-		{
-			id: 'enable-token-storage',
-			phase: 'setup',
-			from: 'idp',
-			to: 'idp',
-			kind: 'human',
-			label: 'Allow token storage',
-			concept: [
-				{
-					when: apiV2,
-					text: 'An admin turns on token storage for the upstream IdP, and allows this client to retrieve the tokens.'
-				},
-				{
-					text: 'An admin turns on token storage for the upstream IdP, and gives the user a role to read them.'
-				}
-			],
-			when: storedTokens,
-			fields: [
-				{ name: 'Store Tokens', place: 'setting' },
-				{ name: 'read-token role', place: 'setting', when: apiV1 },
-				{ name: 'Allow retrieve external tokens', place: 'setting', when: apiV2 }
-			]
-		},
-		{
-			id: 'discover',
-			phase: 'setup',
-			from: 'app',
-			to: 'idp',
-			kind: 'request',
-			label: 'GET /.well-known/…',
-			concept: 'The app starts from the issuer URL and asks the IdP where everything else is.',
-			fields: [
-				{ name: '/.well-known/openid-configuration', place: 'path', when: oidc },
-				{ name: '/.well-known/oauth-authorization-server', place: 'path', when: not(oidc) }
-			]
-		},
-		{
-			id: 'discovery-document',
-			phase: 'setup',
-			from: 'idp',
-			to: 'app',
-			kind: 'response',
-			label: 'Endpoints and keys',
-			concept: "The IdP's endpoints, and where to find the keys that verify its tokens.",
-			fields: [
-				{ name: 'issuer', place: 'body' },
-				{ name: 'authorization_endpoint', place: 'body' },
-				{ name: 'token_endpoint', place: 'body' },
-				{ name: 'jwks_uri', place: 'body' },
-				{ name: 'userinfo_endpoint', place: 'body', when: oidc }
-			]
-		},
-		{
 			id: 'open-app',
-			phase: 'login',
 			from: 'browser',
 			to: 'app',
 			kind: 'request',
 			label: 'Open the app',
-			concept: 'The user wants something from the app, and the app needs them logged in first.'
+			concept: 'The user wants something from the app, and the app needs them logged in first.',
+			links: [
+				{
+					diagram: 'setup',
+					step: 'register-client',
+					text: 'See how the app and the IdP got to know each other'
+				}
+			]
 		},
 		{
 			id: 'generate-key',
-			phase: 'login',
 			from: 'app',
 			to: 'app',
 			kind: 'internal',
@@ -194,7 +90,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'redirect-to-idp',
-			phase: 'login',
 			from: 'app',
 			to: 'browser',
 			kind: 'response',
@@ -204,7 +99,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'authorize',
-			phase: 'login',
 			from: 'browser',
 			to: 'idp',
 			kind: 'request',
@@ -215,6 +109,13 @@ export const authorizationCode: FlowDef = {
 					text: 'The browser asks the IdP to log the user in. The openid scope asks for proof of who that was as well.'
 				},
 				{ text: 'The browser asks the IdP to log the user in and grant the app access.' }
+			],
+			links: [
+				{
+					diagram: 'setup',
+					step: 'register-client',
+					text: 'See where the redirect URI was registered'
+				}
 			],
 			fields: [
 				{ name: 'response_type=code', place: 'query' },
@@ -233,7 +134,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'login-page',
-			phase: 'login',
 			from: 'idp',
 			to: 'browser',
 			kind: 'response',
@@ -243,7 +143,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'submit-credentials',
-			phase: 'login',
 			from: 'browser',
 			to: 'idp',
 			kind: 'request',
@@ -253,7 +152,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'redirect-to-upstream',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'idp',
 			to: 'browser',
@@ -265,7 +163,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'upstream-authorize',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'browser',
 			to: 'upstream',
@@ -281,7 +178,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'upstream-sign-in',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'browser',
 			to: 'upstream',
@@ -293,7 +189,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'upstream-redirect-back',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'upstream',
 			to: 'browser',
@@ -304,7 +199,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'upstream-callback',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'browser',
 			to: 'idp',
@@ -315,7 +209,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'upstream-token-request',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'idp',
 			to: 'upstream',
@@ -332,7 +225,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'upstream-token-response',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'upstream',
 			to: 'idp',
@@ -347,7 +239,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'store-upstream-tokens',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'idp',
 			to: 'idp',
@@ -364,7 +255,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'match-user',
-			phase: 'login',
 			group: 'brokered-login',
 			from: 'idp',
 			to: 'idp',
@@ -375,7 +265,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'redirect-with-code',
-			phase: 'login',
 			from: 'idp',
 			to: 'browser',
 			kind: 'response',
@@ -389,7 +278,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'callback',
-			phase: 'login',
 			from: 'browser',
 			to: 'app',
 			kind: 'request',
@@ -402,7 +290,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'token-request',
-			phase: 'login',
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
@@ -419,7 +306,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'nonce-challenge',
-			phase: 'login',
 			group: 'nonce-retry',
 			from: 'idp',
 			to: 'app',
@@ -434,7 +320,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'token-request-retry',
-			phase: 'login',
 			group: 'nonce-retry',
 			from: 'app',
 			to: 'idp',
@@ -446,7 +331,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'token-response',
-			phase: 'login',
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
@@ -467,7 +351,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'validate-id-token',
-			phase: 'login',
 			from: 'app',
 			to: 'app',
 			kind: 'internal',
@@ -484,7 +367,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'userinfo-request',
-			phase: 'login',
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
@@ -499,7 +381,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'userinfo-response',
-			phase: 'login',
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
@@ -510,7 +391,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'api-request',
-			phase: 'use',
 			from: 'app',
 			to: 'api',
 			kind: 'request',
@@ -530,7 +410,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'api-check-token',
-			phase: 'use',
 			from: 'api',
 			to: 'api',
 			kind: 'internal',
@@ -550,7 +429,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'api-response',
-			phase: 'use',
 			from: 'api',
 			to: 'app',
 			kind: 'response',
@@ -559,7 +437,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'retrieve-upstream-token',
-			phase: 'use',
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
@@ -586,7 +463,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'upstream-token',
-			phase: 'use',
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
@@ -597,7 +473,6 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'call-upstream',
-			phase: 'use',
 			from: 'app',
 			to: 'upstream',
 			kind: 'request',

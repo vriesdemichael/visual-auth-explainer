@@ -1,9 +1,15 @@
 import { authorizationCode } from '#lib/flow/authorization-code.ts';
-import type { FlowDef } from '#lib/flow/model.ts';
+import { authorizationCodeSetup } from '#lib/flow/authorization-code-setup.ts';
+import type { BaseFlow } from '#lib/flow/model.ts';
 import type { Settings } from '#lib/flow/settings.ts';
 
-export const flows: Record<string, FlowDef> = {
-	[authorizationCode.id]: authorizationCode
+export const authorizationCodeBase: BaseFlow = {
+	id: authorizationCode.id,
+	diagrams: { flow: authorizationCode, setup: authorizationCodeSetup }
+};
+
+export const flows: Record<string, BaseFlow> = {
+	[authorizationCodeBase.id]: authorizationCodeBase
 };
 
 export interface Preset {
