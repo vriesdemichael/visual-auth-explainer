@@ -1,0 +1,1 @@
+export{r as load_css,n as start}from"./BiWD2_7L.js";
