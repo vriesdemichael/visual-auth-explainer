@@ -32,6 +32,10 @@ jobs:
         if: github.event.action != 'closed'
         env:
           BASE_PATH: /${{ github.event.repository.name }}/pr-preview/pr-${{ github.event.number }}
+      # The deploy action never deletes these, so they would outlive the preview.
+      # The one at the root of gh-pages covers the whole site.
+      - run: find build -name .nojekyll -delete
+        if: github.event.action != 'closed'
       - uses: rossjrw/pr-preview-action@v1
         id: preview
         with:
