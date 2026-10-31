@@ -145,7 +145,7 @@ test.describe('walking the steps', () => {
 		await page.getByTestId('next').click();
 		await page.getByTestId('next').click();
 		await page.goBack();
-		await expect(page).toHaveURL(/visual-auth-explainer\/$/);
+		await expect(page).toHaveURL('./');
 	});
 
 	test('Back from the first login step opens setup', async ({ page }) => {
