@@ -217,15 +217,16 @@
 					{#if !lane.leaving}
 						{#each layHeld(holdings[lane.id] ?? [], frame.heldWidth) as chip (chip.artifact)}
 							{#if lane.id !== eyes && !eyesHold(chip.artifact)}
-								<rect
-									class="bar"
-									data-hidden-held
-									x={chip.x}
-									y={chip.y}
-									width={chip.width}
-									height="16"
-									rx="8"
-								/>
+								<g data-hidden-held
+									><rect
+										class="bar"
+										x={chip.x}
+										y={chip.y}
+										width={chip.width}
+										height="16"
+										rx="8"
+									/></g
+								>
 							{:else}
 								<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
 							     the lifeline's own explanation, which lists these as buttons. -->
@@ -943,8 +944,10 @@
 	}
 
 	/* What someone never saw, which is how much there was and nothing of what it said. */
-	.bar {
+	.bar,
+	.lane-head .bar {
 		fill: var(--line);
+		stroke: none;
 		opacity: var(--words, 1);
 		pointer-events: none;
 	}

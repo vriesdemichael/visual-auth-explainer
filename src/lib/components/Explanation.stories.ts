@@ -17,7 +17,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const ALifelineThatHasSeenThings: Story = {
-	args: { seen: ['secret', 'password', 'code'] }
+	args: { seen: ['secret', 'password', 'code'], onseeonly: () => {} }
+};
+
+export const ALifelineWhoseViewIsShown: Story = {
+	args: { seen: ['secret', 'password', 'code'], onseeonly: () => {}, seeingOnly: true }
 };
 
 export const ALifelineThatHasSeenNothing: Story = {
