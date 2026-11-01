@@ -1,6 +1,6 @@
 # Premise
 
-Starting point as of 2026-10-31. Step 0 is built as a rough prototype (section 8). The next step is the maintainer's judgement of its transition, then the first version, and settling what is left in section 11. The way there is split into [target states](https://github.com/vriesdemichael/visual-auth-explainer/issues?q=is%3Aissue+label%3A%22target+state%22), each a GitHub issue with acceptance criteria and deliverables.
+Starting point as of 2026-10-31, kept current since. The first version in section 8 is built, and what is left is the maintainer's: judging the transition and the words, and settling section 11. The way there is split into [target states](https://github.com/vriesdemichael/visual-auth-explainer/issues?q=is%3Aissue+label%3A%22target+state%22), each a GitHub issue with acceptance criteria and deliverables.
 
 **This is an interactive web application, not an article.** Read section 2 first, because everything else depends on it.
 
@@ -279,6 +279,7 @@ An order for later releases. **Proposed**, and expected to change.
 | Authorization code | Base flow | The main flow |
 | OIDC | Modifier | Adds the `openid` scope, an ID token and UserInfo. The access token does not change on a default Keycloak client |
 | An attacker | Modifier | Adds a lifeline, the theft and what they get. Only in the plain case, with a Bearer token and no other provider |
+| Consent and scopes | Modifier | Adds the question and the answer. Off on a default Keycloak client, which the Keycloak note explains |
 | PKCE | Modifier, off to start with | Adds `code_challenge` and `code_verifier`, with a step where the app makes them and one where the IdP checks them. Independent of the client type, because a real Keycloak takes all four combinations |
 | Public or confidential client | Exclusive | Changes setup and the token request |
 | Pre-registered, DCR or CIMD | Exclusive | Changes the setup diagram. CIMD is the `cimd` flag, experimental |

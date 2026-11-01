@@ -4,6 +4,7 @@
 	"presets": [
 		"oauth",
 		"oidc",
+		"consent",
 		"pkce",
 		"public",
 		"public-pkce",
@@ -31,6 +32,8 @@
 		"authorize",
 		"call-upstream",
 		"callback",
+		"consent-grant",
+		"consent-page",
 		"discover",
 		"discovery-document",
 		"login-page",

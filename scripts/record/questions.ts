@@ -199,6 +199,52 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 	}
 
 	{
+		const client = await freshClient(admin, 'note-consent');
+		const logIn = async (answer?: 'accept' | 'cancel') => {
+			const context = await browser.newContext();
+			const page = await context.newPage();
+			const query = new URLSearchParams({
+				response_type: 'code',
+				client_id: 'note-consent',
+				redirect_uri: REDIRECT_URI,
+				state: random()
+			});
+			demo.lastCode = '';
+			await page.goto(`${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/auth?${query}`);
+			await page.fill('#username', USERNAME);
+			await page.fill('#password', PASSWORD);
+			await page.click('#kc-login');
+			await page.waitForLoadState('networkidle');
+			const asked = (await page.locator('[name="accept"]').count()) > 0;
+			const lists = asked
+				? (await page.locator('#kc-oauth li, #kc-content li').allInnerTexts()).map((t) => t.trim())
+				: [];
+			if (asked && answer) {
+				await page.locator(`[name="${answer}"]`).first().click();
+				await page.waitForLoadState('networkidle');
+			}
+			const landed = new URL(page.url());
+			await context.close();
+			return { asked, lists, error: landed.searchParams.get('error'), code: demo.lastCode };
+		};
+		const before = await logIn();
+		await change(client, { consentRequired: true });
+		const declined = await logIn('cancel');
+		const agreed = await logIn('accept');
+		const again = await logIn();
+		answers.consentRequired = {
+			before: { asked: before.asked },
+			after: {
+				asked: agreed.asked,
+				lists: agreed.lists,
+				gotCode: Boolean(agreed.code),
+				secondLoginAsked: again.asked,
+				whenDeclined: declined.error
+			}
+		};
+	}
+
+	{
 		const client = await freshClient(admin, 'note-type');
 		const noSecret = {};
 		const before = await tokensFor(browser, demo, 'note-type', noSecret);

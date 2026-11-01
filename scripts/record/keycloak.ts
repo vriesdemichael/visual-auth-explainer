@@ -15,6 +15,7 @@ export const UPSTREAM_REALM = 'upstream';
 export const CONFIDENTIAL_CLIENT = 'demo-app';
 export const PUBLIC_CLIENT = 'demo-public';
 export const PKCE_CLIENT = 'demo-public-pkce';
+export const CONSENT_CLIENT = 'demo-consent';
 export const CLIENT_SECRET = 'throwaway-client-secret';
 export const BROKER_CLIENT = 'demo-broker';
 export const BROKER_SECRET = 'throwaway-broker-secret';
@@ -167,6 +168,11 @@ export async function setUpRealms(admin: Admin) {
 		'POST',
 		`/realms/${LOCAL_REALM}/clients`,
 		client(PUBLIC_CLIENT, { publicClient: true })
+	);
+	await admin.call(
+		'POST',
+		`/realms/${LOCAL_REALM}/clients`,
+		client(CONSENT_CLIENT, { ...confidential, consentRequired: true })
 	);
 	await admin.call(
 		'POST',

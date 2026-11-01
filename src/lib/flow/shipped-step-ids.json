@@ -1,4 +1,6 @@
 [
+	"consent-page",
+	"consent-grant",
 	"attacker-steals-code",
 	"attacker-token-request",
 	"attacker-token-response",

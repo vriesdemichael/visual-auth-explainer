@@ -1,6 +1,7 @@
 {
 	"how-access-works": "How does an app get access?|An app acts for a user, without ever seeing their password.|12|4",
 	"who-logged-in": "How does an app know who logged in?|Access is not identity, which is what OpenID Connect adds.|15|4",
+	"when-do-i-get-asked": "When does the user get asked?|What a scope is, and why you may never have seen the question.|14|4",
 	"getting-to-know-each-other": "How do an app and a provider get to know each other?|What people have to do before anyone can log in.|6|4",
 	"no-secret": "What is different about an app with no secret?|An app in a browser or on a phone cannot keep one, so what proves who it is?|12|4",
 	"stolen-code": "What if someone steals the code?|Watch them take it as it crosses the browser, and get the tokens.|14|5",
@@ -19,5 +20,5 @@
 	"on-the-wire": "What really goes over the wire?|The raw request and answer, from one real run.|12|4",
 	"redirect-uri-error": "Why do I get Invalid parameter: redirect_uri?|Where the address is checked, and where it was registered.|12|4",
 	"what-is-in-my-token": "Why does my access token say that?|Open it, and see which setting put each thing there.|12|4",
-	"everything": "What does it all look like at once?|Every setting on, to see how far one diagram stretches.|30|5"
+	"everything": "What does it all look like at once?|As much as fits together, to see how far one diagram stretches.|30|5"
 }

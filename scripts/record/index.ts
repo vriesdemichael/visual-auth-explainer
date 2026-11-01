@@ -16,6 +16,7 @@ import {
 	BROKERED_REALM,
 	CLIENT_SECRET,
 	CONFIDENTIAL_CLIENT,
+	CONSENT_CLIENT,
 	KEYCLOAK,
 	LOCAL_REALM,
 	PASSWORD,
@@ -60,6 +61,7 @@ function classifyRequest(url: URL): string | null {
 	if (path.startsWith(`/realms/${LOCAL_REALM}/login-actions/authenticate`)) {
 		return 'submit-credentials';
 	}
+	if (path.startsWith(`/realms/${LOCAL_REALM}/login-actions/consent`)) return 'consent-grant';
 	return null;
 }
 
@@ -72,6 +74,9 @@ function classifyResponse(url: URL, status: number, location: string | null): st
 	if (location?.includes(`/broker/${UPSTREAM_REALM}/endpoint`)) return 'upstream-redirect-back';
 	if (url.pathname === `/realms/${LOCAL_REALM}/protocol/openid-connect/auth` && status === 200) {
 		return 'login-page';
+	}
+	if (url.pathname.startsWith(`/realms/${LOCAL_REALM}/login-actions/`) && status === 200) {
+		return 'consent-page';
 	}
 	return null;
 }
@@ -111,6 +116,10 @@ async function login(browser: Browser, run: Run) {
 	await page.fill('#username', USERNAME);
 	await page.fill('#password', PASSWORD);
 	await page.click('#kc-login');
+	if (run.settings.consent) {
+		// The same button id, on the page that asks.
+		await page.locator('[name="accept"]').click();
+	}
 	await page.getByRole('heading', { name: /Logged in|Refused|Failed/ }).waitFor();
 	const outcome = await page.locator('body').innerText();
 	await context.close();
@@ -121,7 +130,11 @@ function runFor(settings: Settings): Run {
 	return {
 		settings,
 		realm: settings.broker ? BROKERED_REALM : LOCAL_REALM,
-		clientId: settings.clientType === 'public' ? PUBLIC_CLIENT : CONFIDENTIAL_CLIENT,
+		clientId: settings.consent
+			? CONSENT_CLIENT
+			: settings.clientType === 'public'
+				? PUBLIC_CLIENT
+				: CONFIDENTIAL_CLIENT,
 		clientSecret: settings.clientType === 'public' ? null : CLIENT_SECRET,
 		messages: []
 	};

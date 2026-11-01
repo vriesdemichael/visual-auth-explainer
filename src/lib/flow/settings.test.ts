@@ -39,7 +39,7 @@ describe('what a setting says for itself', () => {
 	});
 
 	it('is in plain words for the few simple mode offers', () => {
-		expect(simpleSettingIds).toEqual(['oidc', 'pkce', 'attacker', 'broker']);
+		expect(simpleSettingIds).toEqual(['oidc', 'consent', 'pkce', 'attacker', 'broker']);
 		for (const id of simpleSettingIds) {
 			expect(settingDefs[id].simple?.label).not.toBe(settingDefs[id].label);
 		}
@@ -54,7 +54,10 @@ describe('constraints', () => {
 		const dpop = 3 + 3;
 		const dpopWithNonce = 3 + 3;
 		const withAttacker = 2 * 2 * 2; // oidc x pkce x client, and only Bearer with no other provider.
-		expect(allValidSettings()).toHaveLength(2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker);
+		const withConsent = 2;
+		expect(allValidSettings()).toHaveLength(
+			withConsent * (2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker)
+		);
 	});
 
 	it('include the defaults', () => {

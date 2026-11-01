@@ -89,7 +89,7 @@ const OPEN_ENDED = new Set([
 ]);
 
 // The address of a login form is Keycloak's own business. What matters is what the form sends.
-const SIGN_IN = new Set(['submit-credentials', 'upstream-sign-in']);
+const SIGN_IN = new Set(['submit-credentials', 'upstream-sign-in', 'consent-grant']);
 
 function namesInMessage(message: RecordedMessage): string[] {
 	const { query, body } = carried(message);
