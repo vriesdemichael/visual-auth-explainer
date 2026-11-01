@@ -9,7 +9,7 @@ test.describe('an address that does not exist', () => {
 		await expect(message).not.toContainText('500');
 		await expect(page).toHaveTitle('Page not found');
 		await message.getByRole('link', { name: 'Go to the map' }).click();
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Visual auth explainer');
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Authlines');
 	});
 
 	// Each of these is on every object, so a plain lookup finds it and carries on.
@@ -56,14 +56,14 @@ test.describe('something failing to load', () => {
 		await page.route('**/_app/immutable/nodes/**', (route) =>
 			blocked ? route.abort() : route.continue()
 		);
-		await page.getByRole('link', { name: 'Map', exact: true }).click();
+		await page.getByRole('link', { name: 'Authlines Map', exact: true }).click();
 		const message = page.getByTestId('error-message');
 		await expect(message).toContainText('That did not load');
 		await expect(message).not.toContainText('There is no page here');
 		await expect(page).toHaveTitle('That did not load');
 		blocked = false;
 		await page.getByTestId('try-again').click();
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Visual auth explainer');
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Authlines');
 	});
 
 	test('the application itself says so, and a link with settings is not blank', async ({
@@ -90,9 +90,9 @@ test.describe('with JavaScript off', () => {
 	test('an address that does not exist still says something, with a title', async ({ page }) => {
 		await page.goto('no-such-flow/');
 		await expect(page.getByTestId('no-javascript')).toBeVisible();
-		await expect(page).toHaveTitle('Visual auth explainer');
+		await expect(page).toHaveTitle('Authlines');
 		await page.getByTestId('no-javascript').getByRole('link', { name: 'map' }).click();
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Visual auth explainer');
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Authlines');
 	});
 
 	test('a question shows its start and says what is missing', async ({ page }) => {

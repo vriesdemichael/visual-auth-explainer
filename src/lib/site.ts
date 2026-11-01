@@ -1,3 +1,6 @@
+/** What this is called, on screen and in what a shared link shows. */
+export const SITE_NAME = 'Authlines';
+
 /** Where the site lives, for what has to be a whole address. Moving it means changing this. */
 export const SITE_URL = 'https://vriesdemichael.github.io/visual-auth-explainer';
 
@@ -18,7 +21,7 @@ export function sharingTags({ title, description, path, image = 'home' }: Sharin
 	const imageUrl = `${SITE_URL}/social/${image}.png`;
 	return [
 		{ property: 'og:type', content: 'website' },
-		{ property: 'og:site_name', content: 'Visual auth explainer' },
+		{ property: 'og:site_name', content: SITE_NAME },
 		{ property: 'og:title', content: title },
 		{ property: 'og:description', content: description },
 		{ property: 'og:url', content: `${SITE_URL}${path}` },
