@@ -2,26 +2,42 @@
 // here is a real credential: the realms, users and secrets exist only for this run.
 import { execFileSync } from 'node:child_process';
 import type { Settings } from '#lib/flow/settings.ts';
+import {
+	APP,
+	CLIENT_SECRET,
+	CONFIDENTIAL_CLIENT,
+	demoClient as client,
+	demoUser as user,
+	KEYCLOAK,
+	KEYCLOAK_PORT,
+	LOCAL_REALM,
+	PASSWORD,
+	REDIRECT_URI,
+	USERNAME,
+	withSecret as confidential
+} from '#lib/recordings/run-yourself.ts';
 
-export const KEYCLOAK_PORT = 18080;
-export const KEYCLOAK = `http://localhost:${KEYCLOAK_PORT}`;
-export const APP = 'http://localhost:9100';
+export {
+	APP,
+	CLIENT_SECRET,
+	CONFIDENTIAL_CLIENT,
+	KEYCLOAK,
+	KEYCLOAK_PORT,
+	LOCAL_REALM,
+	PASSWORD,
+	REDIRECT_URI,
+	USERNAME
+};
 export const API = 'http://localhost:9101';
 export const PROXY_PORT = 9102;
 const PROXY_FROM_CONTAINER = `http://host.docker.internal:${PROXY_PORT}`;
 
-export const LOCAL_REALM = 'demo';
 export const BROKERED_REALM = 'demo-brokered';
 export const UPSTREAM_REALM = 'upstream';
-export const CONFIDENTIAL_CLIENT = 'demo-app';
 export const PUBLIC_CLIENT = 'demo-public';
 export const PKCE_CLIENT = 'demo-public-pkce';
-export const CLIENT_SECRET = 'throwaway-client-secret';
 export const BROKER_CLIENT = 'demo-broker';
 export const BROKER_SECRET = 'throwaway-broker-secret';
-export const USERNAME = 'alice';
-export const PASSWORD = 'throwaway-password';
-export const REDIRECT_URI = `${APP}/callback`;
 export const SECOND_APP = 'http://localhost:9103';
 export const SECOND_CLIENT = 'demo-app-two';
 export const SECOND_REDIRECT_URI = `${SECOND_APP}/callback`;
@@ -160,30 +176,6 @@ export class Admin {
 		});
 	}
 }
-
-const user = {
-	username: USERNAME,
-	email: 'alice@example.test',
-	firstName: 'Alice',
-	lastName: 'Example',
-	enabled: true,
-	emailVerified: true,
-	credentials: [{ type: 'password', value: PASSWORD, temporary: false }]
-};
-
-const client = (clientId: string, extra: object) => ({
-	clientId,
-	enabled: true,
-	standardFlowEnabled: true,
-	redirectUris: [REDIRECT_URI],
-	...extra
-});
-
-const confidential = {
-	publicClient: false,
-	clientAuthenticatorType: 'client-secret',
-	secret: CLIENT_SECRET
-};
 
 export async function setUpRealms(admin: Admin) {
 	for (const realm of [LOCAL_REALM, BROKERED_REALM, UPSTREAM_REALM]) {

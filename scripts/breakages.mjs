@@ -531,6 +531,32 @@ export const breakages = [
 		to: ''
 	},
 
+	// Running it at home.
+	{
+		name: 'run it yourself: the verifier is left out with PKCE on',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "...(settings.pkce ? [`--data-urlencode 'code_verifier=${VERIFIER}'`] : [])",
+		to: ''
+	},
+	{
+		name: 'run it yourself: an app with no secret is given one',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "...(settings.clientType === 'public' ? { publicClient: true } : withSecret),",
+		to: '...withSecret,'
+	},
+	{
+		name: 'run it yourself: the secret is not the one recorded',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "export const CLIENT_SECRET = 'throwaway-client-secret';",
+		to: "export const CLIENT_SECRET = 'another-secret';"
+	},
+	{
+		name: 'run it yourself: the challenge is not of that verifier',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "export const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';",
+		to: "export const CHALLENGE = 'not-the-challenge';"
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',

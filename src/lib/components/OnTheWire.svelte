@@ -31,6 +31,8 @@
 		notes?: readonly Note[];
 		/** Which steps whoever this is shown as was part of. */
 		seesStep?: (step: string) => boolean;
+		/** Where to run the same server at home, with the settings on screen. */
+		runHref?: string | null;
 	}
 
 	let {
@@ -43,7 +45,8 @@
 		onstep,
 		serverNamed = true,
 		notes = [],
-		seesStep = () => true
+		seesStep = () => true,
+		runHref = null
 	}: Props = $props();
 
 	const message = $derived(recording?.messages.find((candidate) => candidate.step === step.id));
@@ -137,6 +140,10 @@
 			{#if !serverNamed}
 				Names such as realms, and claims such as realm_access, are that server's own, and the name
 				of its session cookie is left out.
+			{/if}
+			{#if runHref}
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+				<a href={runHref} data-testid="run-it-yourself-link">Run the same server yourself.</a>
 			{/if}
 		</p>
 	{/if}
