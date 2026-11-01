@@ -103,8 +103,11 @@ test.describe('what changed', () => {
 	test('does not explain Back with the words of another setting', async ({ page }) => {
 		await open(page, '');
 		await oidc(page).click();
+		await expect(page).toHaveURL(/oidc=1/);
 		await page.getByRole('radio', { name: 'DPoP' }).click();
 		await expect(why(page)).toContainText('bearer token');
+		// The state moves at once and the address catches up, and Back goes by the address.
+		await expect(page).toHaveURL(/binding=dpop/);
 		await page.goBack();
 		await expect(page.getByRole('radio', { name: 'DPoP' })).not.toBeChecked();
 		await page.goBack();

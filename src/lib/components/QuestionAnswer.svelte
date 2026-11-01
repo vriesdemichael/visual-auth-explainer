@@ -1,15 +1,21 @@
 <script lang="ts">
+	import Worded from '#lib/components/Worded.svelte';
+	import { markTerms } from '#lib/flow/glossary.ts';
+
 	interface Props {
 		answer: string;
+		onterm?: (id: string) => void;
+		serverNamed?: boolean;
 		/** Goes back to where the flow starts, when someone is not there already. */
 		onrewind?: (() => void) | null;
 	}
 
-	let { answer, onrewind = null }: Props = $props();
+	let { answer, onrewind = null, onterm, serverNamed = true }: Props = $props();
+	const segments = $derived(markTerms([answer], { serverNamed })[0]);
 </script>
 
 <section class="answer" data-testid="answer" aria-label="The short answer">
-	<p>{answer}</p>
+	<p><Worded {segments} {onterm} /></p>
 	{#if onrewind}
 		<button type="button" class="rewind" data-testid="how-we-got-here" onclick={onrewind}>
 			See how we got here

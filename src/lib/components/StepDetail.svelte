@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import KeycloakNote from '#lib/components/KeycloakNote.svelte';
+	import Worded from '#lib/components/Worded.svelte';
+	import { markTerms } from '#lib/flow/glossary.ts';
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
 	import { artifacts, channels, whyOf, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
@@ -27,6 +29,8 @@
 		/** The setting that was just changed, because a change alone does not say why it exists. */
 		changed?: SettingId | null;
 		onexplainartifact?: (id: ArtifactId) => void;
+		/** Someone asked what a word means. */
+		onterm?: (id: string) => void;
 		/** What this step looks like on the wire, ahead of what each part of it is for. */
 		wire?: Snippet;
 		/** What one server has to say about this step, and whether to name that server at all. */
@@ -55,6 +59,7 @@
 		elsewhere = null,
 		changed = null,
 		onexplainartifact,
+		onterm,
 		wire,
 		notes = [],
 		serverNamed = true,
@@ -67,6 +72,12 @@
 	}: Props = $props();
 
 	const simple = $derived(mode === 'simple');
+	// In reading order, so a word is marked where someone first meets it on this step.
+	const worded = $derived(
+		markTerms([intro ?? '', step.concept, step.inPractice ?? '', step.pitfall?.text ?? ''], {
+			serverNamed
+		})
+	);
 	// A message from the server is what the header and the raw view already say. What needs saying on
 	// a step is anything else, and to someone new only that nobody recorded it.
 	const showKnown = $derived(
@@ -124,7 +135,7 @@
 </script>
 
 {#if intro}
-	<p class="intro" data-testid="intro">{intro}</p>
+	<p class="intro" data-testid="intro"><Worded segments={worded[0]} {onterm} /></p>
 {/if}
 
 <div role="status">
@@ -171,11 +182,11 @@
 		{#if sayPlainly}
 			<p class="plain">{step.plain}</p>
 		{/if}
-		<p>{step.concept}</p>
+		<p><Worded segments={worded[1]} {onterm} /></p>
 		{#if step.inPractice}
 			<p class="practice" data-testid="step-practice">
 				<strong>In practice.</strong>
-				{step.inPractice}
+				<Worded segments={worded[2]} {onterm} />
 				{#if step.practice.length}
 					<span class="examples" data-testid="step-practice-examples">
 						For example,
@@ -216,7 +227,7 @@
 		{#if step.pitfall}
 			<details class="pitfall" data-testid="step-pitfall">
 				<summary>{step.pitfall.title}</summary>
-				<p>{step.pitfall.text}</p>
+				<p><Worded segments={worded[3]} {onterm} /></p>
 			</details>
 		{/if}
 		{#if !simple}

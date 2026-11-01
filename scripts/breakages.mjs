@@ -204,6 +204,32 @@ export const breakages = [
 		to: "if (kind === 'artifact' && id in artifacts) return { kind, id: id as ArtifactId };"
 	},
 
+	// Words.
+	{
+		name: 'words: a word used on screen has no explanation',
+		file: 'src/lib/flow/glossary.ts',
+		from: "words: ['issuer', 'issuers'],",
+		to: 'words: [],'
+	},
+	{
+		name: 'words: every use is marked',
+		file: 'src/lib/flow/glossary.ts',
+		from: 'if (!term || marked.has(term.id) || (term.vendor && !serverNamed)) continue;',
+		to: 'if (!term || (term.vendor && !serverNamed)) continue;'
+	},
+	{
+		name: 'words: one server is named with its notes off',
+		file: 'src/lib/flow/glossary.ts',
+		from: 'if (!term || marked.has(term.id) || (term.vendor && !serverNamed)) continue;',
+		to: 'if (!term || marked.has(term.id)) continue;'
+	},
+	{
+		name: 'words: a term points at something that is not there',
+		file: 'src/lib/flow/glossary.ts',
+		from: "at: flowAt('consent-page', { consent: true })\n\t},\n\t{\n\t\tid: 'consent',",
+		to: "at: flowAt('consent-page')\n\t},\n\t{\n\t\tid: 'consent',"
+	},
+
 	// Answers.
 	{
 		name: 'map: a question opens away from its answer, with no reason',

@@ -10,6 +10,7 @@
 		type DiagramLayout
 	} from '#lib/diagram/layout.ts';
 	import { interpolate, toFrame, TRANSITION_MS, type Frame } from '#lib/diagram/motion.ts';
+	import type { Lit } from '#lib/flow/explain.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 
 	interface Props {
@@ -17,6 +18,8 @@
 		currentStep: string;
 		fresh?: ReadonlySet<string>;
 		animate?: boolean;
+		/** What is being explained, to light up where it is. */
+		lit?: Lit | null;
 		/** What each lifeline has seen, up to the current step. */
 		holdings?: Readonly<Record<string, readonly ArtifactId[]>>;
 		onselect?: (step: string) => void;
@@ -29,6 +32,7 @@
 		currentStep,
 		fresh = new Set(),
 		animate = true,
+		lit = null,
 		holdings = {},
 		onselect,
 		onexplainlifeline,
@@ -133,7 +137,7 @@
 	};
 </script>
 
-<div class="diagram" data-testid="diagram" data-animating={animating}>
+<div class="diagram" data-testid="diagram" data-animating={animating} data-lit={lit?.part}>
 	<div class="heads-band">
 		<svg
 			class="heads"
@@ -147,6 +151,7 @@
 				<g
 					class="lane-head"
 					class:fresh={fresh.has(lane.id)}
+					class:lit={lit?.lifeline === lane.id}
 					class:active={currentRow && (lane.id === currentRow.from || lane.id === currentRow.to)}
 					style:opacity={lane.opacity}
 					data-lifeline={lane.leaving ? undefined : lane.id}
@@ -233,6 +238,7 @@
 				<g
 					class={`row ${row.kind} ${row.channel} ${state}`}
 					class:fresh={fresh.has(row.id)}
+					class:lit={lit?.step === row.id}
 					style:opacity={row.opacity}
 					data-step={row.leaving ? undefined : row.id}
 					data-state={state}
@@ -427,6 +433,49 @@
 
 	.lane-head.active .icon {
 		stroke: var(--accent);
+	}
+
+	/* What is being explained, and what a part of the diagram is, shown where it is. */
+	.row.lit .hit {
+		stroke: var(--accent);
+		stroke-width: 1.5;
+	}
+
+	.lane-head.lit > rect,
+	[data-lit='part-column'] .lane-head > rect {
+		stroke: var(--accent);
+		stroke-width: 2;
+	}
+
+	[data-lit='part-column'] .lifeline {
+		stroke: var(--accent);
+		stroke-width: 2;
+		opacity: 1 !important;
+	}
+
+	[data-lit='part-arrow'] .row.request:not(.future) line,
+	[data-lit='part-arrow'] .row.request:not(.future) polygon,
+	[data-lit='part-answer'] .row.response:not(.future) line,
+	[data-lit='part-answer'] .row.response:not(.future) polygon,
+	[data-lit='part-browser'] .row.front:not(.future) line,
+	[data-lit='part-browser'] .row.front:not(.future) polygon,
+	[data-lit='part-direct'] .row.back:not(.future) line,
+	[data-lit='part-direct'] .row.back:not(.future) polygon {
+		stroke-width: 4;
+	}
+
+	[data-lit='part-number'] .number circle,
+	[data-lit='part-chip'] .chip rect,
+	[data-lit='part-seen'] .held rect {
+		stroke: var(--accent);
+		stroke-width: 2;
+	}
+
+	[data-lit='part-ahead'] .row.future line,
+	[data-lit='part-ahead'] .row.future path,
+	[data-lit='part-ahead'] .row.future polygon {
+		opacity: 1;
+		stroke-width: 3;
 	}
 
 	.lane-head.fresh > rect {

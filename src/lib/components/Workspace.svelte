@@ -44,7 +44,7 @@
 		type AppState,
 		type Explained
 	} from '#lib/flow/state.ts';
-	import { explanationOf } from '#lib/flow/explain.ts';
+	import { explanationOf, litBy, stateShowing } from '#lib/flow/explain.ts';
 	import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
@@ -236,6 +236,9 @@
 	const explain = (explained: Explained | null) =>
 		onnavigate(withExplained(appState, explained), 'push');
 	const explanation = $derived(explanationOf(appState, view, holdings));
+	const lit = $derived(litBy(appState, view));
+	const showing = $derived(stateShowing(base, appState));
+	const explainTerm = (id: string) => explain({ kind: 'term', id });
 	// The setting an open explanation is about is where its sources should open from.
 	const explainedSetting = $derived(
 		appState.explained?.kind === 'setting' ? appState.explained.id : null
@@ -421,9 +424,12 @@
 				type="button"
 				class="quiet"
 				data-testid="server-notes-quick"
-				onclick={() => onnavigate(withServerNotes(appState, !appState.serverNotes), 'push')}
+				onclick={() =>
+					appState.serverNotes
+						? explainTerm('keycloak')
+						: onnavigate(withServerNotes(appState, true), 'push')}
 			>
-				{appState.serverNotes ? 'Not on Keycloak?' : 'Show the server notes'}
+				{appState.serverNotes ? 'What is Keycloak?' : 'Show the server notes'}
 			</button>
 		</p>
 	</header>
@@ -451,6 +457,14 @@
 	<main class="diagram">
 		<div class="above">
 			<DiagramSwitch current={appState.diagram} {hrefs} caption={flow.caption} />
+			<button
+				type="button"
+				class="quiet"
+				data-testid="how-to-read"
+				onclick={() => explainTerm('reading')}
+			>
+				How to read this
+			</button>
 			<button type="button" class="quiet" data-testid="settings-toggle" onclick={toggleSettings}>
 				{settingsShown ? 'Hide settings' : 'Show settings'}
 			</button>
@@ -463,6 +477,7 @@
 					{animate}
 					{fresh}
 					{holdings}
+					{lit}
 					currentStep={appState.step}
 					onexplainlifeline={(id) => explain({ kind: 'lifeline', id })}
 					onexplainartifact={(id: ArtifactId) => explain({ kind: 'artifact', id })}
@@ -480,11 +495,18 @@
 			<QuestionAnswer
 				answer={questionAnswer}
 				onrewind={position > 0 ? () => goToStep(steps[0].id) : null}
+				onterm={explainTerm}
+				serverNamed={appState.serverNotes}
 			/>
 		{/if}
 		{#if explanation}
 			<Explanation
 				{...explanation}
+				onpart={explainTerm}
+				seeIt={showing ? hrefFor(showing) : null}
+				onleaveout={explanation.aboutTheServer
+					? () => onnavigate(withServerNotes(withExplained(appState, null), false), 'push')
+					: null}
 				onclose={() => explain(null)}
 				onexplainartifact={(id) => explain({ kind: 'artifact', id })}
 				onopensource={(ref) => {
@@ -508,6 +530,7 @@
 			changed={last.setting}
 			onshowadded={showAdded}
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
+			onterm={explainTerm}
 			{notes}
 			serverNamed={appState.serverNotes}
 			known={knownFrom(base, current, appState.settings)}
@@ -657,9 +680,12 @@
 	.above {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: 12px;
 		padding-right: 12px;
+	}
+
+	.above :global(nav) {
+		margin-right: auto;
 	}
 
 	.settings-hidden {
