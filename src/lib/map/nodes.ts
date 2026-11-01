@@ -85,6 +85,15 @@ export const mapTracks: readonly MapTrack[] = [
 					step: 'consent-page'
 				}),
 				node({
+					id: 'single-sign-on',
+					answer:
+						'The identity provider remembers the browser, in a cookie on its own address. A second app sends the browser there, the cookie goes along, and it answers without asking. Neither app ever sees that cookie.',
+					title: "What is single sign-on? Why don't I log in twice?",
+					summary: 'A second app, the same login, and no password.',
+					preset: 'sso',
+					step: 'idp-recognises'
+				}),
+				node({
 					id: 'getting-to-know-each-other',
 					answer:
 						'Before anyone logs in, the identity provider is told about the app, including where users may be sent back to. The app is told the issuer, and can look up the rest from that.',
@@ -381,6 +390,36 @@ export const mapTracks: readonly MapTrack[] = [
 					mode: 'advanced',
 					preset: 'oauth',
 					step: 'authorize'
+				}),
+				node({
+					id: 'two-apps-one-login',
+					answer:
+						'They share the session on the identity provider, and nothing else. Each gets tokens of its own, and the two ID tokens name the same session and login time, and a different app.',
+					title: 'Do two apps share a token?',
+					summary: 'They share a login, and each has tokens of its own.',
+					mode: 'advanced',
+					preset: 'sso-oidc',
+					step: 'second-token-response'
+				}),
+				node({
+					id: 'force-a-login',
+					answer:
+						'Send prompt=login with the request. The identity provider shows the form, though it knows the browser.',
+					title: 'How do I make someone log in again?',
+					summary: 'A session is usually good enough. One parameter says not this time.',
+					mode: 'advanced',
+					preset: 'sso-insists',
+					step: 'second-authorize'
+				}),
+				node({
+					id: 'login-required',
+					answer:
+						'The app sent prompt=none, which says not to show a form, and this browser has no session. It is how an app checks quietly whether someone is logged in.',
+					title: 'Why do I get login_required?',
+					summary: 'Nobody is logged in here, and the server was told not to ask.',
+					mode: 'advanced',
+					preset: 'sso-fresh',
+					step: 'second-redirect-with-code'
 				}),
 				node({
 					id: 'refresh-token-reuse',

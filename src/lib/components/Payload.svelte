@@ -19,12 +19,13 @@
 		onstep?: (step: string) => void;
 		/** Notes on this step, for what in the access token each one is about. */
 		notes?: readonly Note[];
+		serverNamed?: boolean;
 	}
 
-	let { step, message, trace, numberOf, onstep, notes = [] }: Props = $props();
+	let { step, message, trace, numberOf, onstep, notes = [], serverNamed = true }: Props = $props();
 
 	const LONG = 40;
-	const lines = $derived(rawLines(message));
+	const lines = $derived(rawLines(message, { serverNamed }));
 	const jwts = $derived(jwtsIn(lines));
 	const origin = (line: Line) => originOf(line, step.id, trace);
 	let opened = $state<Record<string, boolean>>({});

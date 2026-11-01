@@ -22,6 +22,11 @@ const apiV1 = is('upstreamTokens', 'v1');
 const apiV2 = is('upstreamTokens', 'v2');
 const sends = (value: Settings['apiToken']) => is('apiToken', value);
 const apiRefuses = not(sends('good'));
+const secondApp = is('sso', true);
+const secondInsists = all(secondApp, is('ssoAsks', 'insists'));
+const secondIsFresh = all(secondApp, is('ssoAsks', 'fresh'));
+const remembered = all(secondApp, is('ssoAsks', 'remembered'));
+const secondGetsACode = all(secondApp, not(is('ssoAsks', 'fresh')));
 const refreshes = is('refresh', true);
 const reuseEnds = all(refreshes, is('reuse', 'ends'));
 const refreshFields: FieldDef[] = [
@@ -77,6 +82,18 @@ export const authorizationCode: DiagramDef = {
 					text: "The application the user wants to use. In OAuth's terms it is the client, and it never sees the user's password."
 				}
 			]
+		},
+		{
+			id: 'second-app',
+			plainName: 'Second app',
+			plainRole: 'Same provider',
+			name: 'Second app',
+			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
+			icon: 'app',
+			startsWith: [{ artifact: 'secret' }],
+			when: secondApp,
+			concept:
+				'Another application, with a registration of its own. It knows nothing about the first app. All they share is the identity provider they use.'
 		},
 		{
 			id: 'idp',
@@ -499,7 +516,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'Sent back with a one-time code',
 			label: '302 back with a code',
 			concept:
-				'The identity provider sends the browser back to the app with a short-lived, one-time code. This goes through the browser, where it can be seen, so it cannot be a token yet.',
+				'The identity provider sets a cookie on its own address, so it will know this browser next time, and sends the browser back to the app with a short-lived, one-time code. This goes through the browser, where it can be seen, so it cannot be a token yet.',
 			pitfall: {
 				title: 'Why not send the token here?',
 				text: 'That is the implicit flow, and it is what apps in a browser used to do. The token then sits in an address, where history, logs and other pages can get at it, and it cannot be tied to the app that asked. Current advice is not to use it, though you will still see it offered.'
@@ -507,7 +524,13 @@ export const authorizationCode: DiagramDef = {
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query' },
-				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+				{ name: 'iss', place: 'query', note: 'Names the server this came from' },
+				{
+					name: 'Set-Cookie',
+					place: 'header',
+					note: 'The session, on the address of the identity provider',
+					artifact: 'session'
+				}
 			]
 		},
 		{
@@ -1334,6 +1357,267 @@ export const authorizationCode: DiagramDef = {
 			fields: [
 				{ name: 'error=invalid_grant', place: 'body', note: 'This refresh token cannot be used' },
 				{ name: 'error_description', place: 'body' }
+			]
+		},
+		{
+			id: 'second-open-app',
+			when: secondApp,
+			from: 'browser',
+			to: 'second-app',
+			kind: 'request',
+			plain: [
+				{ when: secondIsFresh, text: 'The user opens a second app, in another browser' },
+				{ text: 'The user opens a second app' }
+			],
+			label: 'Open the second app',
+			concept: [
+				{
+					when: secondIsFresh,
+					text: 'The same user, but in a browser that has never been to the identity provider, so it has no session to send.'
+				},
+				{
+					text: 'Later, in the same browser, the user opens another app that uses the same identity provider.'
+				}
+			],
+			inPractice:
+				'Each app is registered on its own, with a client ID of its own. Nothing else connects them.'
+		},
+		{
+			id: 'second-redirect-to-idp',
+			when: secondApp,
+			from: 'second-app',
+			to: 'browser',
+			kind: 'response',
+			plain: 'It sends them to log in',
+			label: '302 to the identity provider',
+			concept:
+				'It knows nothing about the first app or any login, so it starts exactly as the first one did.'
+		},
+		{
+			id: 'second-authorize',
+			when: secondApp,
+			from: 'browser',
+			to: 'idp',
+			kind: 'request',
+			plain: [
+				{ when: secondIsFresh, text: 'The browser asks, and has nothing to send along' },
+				{ text: 'The browser asks to log in, and its session goes along' }
+			],
+			label: 'GET /authorize',
+			concept: [
+				{
+					when: secondIsFresh,
+					text: 'The same request, from a browser with no cookie. With prompt=none the app says not to show a form, whatever happens.'
+				},
+				{
+					when: secondInsists,
+					text: 'The same request, and the cookie goes along. With prompt=login the app says that a session is not good enough this time.'
+				},
+				{
+					text: 'The same request as before, with another client ID. The browser adds the cookie, because this is the address that set it. The app does not see that happen.'
+				}
+			],
+			fields: [
+				{ name: 'response_type=code', place: 'query' },
+				{ name: 'client_id', place: 'query' },
+				{ name: 'redirect_uri', place: 'query' },
+				{ name: 'state', place: 'query' },
+				{ name: 'scope=openid', place: 'query', when: oidc },
+				{ name: 'nonce', place: 'query', when: oidc },
+				{ name: 'prompt=login', place: 'query', when: secondInsists },
+				{ name: 'prompt=none', place: 'query', when: secondIsFresh },
+				{
+					name: 'Cookie',
+					place: 'header',
+					note: 'Sent to this address, and to nowhere else',
+					artifact: 'session',
+					when: secondGetsACode
+				}
+			]
+		},
+		{
+			id: 'idp-recognises',
+			when: secondApp,
+			from: 'idp',
+			to: 'idp',
+			kind: 'internal',
+			plain: [
+				{ when: secondIsFresh, text: 'It does not know this browser' },
+				{ when: secondInsists, text: 'It knows this browser, but asks' },
+				{ text: 'It knows this browser, so no form' }
+			],
+			label: [
+				{ when: secondIsFresh, text: 'No session' },
+				{ when: secondInsists, text: 'Session, but the app insists' },
+				{ text: 'Session found' }
+			],
+			concept: [
+				{
+					when: secondIsFresh,
+					text: 'There is no session, and it was told not to ask, so it cannot log anyone in.'
+				},
+				{
+					when: secondInsists,
+					text: 'It finds the session, and because the app insisted it asks for the password all the same. Someone about to change an important setting is the usual reason.'
+				},
+				{
+					text: 'This is single sign-on. It finds the session, so the user has logged in already, and there is nothing to ask. Your app does nothing for this: it starts a login as it always does, and the answer simply comes sooner.'
+				}
+			],
+			fields: []
+		},
+		{
+			id: 'second-login-page',
+			when: secondInsists,
+			from: 'idp',
+			to: 'browser',
+			kind: 'response',
+			plain: 'The login page, again',
+			label: 'Login page',
+			concept: 'The form the session would have saved them from.'
+		},
+		{
+			id: 'second-submit-credentials',
+			when: secondInsists,
+			from: 'browser',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The user enters their password again',
+			label: 'Submit credentials',
+			concept:
+				'Only the password this time, because it knows who they are. It still goes to the identity provider and nowhere else.',
+			fields: [
+				{ name: 'password', place: 'body', artifact: 'password' },
+				{
+					name: 'Cookie',
+					place: 'header',
+					note: 'Sent to this address, and to nowhere else',
+					artifact: 'session'
+				}
+			]
+		},
+		{
+			id: 'second-redirect-with-code',
+			when: secondApp,
+			from: 'idp',
+			to: 'browser',
+			kind: 'response',
+			plain: [
+				{ when: secondIsFresh, text: 'Sent back with login_required, and no code' },
+				{ when: remembered, text: 'Sent back with a code, and no password' },
+				{ text: 'Sent back with a code' }
+			],
+			label: [
+				{ when: secondIsFresh, text: '302 error=login_required' },
+				{ text: '302 back with a code' }
+			],
+			concept: [
+				{
+					when: secondIsFresh,
+					text: 'The app is told that nobody is logged in here. This is how an app can check quietly, without showing anyone a form.'
+				},
+				{
+					when: remembered,
+					text: 'A code of its own, for this app. The user saw a redirect or two, and nothing to fill in. Everything that was the login is not on this part of the diagram.'
+				},
+				{ text: 'A code of its own, for this app.' }
+			],
+			fields: [
+				{ name: 'code', place: 'query', artifact: 'code', when: secondGetsACode },
+				{
+					name: 'error=login_required',
+					place: 'query',
+					note: 'Nobody is logged in here, and it was told not to ask',
+					when: secondIsFresh
+				},
+				{ name: 'state', place: 'query' },
+				{ name: 'iss', place: 'query', note: 'Names the server this came from' },
+				{
+					name: 'Set-Cookie',
+					place: 'header',
+					note: 'The session again, with a new value',
+					artifact: 'session',
+					when: secondGetsACode
+				}
+			]
+		},
+		{
+			id: 'second-callback',
+			when: secondApp,
+			from: 'browser',
+			to: 'second-app',
+			kind: 'request',
+			plain: [
+				{ when: secondIsFresh, text: 'The answer reaches the app' },
+				{ text: 'The code reaches the app' }
+			],
+			label: [{ when: secondIsFresh, text: 'Deliver the answer' }, { text: 'Deliver the code' }],
+			concept: [
+				{
+					when: secondIsFresh,
+					text: 'The app learns that nobody is logged in, and can decide what to do about it, such as showing a login button.'
+				},
+				{ text: 'The app gets the code, and no session. It never sees the cookie.' }
+			],
+			fields: [
+				{ name: 'code', place: 'query', artifact: 'code', when: secondGetsACode },
+				{ name: 'error=login_required', place: 'query', note: 'Passed on', when: secondIsFresh },
+				{ name: 'state', place: 'query' },
+				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+			]
+		},
+		{
+			id: 'second-token-request',
+			when: secondGetsACode,
+			from: 'second-app',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The app trades the code for tokens',
+			label: 'POST /token',
+			concept: 'As the first app did, with its own client ID and secret.',
+			fields: [
+				{ name: 'grant_type=authorization_code', place: 'body' },
+				{ name: 'code', place: 'body', artifact: 'code' },
+				{ name: 'redirect_uri', place: 'body' },
+				{
+					name: 'Authorization: Basic',
+					place: 'header',
+					note: 'The client ID and secret',
+					artifact: 'secret'
+				}
+			]
+		},
+		{
+			id: 'second-token-response',
+			when: secondGetsACode,
+			from: 'idp',
+			to: 'second-app',
+			kind: 'response',
+			plain: [
+				{ when: oidc, text: 'Its own tokens, from the same login' },
+				{ text: 'Its own tokens' }
+			],
+			label: [{ when: oidc, text: 'Access token and ID token' }, { text: 'Access token' }],
+			concept: [
+				{
+					when: oidc,
+					text: 'Tokens of its own, and not the ones the first app got. The two ID tokens name the same session and the same login time, and each names its own app.'
+				},
+				{ text: 'Tokens of its own, and not the ones the first app got.' }
+			],
+			fields: [
+				{ name: 'access_token', place: 'body', artifact: 'access-token' },
+				{ name: 'token_type=Bearer', place: 'body' },
+				{
+					name: 'id_token',
+					place: 'body',
+					note: 'Its sid and auth_time match the first app, and its aud is this app',
+					artifact: 'id-token',
+					when: oidc
+				},
+				{ name: 'expires_in', place: 'body' },
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' },
+				{ name: 'scope', place: 'body' }
 			]
 		},
 		{

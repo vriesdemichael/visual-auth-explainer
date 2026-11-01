@@ -13,6 +13,8 @@ export interface Settings {
 	apiToken: 'good' | 'none' | 'expired' | 'changed' | 'elsewhere' | 'noscope';
 	refresh: boolean;
 	reuse: 'keeps' | 'ends';
+	sso: boolean;
+	ssoAsks: 'remembered' | 'insists' | 'fresh';
 }
 
 export type SettingId = keyof Settings;
@@ -380,6 +382,55 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		options: [
 			{ value: 'keeps', label: 'It keeps working' },
 			{ value: 'ends', label: 'It ends the login' }
+		]
+	},
+	sso: {
+		kind: 'toggle',
+		label: 'Log in to a second app',
+		param: 'sso',
+		default: false,
+		summary: 'A second app, the same identity provider, and no password.',
+		why: 'The identity provider remembers the browser, not the app. So a second app starts a login exactly as the first did, and everything that was the login is simply not there.',
+		sources: [
+			{
+				source: 'oidc-core',
+				why: 'Its prompt parameter, in section 3.1.2.1, is how an app says whether a session is good enough.'
+			}
+		],
+		requires: {
+			when: all(
+				is('binding', 'bearer'),
+				is('broker', false),
+				is('attacker', false),
+				is('consent', false),
+				is('apiToken', 'good'),
+				is('refresh', false)
+			),
+			because: 'This shows the plain case, so other settings do not get in the way of the answer.',
+			sayWhenBlocked: true
+		}
+	},
+	ssoAsks: {
+		kind: 'choice',
+		label: 'What happens at the second app',
+		param: 'second',
+		default: 'remembered',
+		summary: 'Whether the identity provider goes by the session, and what happens with none.',
+		why: 'An app can ask for a login even with a session, or ask for none at all. Each is one parameter on the same request, and the answer shows what the session was doing.',
+		sources: [
+			{
+				source: 'oidc-core',
+				why: 'Section 3.1.2.1 defines prompt=login and prompt=none, and section 3.1.2.6 the login_required answer.'
+			}
+		],
+		requires: {
+			when: is('sso', true),
+			because: 'There is no second app until it has been brought on.'
+		},
+		options: [
+			{ value: 'remembered', label: 'The browser is remembered' },
+			{ value: 'insists', label: 'The app insists on a login' },
+			{ value: 'fresh', label: 'A new browser, told not to ask' }
 		]
 	}
 };

@@ -170,6 +170,22 @@ const list: readonly Term[] = [
 		at: flowAt('token-response')
 	},
 	{
+		id: 'session',
+		name: 'Session',
+		words: ['session', 'sessions'],
+		explains: '',
+		artifact: 'session',
+		at: flowAt('redirect-with-code')
+	},
+	{
+		id: 'login-required',
+		name: 'login_required',
+		words: ['login_required'],
+		explains:
+			'What comes back when an app said not to show a form, and this browser has no session.',
+		at: flowAt('second-redirect-with-code', { sso: true, oidc: true, ssoAsks: 'fresh' })
+	},
+	{
 		id: 'expires-in',
 		name: 'expires_in',
 		words: ['expires_in'],
@@ -403,6 +419,7 @@ const list: readonly Term[] = [
 		id: 'sso',
 		name: 'Single sign-on',
 		words: ['SSO', 'single sign-on'],
+		at: flowAt('idp-recognises', { sso: true }),
 		explains:
 			'Logging in once, and then not being asked again by other apps that use the same identity provider, because it remembers you in your browser.',
 		alsoCalled: ['SSO']

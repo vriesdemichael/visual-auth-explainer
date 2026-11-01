@@ -28,7 +28,8 @@ const NOT_BEFORE_AND_AFTER = [
 	'issuer',
 	'brokering-api-flags',
 	'how-an-api-says-no',
-	'short-for-this-recording'
+	'short-for-this-recording',
+	'session-cookie'
 ];
 
 describe('the protocol layer', () => {
@@ -214,7 +215,8 @@ describe('the notes', () => {
 							'no-dpop-nonce',
 							'code-used-twice',
 							'how-an-api-says-no',
-							'short-for-this-recording'
+							'short-for-this-recording',
+							'session-cookie'
 						].includes(note.id)
 				).toBe(true);
 				return;
@@ -254,6 +256,8 @@ describe('where each note is', () => {
 			'token-lifespan': ['token-response', 'token-runs-out'],
 			'revoke-refresh-token': ['refresh-again-response', 'refresh-newest-response'],
 			'short-for-this-recording': ['token-runs-out'],
+			'sso-session-max': ['idp-recognises'],
+			'session-cookie': ['redirect-with-code', 'second-authorize'],
 			audience: ['api-check-token', 'token-response'],
 			'require-dpop': ['token-request'],
 			'no-dpop-nonce': ['nonce-challenge'],

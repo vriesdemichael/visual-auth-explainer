@@ -15,10 +15,14 @@ const rfcRequests = (page: Page) => {
 };
 
 // Every setting is on offer with DPoP and an external IdP on, apart from the attacker, which is
-// only for the plain case, and using a refresh token twice, which needs the first use.
+// only for the plain case, and those that build on another setting.
 const ALL_ON_OFFER = 'binding=dpop&broker=1';
-const onOffer = (setting: string) =>
-	setting === 'attacker' ? '' : setting === 'reuse' ? 'refresh=1' : ALL_ON_OFFER;
+const NEEDS: Partial<Record<string, string>> = {
+	attacker: '',
+	reuse: 'refresh=1',
+	ssoAsks: 'sso=1'
+};
+const onOffer = (setting: string) => NEEDS[setting] ?? ALL_ON_OFFER;
 
 test.describe('a source', () => {
 	for (const setting of settingIds) {

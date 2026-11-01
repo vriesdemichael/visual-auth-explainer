@@ -60,6 +60,14 @@ function headerLines(headers: Record<string, string>): Line[] {
 			];
 		}
 		if (name === 'dpop') return [{ before: 'dpop: ', value, name, decoded: value }];
+		if (name === 'cookie' || name === 'set-cookie') {
+			const [pair, ...attributes] = value.split(/;s*/);
+			const at = pair.indexOf('=') + 1;
+			return [
+				{ before: `${name}: ${pair.slice(0, at)}`, value: pair.slice(at), name: 'session' },
+				...(attributes.length ? [{ before: `  ${attributes.join('; ')}` }] : [])
+			];
+		}
 		return [{ before: `${name}: ${value}` }];
 	});
 }
@@ -103,12 +111,25 @@ function bodyLines(message: RecordedMessage): Line[] {
 }
 
 /** A message as text, from nothing but what the recording holds (ADR-005). */
-export function rawLines(message: RecordedMessage): Line[] {
+/** The one thing a server named on the wire that is its own word. With its notes off, it goes. */
+const withoutServerName = (headers: RecordedMessage['headers']) =>
+	Object.fromEntries(
+		Object.entries(headers).map(([name, value]) => [
+			name,
+			value.replace('KEYCLOAK_IDENTITY', 'session')
+		])
+	);
+
+export function rawLines(
+	message: RecordedMessage,
+	{ serverNamed = true }: { serverNamed?: boolean } = {}
+): Line[] {
 	const first =
 		message.direction === 'request'
 			? urlLines(`${message.method} `, message.url ?? '')
 			: [{ before: `HTTP ${message.status}` }];
-	return [...first, ...headerLines(message.headers), ...bodyLines(message)];
+	const headers = serverNamed ? message.headers : withoutServerName(message.headers);
+	return [...first, ...headerLines(headers), ...bodyLines(message)];
 }
 
 /** Names of what a run makes up as it goes, as opposed to what stays the same on every run. */
@@ -120,7 +141,8 @@ const MADE_IN_THE_RUN = new Set([
 	'code_verifier',
 	'access_token',
 	'id_token',
-	'refresh_token'
+	'refresh_token',
+	'session'
 ]);
 
 export interface RunValue {

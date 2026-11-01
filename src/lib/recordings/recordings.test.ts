@@ -84,6 +84,7 @@ const OPEN_ENDED = new Set([
 	'userinfo-response',
 	'api-response',
 	'api-refused',
+	'second-redirect-to-idp',
 	'api-response-new',
 	'attacker-api-response',
 	'redirect-to-idp',
@@ -91,7 +92,12 @@ const OPEN_ENDED = new Set([
 ]);
 
 // The address of a login form is Keycloak's own business. What matters is what the form sends.
-const SIGN_IN = new Set(['submit-credentials', 'upstream-sign-in', 'consent-grant']);
+const SIGN_IN = new Set([
+	'submit-credentials',
+	'second-submit-credentials',
+	'upstream-sign-in',
+	'consent-grant'
+]);
 
 function namesInMessage(message: RecordedMessage): string[] {
 	const { query, body } = carried(message);
@@ -163,7 +169,8 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 		expect(wrong).toEqual([]);
 	});
 
-	const basicAuthOf = (secret: string) => Buffer.from(`demo-app:${secret}`).toString('base64');
+	const basicAuthOf = (secret: string, client = 'demo-app') =>
+		Buffer.from(`${client}:${secret}`).toString('base64');
 
 	// The chips under each lifeline are the most prominent claim on the screen, so hold them to it.
 	it('shows each credential and token exactly where the diagram says it goes', () => {
@@ -173,30 +180,38 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			const { query, body } = carried(message);
 			return query.get(name) ?? (body[name] as string | undefined);
 		};
+		const sessionIn = (step: string) =>
+			recorded
+				.find((message) => message.step === step)
+				?.headers['set-cookie']?.match(/KEYCLOAK_IDENTITY=([^;]+)/)?.[1];
 		const values: Partial<Record<ArtifactId, (string | undefined)[]>> = {
 			password: ['throwaway-password'],
 			secret: [
 				recording.settings.clientType === 'confidential' ? 'throwaway-client-secret' : undefined
 			],
-			code: [valueIn('redirect-with-code', 'code')],
+			code: [valueIn('redirect-with-code', 'code'), valueIn('second-redirect-with-code', 'code')],
+			session: [sessionIn('redirect-with-code'), sessionIn('second-redirect-with-code')],
 			verifier: [valueIn('token-request', 'code_verifier')],
 			challenge: [valueIn('authorize', 'code_challenge')],
 			// A new one is the same kind of thing, so the chip stays and the value changes.
 			'access-token': [
 				valueIn('token-response', 'access_token'),
 				valueIn('refresh-response', 'access_token'),
-				valueIn('refresh-again-response', 'access_token')
+				valueIn('refresh-again-response', 'access_token'),
+				valueIn('second-token-response', 'access_token')
 			],
 			'id-token': [
 				valueIn('token-response', 'id_token') ?? valueIn('attacker-token-response', 'id_token'),
 				valueIn('refresh-response', 'id_token'),
-				valueIn('refresh-again-response', 'id_token')
+				valueIn('refresh-again-response', 'id_token'),
+				valueIn('second-token-response', 'id_token')
 			],
 			'refresh-token': [
 				valueIn('token-response', 'refresh_token') ??
 					valueIn('attacker-token-response', 'refresh_token'),
 				valueIn('refresh-response', 'refresh_token'),
-				valueIn('refresh-again-response', 'refresh_token')
+				valueIn('refresh-again-response', 'refresh_token'),
+				valueIn('second-token-response', 'refresh_token')
 			],
 			'upstream-token': [valueIn('upstream-token-response', 'access_token')]
 		};
@@ -214,7 +229,9 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 						(artifact === 'access-token' &&
 							recording.settings.apiToken === 'changed' &&
 							text.includes(value.slice(0, -6))) ||
-						(artifact === 'secret' && text.includes(basicAuthOf(value)))
+						(artifact === 'secret' &&
+							(text.includes(basicAuthOf(value)) ||
+								text.includes(basicAuthOf(value, 'demo-app-two'))))
 				);
 				return claimed === there
 					? []
@@ -267,6 +284,23 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 		expect(recording.settings).toEqual(
 			normalize({ ...defaultSettings, ...wanted.settings }).settings
 		);
+	});
+});
+
+describe('the words on a second app', () => {
+	it.each([
+		['sso-oidc', 'code=', '302 back with a code', 'so no form'],
+		['sso-insists', 'code=', '302 back with a code', 'but asks'],
+		['sso-fresh', 'error=login_required', '302 error=login_required', 'does not know']
+	])('%s says what it really said', (preset, location, label, known) => {
+		const recording = read(preset);
+		const answer = recording.messages.find(
+			(message) => message.step === 'second-redirect-with-code'
+		);
+		expect(answer?.headers.location).toContain(location);
+		const steps = stepsOf(recording);
+		expect(steps.find(({ id }) => id === 'second-redirect-with-code')?.label).toBe(label);
+		expect(steps.find(({ id }) => id === 'idp-recognises')?.plain).toContain(known);
 	});
 });
 

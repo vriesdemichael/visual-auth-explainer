@@ -23,6 +23,12 @@ const storedV2: Partial<Settings> = { broker: true, upstreamTokens: 'v2' };
 
 export const knownErrors: readonly KnownError[] = [
 	{
+		text: 'login_required',
+		means: 'The app said not to show a form, and this browser has no session.',
+		step: 'second-redirect-with-code',
+		settings: { sso: true, oidc: true, ssoAsks: 'fresh' }
+	},
+	{
 		text: 'Maximum allowed refresh token reuse exceeded',
 		means:
 			'A refresh token that had already been used was sent again, and the server allows that no more.',

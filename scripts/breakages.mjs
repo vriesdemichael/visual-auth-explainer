@@ -36,6 +36,32 @@ export const breakages = [
 		to: 'works, which is what PKCE stops.'
 	},
 
+	// A second app.
+	{
+		name: 'sso: the app is said to have the session',
+		file: AC,
+		from: "{ name: 'grant_type=authorization_code', place: 'body' },\n\t\t\t\t{ name: 'code', place: 'body', artifact: 'code' },\n\t\t\t\t{ name: 'redirect_uri', place: 'body' },\n\t\t\t\t{\n\t\t\t\t\tname: 'Authorization: Basic',\n\t\t\t\t\tplace: 'header',\n\t\t\t\t\tnote: 'The client ID and secret',\n\t\t\t\t\tartifact: 'secret'\n\t\t\t\t}",
+		to: "{ name: 'grant_type=authorization_code', place: 'body' },\n\t\t\t\t{ name: 'code', place: 'body', artifact: 'code' },\n\t\t\t\t{ name: 'redirect_uri', place: 'body' },\n\t\t\t\t{\n\t\t\t\t\tname: 'Authorization: Basic',\n\t\t\t\t\tplace: 'header',\n\t\t\t\t\tnote: 'The client ID and secret',\n\t\t\t\t\tartifact: 'session'\n\t\t\t\t}"
+	},
+	{
+		name: 'sso: the login comes back without being asked',
+		file: AC,
+		from: "id: 'second-submit-credentials',\n\t\t\twhen: secondInsists,",
+		to: "id: 'second-submit-credentials',\n\t\t\twhen: secondApp,"
+	},
+	{
+		name: 'sso: login_required is said to come with a code',
+		file: AC,
+		from: "{ when: secondIsFresh, text: '302 error=login_required' },",
+		to: "{ when: secondIsFresh, text: '302 back with a code' },"
+	},
+	{
+		name: 'sso: the cookie goes along with no session',
+		file: AC,
+		from: "note: 'Sent to this address, and to nowhere else',\n\t\t\t\t\tartifact: 'session',\n\t\t\t\t\twhen: secondGetsACode",
+		to: "note: 'Sent to this address, and to nowhere else',\n\t\t\t\t\tartifact: 'session'"
+	},
+
 	// A refresh token.
 	{
 		name: 'refresh: the old one is said to be refused on a default server',

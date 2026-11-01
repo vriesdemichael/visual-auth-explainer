@@ -16,6 +16,9 @@ import {
 	LOCAL_REALM,
 	PROXY_PORT,
 	REDIRECT_URI,
+	SECOND_APP,
+	SECOND_CLIENT,
+	SECOND_REDIRECT_URI,
 	UPSTREAM_REALM
 } from './keycloak.ts';
 
@@ -560,10 +563,51 @@ export class Demo {
 			response.end(text);
 		});
 
+		// Another app, with a registration of its own, and all it shares is the identity provider.
+		const second = createServer(async (request, response) => {
+			const url = new URL(request.url ?? '/', SECOND_APP);
+			const run = this.#run;
+			const { oidc, ssoAsks } = run.settings;
+			if (url.pathname === '/') {
+				const query = new URLSearchParams({
+					response_type: 'code',
+					client_id: SECOND_CLIENT,
+					redirect_uri: SECOND_REDIRECT_URI,
+					state: random()
+				});
+				if (oidc) {
+					query.set('scope', 'openid');
+					query.set('nonce', random());
+				}
+				if (ssoAsks === 'insists') query.set('prompt', 'login');
+				if (ssoAsks === 'fresh') query.set('prompt', 'none');
+				response.writeHead(302, { location: `${this.#server.authorization_endpoint}?${query}` });
+				response.end();
+				return;
+			}
+			const code = url.searchParams.get('code');
+			let outcome = 'Not logged in';
+			if (code) {
+				await settle();
+				const answer = await call(
+					run,
+					['second-token-request', 'second-token-response'],
+					'POST',
+					this.#server.token_endpoint,
+					{ authorization: basicAuth(SECOND_CLIENT, CLIENT_SECRET) },
+					{ grant_type: 'authorization_code', code, redirect_uri: SECOND_REDIRECT_URI }
+				);
+				outcome = answer.status === 200 ? 'Logged in' : `Failed ${answer.text}`;
+			}
+			response.writeHead(200, { 'content-type': 'text/html' });
+			response.end(`<h1>${outcome}</h1>`);
+		});
+
 		await listen(app, APP);
 		await listen(api, API);
 		await listen(proxy, `http://0.0.0.0:${PROXY_PORT}`);
-		this.#servers = [app, api, proxy];
+		await listen(second, SECOND_APP);
+		this.#servers = [app, api, proxy, second];
 	}
 
 	stop() {

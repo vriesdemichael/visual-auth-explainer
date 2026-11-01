@@ -1,7 +1,7 @@
 // Things the diagram makes a claim about, tried for real. Each answer is what the server did, so a
 // claim in the flow data can be held against it (docs/research/followup-checks.md).
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
-import type { Browser } from '@playwright/test';
+import type { Browser, BrowserContext } from '@playwright/test';
 import { defaultSettings } from '#lib/flow/settings.ts';
 import type { Demo } from './demo.ts';
 import {
@@ -793,6 +793,107 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 				authorization: `Bearer ${head}.${body}.${signature.slice(0, -6)}AAAAAA`
 			}),
 			withoutOpenid: await said({ authorization: `Bearer ${without.json.access_token}` })
+		};
+	}
+
+	// Does a second app in the same browser get past the login, and who has the session?
+	{
+		await freshClient(admin, 'note-sso-one');
+		await freshClient(admin, 'note-sso-two');
+		const auth = `${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/auth`;
+		const visit = async (
+			context: BrowserContext,
+			clientId: string,
+			extra: Record<string, string> = {},
+			submit = true
+		) => {
+			const page = await context.newPage();
+			demo.lastCode = '';
+			const query = new URLSearchParams({
+				response_type: 'code',
+				client_id: clientId,
+				redirect_uri: REDIRECT_URI,
+				state: random(),
+				scope: 'openid',
+				...extra
+			});
+			await page.goto(`${auth}?${query}`);
+			const sawForm = (await page.locator('#password').count()) > 0;
+			if (sawForm && submit) {
+				await page.fill('#username', USERNAME);
+				await page.fill('#password', PASSWORD);
+				await page.click('#kc-login');
+				await page.getByRole('heading', { name: 'Done' }).waitFor();
+			}
+			const landed = new URL(page.url());
+			await page.close();
+			return { sawForm, code: demo.lastCode, error: landed.searchParams.get('error') };
+		};
+		const trade = async (clientId: string, code: string) =>
+			claimsOf(
+				(
+					await token(LOCAL_REALM, {
+						grant_type: 'authorization_code',
+						code,
+						redirect_uri: REDIRECT_URI,
+						client_id: clientId,
+						client_secret: CLIENT_SECRET
+					})
+				).json.id_token
+			);
+
+		const context = await browser.newContext();
+		const first = await visit(context, 'note-sso-one');
+		const second = await visit(context, 'note-sso-two');
+		const firstToken = await trade('note-sso-one', first.code);
+		const secondToken = await trade('note-sso-two', second.code);
+		const insists = await visit(context, 'note-sso-two', { prompt: 'login' }, false);
+		const noForm = await visit(context, 'note-sso-two', { prompt: 'none' });
+		const cookie = (await context.cookies()).find(({ name }) => name === 'KEYCLOAK_IDENTITY');
+		await context.close();
+
+		const elsewhere = await browser.newContext();
+		const noSession = await visit(elsewhere, 'note-sso-two', { prompt: 'none' });
+		await elsewhere.close();
+
+		answers.singleSignOn = {
+			first: { sawForm: first.sawForm },
+			second: { sawForm: second.sawForm, gotACode: Boolean(second.code) },
+			sameSession: firstToken.sid === secondToken.sid,
+			sameLoginTime: firstToken.auth_time === secondToken.auth_time,
+			audiences: [firstToken.aud, secondToken.aud],
+			insists: { sawForm: insists.sawForm },
+			told: {
+				withASession: { sawForm: noForm.sawForm, gotACode: Boolean(noForm.code) },
+				inANewBrowser: { sawForm: noSession.sawForm, error: noSession.error }
+			},
+			cookie: { name: cookie?.name, httpOnly: cookie?.httpOnly, domain: cookie?.domain }
+		};
+
+		// How long it lasts. Idle has a two minute margin on top, so Max is the one that can be watched.
+		const onRealm = `/realms/${LOCAL_REALM}`;
+		const realm = await admin.call<{
+			ssoSessionIdleTimeout: number;
+			ssoSessionMaxLifespan: number;
+		}>('GET', onRealm);
+		const before = await browser.newContext();
+		await visit(before, 'note-sso-one');
+		const stillThere = await visit(before, 'note-sso-two');
+		await before.close();
+		await admin.call('PUT', onRealm, { ssoSessionMaxLifespan: 3 });
+		const after = await browser.newContext();
+		await visit(after, 'note-sso-one');
+		await new Promise((resolve) => setTimeout(resolve, 4100));
+		const gone = await visit(after, 'note-sso-two', {}, false);
+		await after.close();
+		await admin.call('PUT', onRealm, { ssoSessionMaxLifespan: realm.ssoSessionMaxLifespan });
+		answers.ssoSessionMax = {
+			before: {
+				idle: realm.ssoSessionIdleTimeout,
+				max: realm.ssoSessionMaxLifespan,
+				secondSawForm: stillThere.sawForm
+			},
+			after: { max: 3, secondSawForm: gone.sawForm }
 		};
 	}
 

@@ -626,6 +626,37 @@ describe('an attacker', () => {
 	});
 });
 
+describe('a second app', () => {
+	const on = { sso: true } as const;
+
+	it('never hands the session to an app, in any combination', () => {
+		for (const settings of allValidSettings()) {
+			if (!settings.sso) continue;
+			const held = holdingsAt(evaluate(flow, settings), 'second-callback');
+			expect(held.app).not.toContain('session');
+			expect(held['second-app']).not.toContain('session');
+			if (settings.ssoAsks !== 'fresh') {
+				expect(held.browser).toContain('session');
+				expect(held.idp).toContain('session');
+			}
+		}
+	});
+
+	it('has none of the login until an app insists', () => {
+		const ids = (settings: Partial<Settings>) => view(settings).steps.map((step) => step.id);
+		expect(ids(on)).not.toContain('second-login-page');
+		expect(ids(on)).not.toContain('second-submit-credentials');
+		expect(ids({ ...on, ssoAsks: 'insists' })).toContain('second-submit-credentials');
+	});
+
+	it('gets no code and no tokens with no session, and sends no cookie', () => {
+		const fresh = view({ ...on, ssoAsks: 'fresh' });
+		const authorize = fresh.steps.find((step) => step.id === 'second-authorize');
+		expect(authorize?.fields.map((field) => field.name)).not.toContain('Cookie');
+		expect(fresh.steps.map((step) => step.id)).not.toContain('second-token-request');
+	});
+});
+
 describe('when the token runs out', () => {
 	const on = { refresh: true } as const;
 	const after = (settings: Partial<Settings>) => {
