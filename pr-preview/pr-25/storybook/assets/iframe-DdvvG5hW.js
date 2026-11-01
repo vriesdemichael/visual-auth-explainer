@@ -1,0 +1,1 @@
+import{t as e}from"./iframe-BMidGvH5.js";e();
