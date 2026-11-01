@@ -1,4 +1,4 @@
-# visual-auth-explainer
+# Authlines
 
 An interactive web application for exploring OAuth, OIDC and authn/authz visually. It is not an article or a blog: people operate it through a diagram, settings and step controls. The first version is built, and what is left is the maintainer's judgement of it (sections 8 and 11 of the premise). What comes after is in the GitHub issues labelled `target state`, each with acceptance criteria and deliverables. `pnpm verify` runs the same steps as CI, in one browser. CI also runs Firefox, WebKit and the screenshots, which `pnpm test:browsers` runs in CI's image.
 

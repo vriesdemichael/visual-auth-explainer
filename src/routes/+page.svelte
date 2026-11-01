@@ -4,9 +4,10 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import LearningMap from '#lib/components/LearningMap.svelte';
+	import Mark from '#lib/components/Mark.svelte';
 	import { mapTracks, type MapNode } from '#lib/map/nodes.ts';
 	import { searchState } from '#lib/search/open.svelte.ts';
-	import { sharingTags } from '#lib/site.ts';
+	import { sharingTags, SITE_NAME } from '#lib/site.ts';
 
 	// The query string does not exist while prerendering, so where someone came from is marked after.
 	let mounted = $state(false);
@@ -17,8 +18,9 @@
 	const current = $derived(mounted ? page.url.searchParams.get('at') : null);
 	const DESCRIPTION =
 		"OAuth and OpenID Connect on one living diagram, with its messages recorded from a real Keycloak, a free identity provider you can run yourself. The specs are the same elsewhere, though error codes, token formats, defaults and the stored-token API are Keycloak's own. Pick a question and follow it, one message at a time.";
+	const TITLE = `${SITE_NAME}: OAuth and OpenID Connect on one living diagram`;
 	const sharing = sharingTags({
-		title: 'Visual auth explainer',
+		title: TITLE,
 		description: DESCRIPTION,
 		path: '/'
 	});
@@ -32,7 +34,7 @@
 </script>
 
 <svelte:head>
-	<title>Visual auth explainer</title>
+	<title>{TITLE}</title>
 	<meta name="description" content={DESCRIPTION} />
 	{#each sharing as tag (tag.property ?? tag.name)}
 		<meta {...tag} />
@@ -40,7 +42,7 @@
 </svelte:head>
 
 <main data-ready={mounted}>
-	<h1>Visual auth explainer</h1>
+	<h1><Mark size={32} />{SITE_NAME}</h1>
 	<p class="lead">
 		OAuth and OpenID Connect on one living diagram, with its messages recorded from a real Keycloak,
 		a free identity provider you can run yourself. The specs are the same elsewhere, though error
@@ -67,6 +69,9 @@
 	}
 
 	h1 {
+		display: flex;
+		align-items: center;
+		gap: 10px;
 		margin: 0 0 8px;
 		font-size: 34px;
 		font-weight: 600;
