@@ -796,6 +796,88 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 		};
 	}
 
+	// What is a refresh token worth once a new one has come back? RFC 9700 section 2.2.2 wants a
+	// public client's to work once or be tied to the sender.
+	{
+		const send = (clientId: string, refreshToken: string, extra: Record<string, string>) =>
+			token(LOCAL_REALM, {
+				grant_type: 'refresh_token',
+				refresh_token: refreshToken,
+				client_id: clientId,
+				...extra
+			});
+		const said = (result: Awaited<ReturnType<typeof send>>) => ({
+			status: result.status,
+			error: result.json.error ?? null,
+			description: result.json.error_description ?? null
+		});
+		const secret = { client_secret: CLIENT_SECRET };
+		const onRealm = `/realms/${LOCAL_REALM}`;
+		const realm = await admin.call<{
+			revokeRefreshToken: boolean;
+			refreshTokenMaxReuse: number;
+			accessTokenLifespan: number;
+		}>('GET', onRealm);
+
+		await freshClient(admin, 'note-refresh');
+		const first = await tokensFor(browser, demo, 'note-refresh');
+		const second = await send('note-refresh', first.json.refresh_token, secret);
+		const oldAgain = await send('note-refresh', first.json.refresh_token, secret);
+		const withoutTheSecret = await send('note-refresh', second.json.refresh_token, {});
+
+		await freshClient(admin, 'note-refresh-public', { publicClient: true });
+		const open = await tokensFor(browser, demo, 'note-refresh-public', {});
+		const openSecond = await send('note-refresh-public', open.json.refresh_token, {});
+		const openAgain = await send('note-refresh-public', open.json.refresh_token, {});
+
+		await freshClient(admin, 'note-refresh-short', {
+			attributes: { 'access.token.lifespan': '1' }
+		});
+		const { code } = await codeFor(browser, demo, LOCAL_REALM, 'note-refresh-short', {
+			scope: 'openid'
+		});
+		const short = await token(LOCAL_REALM, {
+			grant_type: 'authorization_code',
+			code,
+			redirect_uri: REDIRECT_URI,
+			client_id: 'note-refresh-short',
+			...secret
+		});
+		await new Promise((resolve) => setTimeout(resolve, 2100));
+		const pastItsLife = await statusOf(
+			`${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/userinfo`,
+			{ authorization: `Bearer ${short.json.access_token}` }
+		);
+		const afterThat = await send('note-refresh-short', short.json.refresh_token, secret);
+
+		await admin.call('PUT', onRealm, { revokeRefreshToken: true });
+		await freshClient(admin, 'note-refresh-revoke');
+		const start = await tokensFor(browser, demo, 'note-refresh-revoke');
+		const next = await send('note-refresh-revoke', start.json.refresh_token, secret);
+		const reused = await send('note-refresh-revoke', start.json.refresh_token, secret);
+		const newest = await send('note-refresh-revoke', next.json.refresh_token, secret);
+		await admin.call('PUT', onRealm, { revokeRefreshToken: false });
+
+		answers.refreshTokens = {
+			accessTokenLifespan: realm.accessTokenLifespan,
+			first: { expiresIn: first.json.expires_in, refreshExpiresIn: first.json.refresh_expires_in },
+			refresh: {
+				status: second.status,
+				cameBackNew: second.json.refresh_token !== first.json.refresh_token
+			},
+			withoutTheSecret: said(withoutTheSecret),
+			pastItsLife: { userinfo: pastItsLife.status, thenARefresh: afterThat.status }
+		};
+		answers.revokeRefreshToken = {
+			before: {
+				setting: realm.revokeRefreshToken,
+				oldAgain: said(oldAgain),
+				oldAgainWithNoSecret: { first: openSecond.status, again: openAgain.status }
+			},
+			after: { first: next.status, oldAgain: said(reused), newest: said(newest) }
+		};
+	}
+
 	// Do the tokens someone stole survive the real app then trying the same code? RFC 6749 section
 	// 4.1.2 says a server should revoke them.
 	{

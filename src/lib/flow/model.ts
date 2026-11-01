@@ -35,7 +35,7 @@ export interface GroupDef {
 	when?: Condition;
 }
 
-export type StepKind = 'request' | 'response' | 'internal' | 'human';
+export type StepKind = 'request' | 'response' | 'internal' | 'human' | 'time';
 
 export interface FieldDef {
 	name: string;
@@ -217,7 +217,7 @@ function causes(when: Condition | undefined, settings: Settings): SettingId[] {
 
 function channelOf(flow: DiagramDef, step: StepDef): Channel {
 	if (step.kind === 'human') return 'people';
-	if (step.kind === 'internal') return 'internal';
+	if (step.kind === 'internal' || step.kind === 'time') return 'internal';
 	const front = flow.lifelines.some((l) => l.front && (l.id === step.from || l.id === step.to));
 	return front ? 'front' : 'back';
 }

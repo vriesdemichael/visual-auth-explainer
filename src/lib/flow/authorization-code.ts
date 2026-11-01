@@ -1,4 +1,4 @@
-import type { DiagramDef } from '#lib/flow/model.ts';
+import type { DiagramDef, FieldDef } from '#lib/flow/model.ts';
 import { example } from '#lib/flow/libraries.ts';
 import { all, any, is, not, type Settings } from '#lib/flow/settings.ts';
 
@@ -22,6 +22,19 @@ const apiV1 = is('upstreamTokens', 'v1');
 const apiV2 = is('upstreamTokens', 'v2');
 const sends = (value: Settings['apiToken']) => is('apiToken', value);
 const apiRefuses = not(sends('good'));
+const refreshes = is('refresh', true);
+const reuseEnds = all(refreshes, is('reuse', 'ends'));
+const refreshFields: FieldDef[] = [
+	{ name: 'grant_type=refresh_token', place: 'body' },
+	{ name: 'client_id', place: 'body', when: not(confidential) },
+	{
+		name: 'Authorization: Basic',
+		place: 'header',
+		note: 'The client ID and secret',
+		artifact: 'secret',
+		when: confidential
+	}
+];
 
 /**
  * Every field here is held to the recordings of a real Keycloak by src/lib/recordings/recordings.test.ts.
@@ -562,7 +575,7 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: attackerWins,
-					text: 'The identity provider has no way to tell. They now hold what the app was supposed to get, including a token for getting new ones, and nothing has told the user.'
+					text: 'The identity provider has no way to tell. They now hold what the app was supposed to get, including a refresh token, which gets them new access tokens without the user, and nothing has told the user.'
 				},
 				{
 					when: stoppedByPkce,
@@ -879,7 +892,7 @@ export const authorizationCode: DiagramDef = {
 					name: 'refresh_token',
 					place: 'body',
 					artifact: 'refresh-token',
-					note: 'Gets a new access token later, which this diagram does not follow'
+					note: 'Gets a new access token later, without the user'
 				},
 				{ name: 'scope', place: 'body' }
 			]
@@ -1109,6 +1122,218 @@ export const authorizationCode: DiagramDef = {
 					note: 'What kind of token it wants, and what was wrong with this one',
 					when: apiRefuses
 				}
+			]
+		},
+		{
+			id: 'token-runs-out',
+			when: refreshes,
+			from: 'app',
+			to: 'app',
+			kind: 'time',
+			plain: 'Later, the access token runs out',
+			label: 'Later: the access token expires',
+			concept:
+				'Nothing is sent here, because time is what happens. An access token is short-lived on purpose: anyone holding one can use it, so a stolen one should not be good for long.',
+			inPractice:
+				'The token response said how long it has, in expires_in. How long that is depends on the server.',
+			fields: []
+		},
+		{
+			id: 'api-request-again',
+			when: refreshes,
+			from: 'app',
+			to: 'api',
+			kind: 'request',
+			plain: 'The app calls the API with the same token',
+			label: 'GET /resource',
+			concept: 'The app has no reason to think anything changed, and sends the token it has.',
+			inPractice:
+				'Some libraries go by expires_in and get a new token before this happens. You still want to handle the refusal, because an API can refuse a token for other reasons.',
+			practice: [
+				example('springSecurity', true, 'gets a new one ahead of time, 60 seconds by default'),
+				example('openidClient', false, 'has a function for it, which you call')
+			],
+			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token' }]
+		},
+		{
+			id: 'api-refused',
+			when: refreshes,
+			from: 'api',
+			to: 'app',
+			kind: 'response',
+			plain: 'The API refuses: the token has expired',
+			label: '401 invalid_token',
+			concept:
+				'A 401 with invalid_token. For an app this is the refusal with a simple answer: get a new access token, and try again.',
+			fields: [{ name: 'WWW-Authenticate', place: 'header', note: 'What was wrong with this one' }]
+		},
+		{
+			id: 'refresh-request',
+			when: refreshes,
+			from: 'app',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The app sends its refresh token',
+			label: 'POST /token',
+			concept: [
+				{
+					when: confidential,
+					text: 'The app sends the refresh token and its secret straight to the identity provider. Nothing goes through the browser, so the user sees nothing: no redirect, and no page.'
+				},
+				{
+					text: 'The app sends the refresh token straight to the identity provider. Nothing goes through the browser, so the user sees nothing: no redirect, and no page.'
+				}
+			],
+			execute: { answer: 'refresh-response' },
+			fields: [
+				...refreshFields,
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' }
+			]
+		},
+		{
+			id: 'refresh-response',
+			when: refreshes,
+			from: 'idp',
+			to: 'app',
+			kind: 'response',
+			plain: 'A new access token and a new refresh token',
+			label: '200 with new tokens',
+			concept: [
+				{
+					when: oidc,
+					text: 'A new access token, so the app can carry on, a new ID token, and a new refresh token to keep in place of the old one. The user never noticed.'
+				},
+				{
+					text: 'A new access token, so the app can carry on, and a new refresh token to keep in place of the old one. The user never noticed.'
+				}
+			],
+			fields: [
+				{ name: 'access_token', place: 'body', artifact: 'access-token' },
+				{ name: 'token_type=Bearer', place: 'body' },
+				{ name: 'id_token', place: 'body', artifact: 'id-token', when: oidc },
+				{ name: 'expires_in', place: 'body' },
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' },
+				{ name: 'scope', place: 'body' }
+			]
+		},
+		{
+			id: 'api-request-new',
+			when: refreshes,
+			from: 'app',
+			to: 'api',
+			kind: 'request',
+			plain: 'The app calls the API with the new token',
+			label: 'GET /resource',
+			concept: 'The same call again, which is all the app wanted.',
+			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token' }]
+		},
+		{
+			id: 'api-response-new',
+			when: refreshes,
+			from: 'api',
+			to: 'app',
+			kind: 'response',
+			plain: 'The API answers',
+			label: '200 with the resource',
+			concept: 'It works, and the user was not part of any of it, which is the point.',
+			fields: []
+		},
+		{
+			id: 'refresh-again',
+			when: refreshes,
+			from: 'app',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The old refresh token is sent again',
+			label: 'POST /token',
+			concept: [
+				{
+					when: confidential,
+					text: 'The app would not do this. It is what someone with a copy of the old refresh token would try. From an app with a secret they would need the secret as well, because the request has to carry it.'
+				},
+				{
+					text: 'The app would not do this. It is what someone with a copy of the old refresh token would try. An app with no secret has nothing else to show, so this request is all they need.'
+				}
+			],
+			fields: [
+				...refreshFields,
+				{
+					name: 'refresh_token',
+					place: 'body',
+					note: 'The one from before, already used',
+					artifact: 'refresh-token'
+				}
+			]
+		},
+		{
+			id: 'refresh-again-response',
+			when: refreshes,
+			from: 'idp',
+			to: 'app',
+			kind: 'response',
+			plain: [
+				{ when: reuseEnds, text: 'Refused: this one has been used' },
+				{ text: 'It still works' }
+			],
+			label: [{ when: reuseEnds, text: '400 invalid_grant' }, { text: '200 with new tokens' }],
+			concept: [
+				{
+					when: reuseEnds,
+					text: 'Refused, because here each refresh token works once. A second use means a copy exists somewhere, so this also ends things for the newest one.'
+				},
+				{
+					when: not(confidential),
+					text: 'It still works, though a new one came back last time, which looks as if this one was finished with. So someone who copied a refresh token from an app with no secret gets new access tokens without the user, and nothing has told the user.'
+				},
+				{
+					text: 'It still works, though a new one came back last time, which looks as if this one was finished with. So a copy stays useful to anyone who also has the secret.'
+				}
+			],
+			inPractice:
+				"Whether it works is up to the server. RFC 9700 says a public client's refresh tokens have to work only once or be tied to the sender, so check what yours does.",
+			fields: [
+				{ name: 'access_token', place: 'body', artifact: 'access-token', when: not(reuseEnds) },
+				{ name: 'token_type=Bearer', place: 'body', when: not(reuseEnds) },
+				{ name: 'expires_in', place: 'body', when: not(reuseEnds) },
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token', when: not(reuseEnds) },
+				{ name: 'scope', place: 'body', when: not(reuseEnds) },
+				{
+					name: 'error=invalid_grant',
+					place: 'body',
+					note: 'This refresh token cannot be used',
+					when: reuseEnds
+				},
+				{ name: 'error_description', place: 'body', when: reuseEnds }
+			]
+		},
+		{
+			id: 'refresh-newest',
+			when: reuseEnds,
+			from: 'app',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The app sends its newest refresh token',
+			label: 'POST /token',
+			concept:
+				'Now the real app carries on, with the refresh token it was given last, which has never been used.',
+			fields: [
+				...refreshFields,
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' }
+			]
+		},
+		{
+			id: 'refresh-newest-response',
+			when: reuseEnds,
+			from: 'idp',
+			to: 'app',
+			kind: 'response',
+			plain: 'Refused too: the app has to start a new login',
+			label: '400 invalid_grant',
+			concept:
+				'Refused as well, though nothing is wrong with this one. The identity provider cannot tell which of the two is the thief, so it stops them both. The app has to send the user through the login again, which is the price of finding out.',
+			fields: [
+				{ name: 'error=invalid_grant', place: 'body', note: 'This refresh token cannot be used' },
+				{ name: 'error_description', place: 'body' }
 			]
 		},
 		{

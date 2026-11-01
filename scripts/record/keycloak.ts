@@ -254,7 +254,7 @@ export async function setUpFor(
 	admin: Admin,
 	realm: string,
 	settings: Pick<Settings, 'clientType' | 'consent' | 'upstreamTokens'> &
-		Partial<Pick<Settings, 'apiToken'>>
+		Partial<Pick<Settings, 'apiToken' | 'refresh' | 'reuse'>>
 ) {
 	const onClients = `/realms/${realm}/clients`;
 	const [old] = await admin.call<{ id: string }[]>(
@@ -280,9 +280,12 @@ export async function setUpFor(
 					}
 				: {}),
 			// A second, so the demo app only has to wait a moment to have an expired one.
-			...(settings.apiToken === 'expired' ? { attributes: { 'access.token.lifespan': '1' } } : {})
+			...(settings.apiToken === 'expired' ? { attributes: { 'access.token.lifespan': '1' } } : {}),
+			// Long enough for one call with the new token, and short enough not to wait five minutes.
+			...(settings.refresh ? { attributes: { 'access.token.lifespan': '3' } } : {})
 		})
 	);
+	await admin.call('PUT', `/realms/${realm}`, { revokeRefreshToken: settings.reuse === 'ends' });
 
 	if (realm !== BROKERED_REALM) return;
 	const onProvider = `/realms/${BROKERED_REALM}/identity-provider/instances/${UPSTREAM_REALM}`;

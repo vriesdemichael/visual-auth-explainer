@@ -4,6 +4,8 @@ A flow is data: one ordered list of steps, each with an optional condition, and 
 
 What a setting needs is a requirement on the setting or on one of its options, with the reason to show when it fails. When a change takes away what another setting needs, that setting falls back to its default and the application says why. Each valid combination has to build a coherent diagram, which the tests check for every one of them.
 
+A step is usually a message, a person passing something on, or something inside one system. It can also be time passing, where nothing is sent, which is drawn as a gap in every line and not as an arrow, because a refresh token only makes sense once time has gone by.
+
 A field that differs from the base flow is shown on the message itself, and so is a field that carries a credential or token. Every other field is only in the step detail. So what is on the diagram is what the settings changed and what is being handed over.
 
 A base flow has two diagrams, the user flow and its setup, and each is one such list on the same engine. Setup is apart because no user does it: the people who do are lifelines on its diagram, and no user or browser is. Settings apply to both. Back and Next stay inside a diagram, switching between them does not animate, and a step can link to a related step in the other.

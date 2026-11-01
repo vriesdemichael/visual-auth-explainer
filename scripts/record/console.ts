@@ -62,6 +62,7 @@ export async function lookInConsole(browser: Browser, admin: Admin, flagsOn: rea
 			await page
 				.getByRole('link', name)
 				.or(page.getByRole('button', name))
+				.or(page.getByRole('tab', name))
 				.first()
 				.click({ timeout: LOOK_FOR_MS });
 		}

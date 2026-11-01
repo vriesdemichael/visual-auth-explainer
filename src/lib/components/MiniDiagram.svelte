@@ -88,6 +88,13 @@
 		stroke: var(--people);
 	}
 
+	/* Time passing, the only row across the diagram that is not a message. */
+	.row[data-channel='internal'] {
+		stroke: var(--muted);
+		stroke-width: 1;
+		stroke-dasharray: 1 3;
+	}
+
 	.self {
 		fill: var(--muted);
 	}

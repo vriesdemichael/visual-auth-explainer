@@ -181,6 +181,7 @@ const basicAuth = (id: string, secret: string) =>
 interface Tokens {
 	access_token: string;
 	id_token?: string;
+	refresh_token: string;
 	token_type: string;
 	error?: string;
 }
@@ -344,7 +345,51 @@ export class Demo {
 		}
 
 		if (settings.upstreamTokens !== 'off') await this.#storedToken(tokens.access_token);
+		if (settings.refresh) await this.#whenItRunsOut(tokens);
 		return 'Logged in';
+	}
+
+	/** The same call once the token has run out, what a refresh token gets, and using one twice. */
+	async #whenItRunsOut(tokens: Tokens) {
+		const run = this.#run;
+		const resource = `${API}/resource`;
+		const callApi = (steps: [string, string], accessToken: string) =>
+			call(run, steps, 'GET', resource, this.#authorization('GET', resource, accessToken));
+		const refresh = (refreshToken: string, steps: [string, string]) =>
+			call(
+				run,
+				steps,
+				'POST',
+				this.#server.token_endpoint,
+				run.clientSecret ? { authorization: basicAuth(run.clientId, run.clientSecret) } : {},
+				{
+					grant_type: 'refresh_token',
+					refresh_token: refreshToken,
+					...(run.clientSecret ? {} : { client_id: run.clientId })
+				}
+			);
+
+		// Its life is short for this one, set up in keycloak.ts, so it just has to wait.
+		await new Promise((resolve) => setTimeout(resolve, 3100));
+		const refused = await callApi(['api-request-again', 'api-refused'], tokens.access_token);
+		if (refused.status !== 401) throw new Error(`The API took an old token: ${refused.text}`);
+
+		const answer = await refresh(tokens.refresh_token, ['refresh-request', 'refresh-response']);
+		const newer = jsonOf<Tokens>(answer.text);
+		if (!newer.access_token || !newer.refresh_token) throw new Error(`No token: ${answer.text}`);
+
+		const retried = await callApi(['api-request-new', 'api-response-new'], newer.access_token);
+		if (retried.status !== 200) throw new Error(`The API refused: ${retried.text}`);
+
+		const ends = run.settings.reuse === 'ends';
+		const again = await refresh(tokens.refresh_token, ['refresh-again', 'refresh-again-response']);
+		if (again.status !== (ends ? 400 : 200)) throw new Error(`Used twice: ${again.text}`);
+		if (!ends) return;
+		const newest = await refresh(newer.refresh_token, [
+			'refresh-newest',
+			'refresh-newest-response'
+		]);
+		if (newest.status !== 400) throw new Error(`The newest still works: ${newest.text}`);
 	}
 
 	async #storedToken(accessToken: string) {

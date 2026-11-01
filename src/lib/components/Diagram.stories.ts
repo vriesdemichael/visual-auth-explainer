@@ -60,6 +60,17 @@ export const StoredUpstreamTokens: Story = {
 	}
 };
 
+export const TimePassing: Story = {
+	args: { layout: layoutFor({ refresh: true }), currentStep: 'token-runs-out' }
+};
+
+export const UsingARefreshTokenTwice: Story = {
+	args: {
+		layout: layoutFor({ refresh: true, reuse: 'ends' }),
+		currentStep: 'refresh-again-response'
+	}
+};
+
 export const EverythingOn: Story = {
 	args: {
 		layout: layoutFor({

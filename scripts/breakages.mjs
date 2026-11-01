@@ -36,6 +36,32 @@ export const breakages = [
 		to: 'works, which is what PKCE stops.'
 	},
 
+	// A refresh token.
+	{
+		name: 'refresh: the old one is said to be refused on a default server',
+		file: AC,
+		from: "{ when: reuseEnds, text: 'Refused: this one has been used' },\n\t\t\t\t{ text: 'It still works' }",
+		to: "{ text: 'Refused: this one has been used' }"
+	},
+	{
+		name: 'refresh: the chip on the response is left out',
+		file: AC,
+		from: "{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' },\n\t\t\t\t{ name: 'scope', place: 'body' }\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\tid: 'api-request-new'",
+		to: "{ name: 'refresh_token', place: 'body' },\n\t\t\t\t{ name: 'scope', place: 'body' }\n\t\t\t]\n\t\t},\n\t\t{\n\t\t\tid: 'api-request-new'"
+	},
+	{
+		name: 'refresh: a stolen one from an app with a secret needs nothing else',
+		file: AC,
+		from: 'From an app with a secret they would need the secret as well, because the request has to carry it.',
+		to: 'This request is all they need.'
+	},
+	{
+		name: 'refresh: the note says revoking is on by default',
+		file: NOTES,
+		from: 'Off by default, so the old refresh token keeps working',
+		to: 'On by default, so the old refresh token stops working'
+	},
+
 	// An API saying no.
 	{
 		name: 'api: a 403 is called a 401',

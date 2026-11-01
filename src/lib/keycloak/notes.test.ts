@@ -27,7 +27,8 @@ const NOT_BEFORE_AND_AFTER = [
 	'no-dpop-nonce',
 	'issuer',
 	'brokering-api-flags',
-	'how-an-api-says-no'
+	'how-an-api-says-no',
+	'short-for-this-recording'
 ];
 
 describe('the protocol layer', () => {
@@ -209,7 +210,12 @@ describe('the notes', () => {
 				// Two are about what the server does, with nothing in the console to change it.
 				expect(
 					Boolean(note.serverOption) ||
-						['no-dpop-nonce', 'code-used-twice', 'how-an-api-says-no'].includes(note.id)
+						[
+							'no-dpop-nonce',
+							'code-used-twice',
+							'how-an-api-says-no',
+							'short-for-this-recording'
+						].includes(note.id)
 				).toBe(true);
 				return;
 			}
@@ -226,6 +232,13 @@ describe('the notes', () => {
 });
 
 describe('where each note is', () => {
+	it('says Revoke Refresh Token is off by default, which a real server says too', () => {
+		const note = noteDefs.find(({ id }) => id === 'revoke-refresh-token');
+		expect(note?.text).toMatch(/^Off by default/);
+		const { before } = note?.backedBy.shows as { before: { setting: boolean } };
+		expect(before.setting).toBe(false);
+	});
+
 	it('is on the steps it is about', () => {
 		const where = Object.fromEntries(noteDefs.map((note) => [note.id, [...note.steps].sort()]));
 		expect(where).toMatchObject({
@@ -238,7 +251,9 @@ describe('where each note is', () => {
 			'intercepted-code': ['attacker-token-response', 'token-request'],
 			'code-used-twice': ['real-app-refused'],
 			'client-scopes': ['token-response'],
-			'token-lifespan': ['token-response'],
+			'token-lifespan': ['token-response', 'token-runs-out'],
+			'revoke-refresh-token': ['refresh-again-response', 'refresh-newest-response'],
+			'short-for-this-recording': ['token-runs-out'],
 			audience: ['api-check-token', 'token-response'],
 			'require-dpop': ['token-request'],
 			'no-dpop-nonce': ['nonce-challenge'],

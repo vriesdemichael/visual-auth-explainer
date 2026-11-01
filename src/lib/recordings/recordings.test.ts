@@ -83,6 +83,8 @@ const OPEN_ENDED = new Set([
 	'discovery-document',
 	'userinfo-response',
 	'api-response',
+	'api-refused',
+	'api-response-new',
 	'attacker-api-response',
 	'redirect-to-idp',
 	'redirect-to-upstream'
@@ -171,36 +173,49 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			const { query, body } = carried(message);
 			return query.get(name) ?? (body[name] as string | undefined);
 		};
-		const values: Partial<Record<ArtifactId, string | undefined>> = {
-			password: 'throwaway-password',
-			secret:
-				recording.settings.clientType === 'confidential' ? 'throwaway-client-secret' : undefined,
-			code: valueIn('redirect-with-code', 'code'),
-			verifier: valueIn('token-request', 'code_verifier'),
-			challenge: valueIn('authorize', 'code_challenge'),
-			'access-token': valueIn('token-response', 'access_token'),
-			'id-token':
+		const values: Partial<Record<ArtifactId, (string | undefined)[]>> = {
+			password: ['throwaway-password'],
+			secret: [
+				recording.settings.clientType === 'confidential' ? 'throwaway-client-secret' : undefined
+			],
+			code: [valueIn('redirect-with-code', 'code')],
+			verifier: [valueIn('token-request', 'code_verifier')],
+			challenge: [valueIn('authorize', 'code_challenge')],
+			// A new one is the same kind of thing, so the chip stays and the value changes.
+			'access-token': [
+				valueIn('token-response', 'access_token'),
+				valueIn('refresh-response', 'access_token'),
+				valueIn('refresh-again-response', 'access_token')
+			],
+			'id-token': [
 				valueIn('token-response', 'id_token') ?? valueIn('attacker-token-response', 'id_token'),
-			'refresh-token':
+				valueIn('refresh-response', 'id_token'),
+				valueIn('refresh-again-response', 'id_token')
+			],
+			'refresh-token': [
 				valueIn('token-response', 'refresh_token') ??
-				valueIn('attacker-token-response', 'refresh_token'),
-			'upstream-token': valueIn('upstream-token-response', 'access_token')
+					valueIn('attacker-token-response', 'refresh_token'),
+				valueIn('refresh-response', 'refresh_token'),
+				valueIn('refresh-again-response', 'refresh_token')
+			],
+			'upstream-token': [valueIn('upstream-token-response', 'access_token')]
 		};
 
 		const wrong = recorded.flatMap((message) => {
 			const step = stepsOf(recording).find((s) => s.id === message.step)!;
 			const text = JSON.stringify(message);
-			return Object.entries(values).flatMap(([artifact, value]) => {
-				if (!value) return [];
+			return Object.entries(values).flatMap(([artifact, each]) => {
+				const known = each.filter((value) => value !== undefined);
+				if (!known.length) return [];
 				const claimed = step.fields.some((field) => field.artifact === artifact);
-				const changedOnPurpose =
-					artifact === 'access-token' &&
-					recording.settings.apiToken === 'changed' &&
-					text.includes(value.slice(0, -6));
-				const there =
-					text.includes(value) ||
-					changedOnPurpose ||
-					(artifact === 'secret' && text.includes(basicAuthOf(value)));
+				const there = known.some(
+					(value) =>
+						text.includes(value) ||
+						(artifact === 'access-token' &&
+							recording.settings.apiToken === 'changed' &&
+							text.includes(value.slice(0, -6))) ||
+						(artifact === 'secret' && text.includes(basicAuthOf(value)))
+				);
 				return claimed === there
 					? []
 					: [`${step.id}: ${artifact} ${there ? 'is there' : 'is not there'}`];
@@ -252,6 +267,37 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 		expect(recording.settings).toEqual(
 			normalize({ ...defaultSettings, ...wanted.settings }).settings
 		);
+	});
+});
+
+describe('the words on a refresh token used twice', () => {
+	const again = (preset: string) => {
+		const recording = read(preset);
+		const steps = stepsOf(recording);
+		return {
+			status: recording.messages.find((message) => message.step === 'refresh-again-response')
+				?.status,
+			answer: steps.find(({ id }) => id === 'refresh-again-response'),
+			request: steps.find(({ id }) => id === 'refresh-again')
+		};
+	};
+
+	it.each([
+		['refresh', 200, 'still works', '200 with new tokens'],
+		['refresh-public', 200, 'still works', '200 with new tokens'],
+		['refresh-ends', 400, 'Refused', '400 invalid_grant']
+	])('%s says what it really said', (preset, status, plain, label) => {
+		const { status: said, answer } = again(preset);
+		expect(said).toBe(status);
+		expect(answer?.plain).toContain(plain);
+		expect(answer?.label).toBe(label);
+	});
+
+	it('says a secret is needed where a real server wanted one', () => {
+		const answers = JSON.parse(readFileSync(`${FOLDER}/questions.json`, 'utf8'));
+		expect((answers.answers ?? answers).refreshTokens.withoutTheSecret.status).toBe(401);
+		expect(again('refresh').request?.concept).toContain('need the secret as well');
+		expect(again('refresh-public').request?.concept).toContain('all they need');
 	});
 });
 

@@ -164,9 +164,16 @@ const list: readonly Term[] = [
 	{
 		id: 'refresh-token',
 		name: 'Refresh token',
-		words: ['refresh token', 'refresh tokens', 'token for getting new ones'],
+		words: ['refresh token', 'refresh tokens'],
 		explains: '',
 		artifact: 'refresh-token',
+		at: flowAt('token-response')
+	},
+	{
+		id: 'expires-in',
+		name: 'expires_in',
+		words: ['expires_in'],
+		explains: 'How many seconds the access token lasts, as the token response says.',
 		at: flowAt('token-response')
 	},
 	{
@@ -486,6 +493,13 @@ const parts: readonly Term[] = [
 		words: [],
 		part: true,
 		explains: 'What is still to come. Point at one to see what it is.'
+	},
+	{
+		id: 'part-time',
+		name: 'A gap across every line',
+		words: [],
+		part: true,
+		explains: 'Time passing. Nothing is sent, and whatever comes after it happens later.'
 	}
 ];
 
