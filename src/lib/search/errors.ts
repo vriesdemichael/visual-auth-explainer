@@ -24,7 +24,8 @@ const storedV2: Partial<Settings> = { broker: true, upstreamTokens: 'v2' };
 export const knownErrors: readonly KnownError[] = [
 	{
 		text: 'login_required',
-		means: 'The app said not to show a form, and this browser has no session.',
+		means:
+			'The app said not to show a form, and the user would have to log in, usually because this browser has no session.',
 		step: 'second-redirect-with-code',
 		settings: { sso: true, oidc: true, ssoAsks: 'fresh' }
 	},

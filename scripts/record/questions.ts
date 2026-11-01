@@ -967,7 +967,11 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 				cameBackNew: second.json.refresh_token !== first.json.refresh_token
 			},
 			withoutTheSecret: said(withoutTheSecret),
-			pastItsLife: { userinfo: pastItsLife.status, thenARefresh: afterThat.status }
+			pastItsLife: {
+				userinfo: pastItsLife.status,
+				thenARefresh: afterThat.status,
+				idTokenAgain: Boolean(afterThat.json.id_token)
+			}
 		};
 		answers.revokeRefreshToken = {
 			before: {

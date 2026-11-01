@@ -32,7 +32,7 @@ export const breakages = [
 	{
 		name: 'attacker: says the real app can be used against PKCE',
 		file: AC,
-		from: 'gets them nothing, because the verifier does not match, though it uses up the code.',
+		from: 'gets them nothing, because the verifier does not match, though on this server it uses up the code.',
 		to: 'works, which is what PKCE stops.'
 	},
 

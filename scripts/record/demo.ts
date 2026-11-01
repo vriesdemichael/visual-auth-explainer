@@ -26,6 +26,14 @@ import {
 const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 const random = () => randomBytes(16).toString('base64url');
+
+/** What someone would do to a token: change what it says, and keep the signature they have. */
+function withMoreInIt(token: string) {
+	const [head, body, signature] = token.split('.');
+	const claims = JSON.parse(Buffer.from(body, 'base64url').toString());
+	const changed = { ...claims, scope: `${claims.scope} admin` };
+	return [head, Buffer.from(JSON.stringify(changed)).toString('base64url'), signature].join('.');
+}
 const b64 = (value: string | Buffer) => Buffer.from(value).toString('base64url');
 
 const KEPT_REQUEST_HEADERS = ['authorization', 'content-type', 'dpop', 'accept'];
@@ -331,8 +339,7 @@ export class Demo {
 		const resource = `${API}${{ elsewhere: '/my-api/resource', noscope: '/contacts' }[apiToken as string] ?? '/resource'}`;
 		// The token has a very short life for this one, set up in keycloak.ts, so it just has to wait.
 		if (apiToken === 'expired') await new Promise((resolve) => setTimeout(resolve, 2100));
-		const sent =
-			apiToken === 'changed' ? `${tokens.access_token.slice(0, -6)}AAAAAA` : tokens.access_token;
+		const sent = apiToken === 'changed' ? withMoreInIt(tokens.access_token) : tokens.access_token;
 		const answer = await call(
 			run,
 			['api-request', 'api-response'],

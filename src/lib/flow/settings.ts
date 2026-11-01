@@ -308,7 +308,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'send',
 		default: 'good',
 		summary: 'The same call to the API, and what it answers depending on the token.',
-		why: 'An API checks a token before it answers, and each way that fails looks alike from the app. A 401 means it does not accept the token, and a 403 that it does and the token does not allow this. A new token can help with the first, and not with the second.',
+		why: 'An API checks a token before it answers, and each way that fails looks alike from the app. A 401 means it does not accept the token, and a 403 that it does and still refuses, often because the token does not allow this. A new token can help with the first, and usually not with the second.',
 		sources: [
 			{
 				source: 'rfc6750',
@@ -429,8 +429,16 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		},
 		options: [
 			{ value: 'remembered', label: 'The browser is remembered' },
-			{ value: 'insists', label: 'The app insists on a login' },
-			{ value: 'fresh', label: 'A new browser, told not to ask' }
+			{
+				value: 'insists',
+				label: 'The app insists on a login',
+				requires: { when: is('oidc', true), because: 'prompt is part of OpenID Connect.' }
+			},
+			{
+				value: 'fresh',
+				label: 'A new browser, told not to ask',
+				requires: { when: is('oidc', true), because: 'prompt is part of OpenID Connect.' }
+			}
 		]
 	}
 };

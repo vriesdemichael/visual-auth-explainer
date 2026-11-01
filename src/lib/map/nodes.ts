@@ -332,7 +332,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: '401-or-403',
 					answer:
-						'A 401 means the API does not accept the token. A 403 means it does, and the token does not allow this, so a new token of the same kind will not help.',
+						'A 401 means the API does not accept the token. A 403 means it does and still refuses, often because the token does not allow this, so a new token of the same kind usually will not help.',
 					title: 'What is the difference between 401 and 403?',
 					summary: 'One is about the token, and the other about what it allows.',
 					mode: 'advanced',
@@ -364,7 +364,7 @@ export const mapTracks: readonly MapTrack[] = [
 					answer:
 						'Because it does not name this API. Its signature is good and it has not expired, but a token meant for one API should not open every other one.',
 					title: 'Why does my API refuse a token that is still good?',
-					summary: 'It has to be for this API, and a default client’s often is not.',
+					summary: 'It has to be for this API, and it is not until someone arranges that.',
 					mode: 'advanced',
 					preset: 'api-elsewhere',
 					step: 'api-response'
@@ -394,7 +394,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'two-apps-one-login',
 					answer:
-						'They share the session on the identity provider, and nothing else. Each gets tokens of its own, and the two ID tokens name the same session and login time, and a different app.',
+						'They share the session on the identity provider, and nothing else. Each gets tokens of its own, and here the two ID tokens name the same session and login time, and a different app.',
 					title: 'Do two apps share a token?',
 					summary: 'They share a login, and each has tokens of its own.',
 					mode: 'advanced',
@@ -404,7 +404,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'force-a-login',
 					answer:
-						'Send prompt=login with the request. The identity provider shows the form, though it knows the browser.',
+						'Send prompt=login with the request. The identity provider shows the form, though it knows the browser. To be sure it happened, check auth_time in the ID token.',
 					title: 'How do I make someone log in again?',
 					summary: 'A session is usually good enough. One parameter says not this time.',
 					mode: 'advanced',
@@ -414,9 +414,9 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'login-required',
 					answer:
-						'The app sent prompt=none, which says not to show a form, and this browser has no session. It is how an app checks quietly whether someone is logged in.',
+						'The app sent prompt=none, which says not to show a form, and the user would have to log in, usually because this browser has no session. It is how an app checks quietly whether someone is logged in.',
 					title: 'Why do I get login_required?',
-					summary: 'Nobody is logged in here, and the server was told not to ask.',
+					summary: 'Someone would have to log in, and the server was told not to ask.',
 					mode: 'advanced',
 					preset: 'sso-fresh',
 					step: 'second-redirect-with-code'
@@ -424,7 +424,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'refresh-token-reuse',
 					answer:
-						'Someone used a refresh token that had already been used, and the server is set to allow that once. It also stopped the newest one, so the app has to start a new login.',
+						'A refresh token that had already been used was sent again, by someone with a copy or by the app itself, and this server lets each one work only once. It also stopped the newest one, so the app has to start a new login.',
 					title: 'Why do I get Maximum allowed refresh token reuse exceeded?',
 					summary: 'A refresh token was used twice, and that ended things for this app.',
 					mode: 'advanced',

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { diagramParts, isExplained, markTerms, terms, type Term } from '#lib/flow/glossary.ts';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
@@ -71,6 +72,13 @@ describe('words in simple mode', () => {
 			)
 		);
 		expect([...unexplained]).toEqual([]);
+	});
+
+	it('have one entry each', () => {
+		const source = readFileSync('src/lib/flow/glossary.ts', 'utf8');
+		const ids = [...source.matchAll(/^\s+id: '([^']+)',$/gm)].map(([, id]) => id);
+		expect(ids.length).toBeGreaterThan(10);
+		expect(ids.filter((id, at) => ids.indexOf(id) !== at)).toEqual([]);
 	});
 
 	it('include those people arrive with', () => {

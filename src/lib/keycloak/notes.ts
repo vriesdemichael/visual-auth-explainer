@@ -430,13 +430,13 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'short-for-this-recording',
 		steps: ['token-runs-out'],
 		title: 'How long this recording waited',
-		text: 'An access token lasts five minutes on a default Keycloak, and its refresh token thirty. In this recording the access token lasts three seconds, so it does not have to wait, which is why expires_in says 3. With its real life, the same two calls answered the same: UserInfo said 401, and a refresh then said 200.',
+		text: 'An access token lasts five minutes on a default Keycloak, and its refresh token thirty. In this recording the access token lasts three seconds, so it does not have to wait, which is why expires_in says 3. A token with a life of one second, once that was over, got a 401 from UserInfo, and a refresh then said 200.',
 		when: is('refresh', true),
 		backedBy: {
 			question: 'refreshTokens',
 			shows: {
 				first: { expiresIn: 300, refreshExpiresIn: 1800 },
-				pastItsLife: { userinfo: 401, thenARefresh: 200 }
+				pastItsLife: { userinfo: 401, thenARefresh: 200, idTokenAgain: true }
 			}
 		},
 		seen: 'Let a token run out, and tried both on'

@@ -60,7 +60,8 @@ describe('constraints', () => {
 		// On the plain flow too, but with OpenID Connect and consent, and two answers to using one twice.
 		const withRefresh = 2 * 2 * 2 * 2 * 2;
 		// The second app has its own client, so the first one's type and PKCE do not get in the way.
-		const withASecondApp = 2 * 2 * 2 * 3;
+		// What it asks for is part of OpenID Connect, so with that off it just goes by the session.
+		const withASecondApp = 2 * 2 * (1 + 3);
 		expect(allValidSettings()).toHaveLength(
 			withConsent * (2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker) +
 				withApiAnswers +

@@ -67,7 +67,7 @@ export const artifacts: Readonly<
 		label: 'session',
 		short: 'session',
 		explains:
-			'How the identity provider remembers this browser. It is a cookie on the address of the identity provider, so the browser sends it there and nowhere else, and no app ever sees it. It is why a second app does not ask for a password.'
+			'How the identity provider remembers this browser. It is a cookie on the address of the identity provider, so the browser sends it there and nowhere else, and no app ever sees it. It is why a second app does not ask for a password. An app usually keeps a session of its own as well, which is a different thing.'
 	},
 	proof: {
 		label: 'key proof',

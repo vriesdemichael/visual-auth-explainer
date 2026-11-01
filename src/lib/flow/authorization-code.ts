@@ -606,7 +606,7 @@ export const authorizationCode: DiagramDef = {
 				},
 				{
 					when: pkce,
-					text: 'Without the secret, the identity provider will not even look at the code. Handing it to the real app from their own browser gets them nothing, because the verifier does not match, though it uses up the code.'
+					text: 'Without the secret, the identity provider will not even look at the code. Handing it to the real app from their own browser gets them nothing, because the verifier does not match, though on this server it uses up the code.'
 				},
 				{
 					text: 'Without the secret, the identity provider will not even look at the code. But they could still hand it to the real app from their own browser, so that it trades the code for them, which is what PKCE stops.'
@@ -1015,7 +1015,7 @@ export const authorizationCode: DiagramDef = {
 				},
 				{
 					when: sends('elsewhere'),
-					text: 'The app sends its token to an API that expects its own name in it. This is the usual case with a new API on a default client, where a token names something else.'
+					text: 'The app sends its token to an API that expects its own name in it. This is what happens with a new API, until someone arranges for tokens to name it.'
 				},
 				{
 					when: sends('noscope'),
@@ -1081,7 +1081,7 @@ export const authorizationCode: DiagramDef = {
 			],
 			pitfall: {
 				title: 'What if one of these checks fails?',
-				text: 'The API answers 401 when it does not accept the token: none at all, expired, changed, from another issuer, or for someone else. It answers 403 when it accepts the token, and the token does not allow this. So a new token can help with a 401, and will not help with a 403.'
+				text: 'The API answers 401 when it does not accept the token: none at all, expired, changed, from another issuer, or for someone else. It answers 403 when it accepts the token and still refuses, often because the token does not allow this. So a new token can help with a 401, and usually will not help with a 403.'
 			},
 			links: [
 				{ diagram: 'setup', step: 'configure-api', text: 'See how the API was told who to trust' }
@@ -1204,7 +1204,7 @@ export const authorizationCode: DiagramDef = {
 					text: 'The app sends the refresh token and its secret straight to the identity provider. Nothing goes through the browser, so the user sees nothing: no redirect, and no page.'
 				},
 				{
-					text: 'The app sends the refresh token straight to the identity provider. Nothing goes through the browser, so the user sees nothing: no redirect, and no page.'
+					text: 'The app sends the refresh token straight to the identity provider. There is no redirect, so the user sees nothing. If the app runs in the browser, this call comes from the page, and so could anything else running there.'
 				}
 			],
 			execute: { answer: 'refresh-response' },
@@ -1224,10 +1224,10 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: oidc,
-					text: 'A new access token, so the app can carry on, a new ID token, and a new refresh token to keep in place of the old one. The user never noticed.'
+					text: 'A new access token, so the app can carry on, and here a new ID token and a new refresh token to keep in place of the old one. A server does not have to send those two. The user never noticed.'
 				},
 				{
-					text: 'A new access token, so the app can carry on, and a new refresh token to keep in place of the old one. The user never noticed.'
+					text: 'A new access token, so the app can carry on, and here a new refresh token to keep in place of the old one. A server does not have to send one. The user never noticed.'
 				}
 			],
 			fields: [
@@ -1272,10 +1272,10 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: confidential,
-					text: 'The app would not do this. It is what someone with a copy of the old refresh token would try. From an app with a secret they would need the secret as well, because the request has to carry it.'
+					text: 'The app would not normally do this. It is what someone with a copy of the old refresh token would try. From an app with a secret they would need the secret as well, because the request has to carry it.'
 				},
 				{
-					text: 'The app would not do this. It is what someone with a copy of the old refresh token would try. An app with no secret has nothing else to show, so this request is all they need.'
+					text: 'The app would not normally do this. It is what someone with a copy of the old refresh token would try. An app with no secret has nothing else to show, so this request is all they need.'
 				}
 			],
 			fields: [
@@ -1302,7 +1302,7 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: reuseEnds,
-					text: 'Refused, because here each refresh token works once. A second use means a copy exists somewhere, so this also ends things for the newest one.'
+					text: 'Refused, because here each refresh token works once. A second use means a copy exists, or the app sent it twice, and the server cannot tell which, so this also ends things for the newest one.'
 				},
 				{
 					when: not(confidential),
@@ -1407,15 +1407,23 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: secondIsFresh,
-					text: 'The same request, from a browser with no cookie. With prompt=none the app says not to show a form, whatever happens.'
+					text: 'An ordinary login request, from a browser with no cookie. With prompt=none the app says not to show a form, whatever happens.'
 				},
 				{
 					when: secondInsists,
-					text: 'The same request, and the cookie goes along. With prompt=login the app says that a session is not good enough this time.'
+					text: 'An ordinary login request, and the cookie goes along. With prompt=login the app says that a session is not good enough this time.'
 				},
 				{
-					text: 'The same request as before, with another client ID. The browser adds the cookie, because this is the address that set it. The app does not see that happen.'
+					text: 'An ordinary login request, with its own client ID. The browser adds the cookie, because this is the address that set it. The app does not see that happen.'
 				}
+			],
+			inPractice: [
+				{
+					when: secondInsists,
+					text: 'This request crosses the browser, which can change it. So for anything that matters, also check auth_time in the ID token.'
+				},
+				{ when: secondIsFresh, text: 'An app asks for this itself, by adding prompt=none.' },
+				{ text: 'Your app does nothing different here.' }
 			],
 			fields: [
 				{ name: 'response_type=code', place: 'query' },
@@ -1458,7 +1466,7 @@ export const authorizationCode: DiagramDef = {
 				},
 				{
 					when: secondInsists,
-					text: 'It finds the session, and because the app insisted it asks for the password all the same. Someone about to change an important setting is the usual reason.'
+					text: 'It finds the session, and because the app insisted it asks for the password all the same. An app does this before something important, such as changing a password.'
 				},
 				{
 					text: 'This is single sign-on. It finds the session, so the user has logged in already, and there is nothing to ask. Your app does nothing for this: it starts a login as it always does, and the answer simply comes sooner.'
@@ -1485,7 +1493,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The user enters their password again',
 			label: 'Submit credentials',
 			concept:
-				'Only the password this time, because it knows who they are. It still goes to the identity provider and nowhere else.',
+				'Here only the password, because it knows who they are. It still goes to the identity provider and nowhere else.',
 			fields: [
 				{ name: 'password', place: 'body', artifact: 'password' },
 				{
@@ -1514,7 +1522,7 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: secondIsFresh,
-					text: 'The app is told that nobody is logged in here. This is how an app can check quietly, without showing anyone a form.'
+					text: 'The app is told that someone would have to log in, which here is because this browser has no session. This is how an app can check quietly, without showing anyone a form.'
 				},
 				{
 					when: remembered,
@@ -1527,7 +1535,7 @@ export const authorizationCode: DiagramDef = {
 				{
 					name: 'error=login_required',
 					place: 'query',
-					note: 'Nobody is logged in here, and it was told not to ask',
+					note: 'Someone would have to log in, and it was told not to ask',
 					when: secondIsFresh
 				},
 				{ name: 'state', place: 'query' },
@@ -1555,7 +1563,7 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: secondIsFresh,
-					text: 'The app learns that nobody is logged in, and can decide what to do about it, such as showing a login button.'
+					text: 'The app learns that someone would have to log in, and can decide what to do about it, such as showing a login button.'
 				},
 				{ text: 'The app gets the code, and no session. It never sees the cookie.' }
 			],
@@ -1574,7 +1582,7 @@ export const authorizationCode: DiagramDef = {
 			kind: 'request',
 			plain: 'The app trades the code for tokens',
 			label: 'POST /token',
-			concept: 'As the first app did, with its own client ID and secret.',
+			concept: 'With its own client ID and secret.',
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
 				{ name: 'code', place: 'body', artifact: 'code' },
@@ -1600,8 +1608,8 @@ export const authorizationCode: DiagramDef = {
 			label: [{ when: oidc, text: 'Access token and ID token' }, { text: 'Access token' }],
 			concept: [
 				{
-					when: oidc,
-					text: 'Tokens of its own, and not the ones the first app got. The two ID tokens name the same session and the same login time, and each names its own app.'
+					when: all(oidc, remembered),
+					text: 'Tokens of its own, and not the ones the first app got. Here the two ID tokens name the same session and the same login time, and each names its own app.'
 				},
 				{ text: 'Tokens of its own, and not the ones the first app got.' }
 			],
@@ -1611,9 +1619,16 @@ export const authorizationCode: DiagramDef = {
 				{
 					name: 'id_token',
 					place: 'body',
-					note: 'Its sid and auth_time match the first app, and its aud is this app',
+					note: 'Here its sid and auth_time match the first app, and its aud is this app',
 					artifact: 'id-token',
-					when: oidc
+					when: all(oidc, remembered)
+				},
+				{
+					name: 'id_token',
+					place: 'body',
+					note: 'Its aud is this app',
+					artifact: 'id-token',
+					when: all(oidc, not(remembered))
 				},
 				{ name: 'expires_in', place: 'body' },
 				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' },

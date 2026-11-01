@@ -228,7 +228,7 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 						text.includes(value) ||
 						(artifact === 'access-token' &&
 							recording.settings.apiToken === 'changed' &&
-							text.includes(value.slice(0, -6))) ||
+							value.split('.').every((part, at) => at === 1 || text.includes(part))) ||
 						(artifact === 'secret' &&
 							(text.includes(basicAuthOf(value)) ||
 								text.includes(basicAuthOf(value, 'demo-app-two'))))
