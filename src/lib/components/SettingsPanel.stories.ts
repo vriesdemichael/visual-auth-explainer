@@ -36,3 +36,15 @@ export const BrokerOffersUpstreamTokens: Story = {
 export const OptionUnavailableWithReason: Story = {
 	args: { settings: { ...defaultSettings, broker: true, clientType: 'public' } }
 };
+
+export const SettingThatDoesNotFitSaysWhy: Story = {
+	args: { mode: 'simple', settings: { ...defaultSettings, binding: 'dpop' } }
+};
+
+export const SomeOnlyChangeTheOtherDiagram: Story = {
+	args: {
+		mode: 'simple',
+		notHere: ['oidc', 'consent', 'pkce', 'attacker'],
+		elsewhere: { text: 'user flow', href: '#flow' }
+	}
+};

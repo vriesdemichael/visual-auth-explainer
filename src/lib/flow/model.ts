@@ -300,3 +300,19 @@ export function diffViews(before: FlowView, after: FlowView): ViewDiff {
 export function isEmptyDiff(diff: ViewDiff): boolean {
 	return Object.values(diff).every((part) => part.length === 0);
 }
+
+/** What simple mode shows of a diagram: who is on it, what is said, and what gets passed around. */
+const plainShape = (view: FlowView) =>
+	JSON.stringify([
+		view.lifelines.map((line) => line.id),
+		view.steps.map((step) => [
+			step.id,
+			step.plain,
+			step.fields.flatMap((field) => field.artifact ?? [])
+		])
+	]);
+
+/** Whether someone in simple mode would see anything change on this diagram. */
+export function changesInPlainWords(flow: FlowDef, before: Settings, after: Settings): boolean {
+	return plainShape(evaluate(flow, before)) !== plainShape(evaluate(flow, after));
+}

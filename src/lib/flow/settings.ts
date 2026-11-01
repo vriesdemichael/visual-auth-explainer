@@ -45,6 +45,11 @@ export function settingsIn(condition: Condition): SettingId[] {
 export interface Requirement {
 	when: Condition;
 	because: string;
+	/**
+	 * Stays on offer, turned off, and says why. For a setting that does not fit with another, where one
+	 * that needs another first just appears when it can be used.
+	 */
+	sayWhenBlocked?: boolean;
 }
 
 interface SettingBase {
@@ -199,7 +204,8 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		],
 		requires: {
 			when: all(is('binding', 'bearer'), is('broker', false)),
-			because: 'The attacker only shows the plain case, with a Bearer token and no other provider.'
+			because: 'The attacker only shows the plain case, with a Bearer token and no other provider.',
+			sayWhenBlocked: true
 		}
 	},
 	binding: {
@@ -327,7 +333,7 @@ export function unavailable<K extends SettingId>(
 
 export function isOffered(id: SettingId, settings: Settings): boolean {
 	const requires = settingDefs[id].requires;
-	return !requires || holds(requires.when, settings);
+	return !requires || requires.sayWhenBlocked === true || holds(requires.when, settings);
 }
 
 export interface Reset {

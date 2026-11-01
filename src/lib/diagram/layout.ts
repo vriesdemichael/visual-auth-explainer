@@ -22,6 +22,10 @@ const CHIP_PADDING = 12;
 const CHIP_GAP = 6;
 const SELF_LOOP_WIDTH = 34;
 const SELF_LABEL_ROOM = 240;
+// The current row's label is the widest, in bold and a little larger.
+const LABEL_CHAR_WIDTH = 7;
+const LABEL_EDGE = 4;
+const NUMBER_ROOM = 14;
 
 const HELD_TOP = 58;
 const HELD_LINE_HEIGHT = 19;
@@ -124,6 +128,17 @@ function layChips(
 		x += widths[i] + CHIP_GAP;
 		return chip;
 	});
+}
+
+/**
+ * Over the middle of its arrow, unless it is wider than that leaves room for. Then it moves away from
+ * the step's number, which is at the start of the arrow, even if it runs on past the tip.
+ */
+export function labelCentre(x1: number, x2: number, label: string): number {
+	const half = (label.length * LABEL_CHAR_WIDTH) / 2;
+	const room = Math.abs(x2 - x1) / 2 - half;
+	const away = Math.sign(x2 - x1) * Math.max(0, NUMBER_ROOM - room);
+	return clamp((x1 + x2) / 2 + away, half + LABEL_EDGE, WIDTH - half - LABEL_EDGE);
 }
 
 /** A pure function of the view, so the prerendered page and every test see the same geometry. */

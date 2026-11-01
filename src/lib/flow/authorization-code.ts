@@ -40,7 +40,6 @@ export const authorizationCode: FlowDef = {
 			role: 'Where the user is',
 			icon: 'browser',
 			front: true,
-			startsWith: [{ artifact: 'password' }],
 			concept:
 				'Where the user is. Anything sent through the browser can be seen, and changed, by the user and by software in the browser. That is why the flow is careful about what goes this way.'
 		},

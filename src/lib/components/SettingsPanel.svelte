@@ -23,6 +23,10 @@
 		/** Whether to show what is specific to the server this was recorded from. */
 		serverNotes?: boolean;
 		onservernotes?: (on: boolean) => void;
+		/** Left out of simple mode, because they change nothing that can be seen on this diagram. */
+		notHere?: readonly SettingId[];
+		/** Where the ones left out do change something. */
+		elsewhere?: { text: string; href: string } | null;
 	}
 
 	let {
@@ -32,12 +36,16 @@
 		onopensource,
 		onexplain,
 		serverNotes = true,
-		onservernotes
+		onservernotes,
+		notHere = [],
+		elsewhere = null
 	}: Props = $props();
 
 	const simple = $derived(mode === 'simple');
 	const offered = $derived(
-		(simple ? simpleSettingIds : settingIds).filter((id) => isOffered(id, settings))
+		(simple ? simpleSettingIds.filter((id) => !notHere.includes(id)) : settingIds).filter((id) =>
+			isOffered(id, settings)
+		)
 	);
 	// An advanced setting stays on in simple mode, as a chip that says so (ADR-004).
 	const alsoOn = $derived(
@@ -50,7 +58,7 @@
 
 	const defOf = (id: SettingId): SettingDef => settingDefs[id];
 	const set = (id: SettingId, value: boolean | string) => onchange(id, value as never);
-	const blockedBy = (id: SettingId, value: string) =>
+	const blockedBy = (id: SettingId, value: string | boolean) =>
 		unavailable(id, value as never, settings)?.because;
 	function chipText(id: SettingId) {
 		const def = defOf(id);
@@ -64,14 +72,17 @@
 	{@const def = defOf(id)}
 	<section data-setting={id}>
 		{#if def.kind === 'toggle'}
-			<label class="toggle">
+			{@const blocked = blockedBy(id, true)}
+			<label class="toggle" class:blocked>
 				<input
 					type="checkbox"
 					checked={settings[id] === true}
+					disabled={blocked !== undefined}
 					onchange={(event) => set(id, event.currentTarget.checked)}
 				/>
 				{simple ? (def.simple?.label ?? def.label) : def.label}
 			</label>
+			{#if blocked}<p class="because" data-testid="blocked-because">{blocked}</p>{/if}
 		{:else}
 			<fieldset>
 				<legend>{def.label}</legend>
@@ -127,6 +138,13 @@
 		</ul>
 	</section>
 {/each}
+
+{#if notHere.length && elsewhere}
+	<p class="elsewhere" data-testid="settings-elsewhere">
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+		The others change the <a href={elsewhere.href}>{elsewhere.text}</a>, not this diagram.
+	</p>
+{/if}
 
 {#if !simple}
 	<section data-testid="server-notes">
@@ -255,6 +273,20 @@
 	.blocked {
 		color: var(--muted);
 		cursor: default;
+	}
+
+	.toggle input:disabled {
+		opacity: 0.5;
+		cursor: default;
+	}
+
+	.because {
+		color: var(--fg);
+	}
+
+	.elsewhere {
+		padding-top: 10px;
+		border-top: 1px solid var(--line);
 	}
 
 	small {
