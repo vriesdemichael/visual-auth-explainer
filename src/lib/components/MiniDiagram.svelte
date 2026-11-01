@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { layoutDiagram, WIDTH } from '#lib/diagram/layout.ts';
-	import type { FlowView } from '#lib/flow/model.ts';
+	import type { DiagramView } from '#lib/flow/model.ts';
 
 	interface Props {
-		view: FlowView;
+		view: DiagramView;
 		/** The diagram with nothing on, so that what this one adds is what stands out. */
-		base?: FlowView | null;
+		base?: DiagramView | null;
 		/** The message this is about, when it is about one in particular. */
 		about?: string | null;
 	}

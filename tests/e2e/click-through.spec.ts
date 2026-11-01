@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { allValidSettings } from '../../src/lib/flow/settings.ts';
-import { authorizationCodeBase as base, presets } from '../../src/lib/flow/index.ts';
+import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
 import { presetSearch } from '../../src/lib/flow/state.ts';
 import {
 	currentSearch,
@@ -84,7 +84,7 @@ test.describe('every valid combination', () => {
 });
 
 test.describe('walking the steps', () => {
-	for (const preset of presets) {
+	for (const preset of base.presets) {
 		test(`${preset.title}: Next and Back cover every step`, async ({ page }) => {
 			const check = watchForErrors(page);
 			const search = presetSearch(base, preset.settings);

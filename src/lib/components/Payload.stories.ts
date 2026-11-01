@@ -40,6 +40,6 @@ export const AnHtmlPageLeftOut: Story = { args: argsFor('login-page') };
 export const SayingWhichSettingPutWhatInAToken: Story = {
 	args: {
 		...argsFor('token-response'),
-		notes: notesFor('token-response', defaultSettings)
+		notes: notesFor('authorization-code', 'token-response', defaultSettings)
 	}
 };

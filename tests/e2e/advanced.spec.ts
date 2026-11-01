@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { authorizationCodeBase as base, presets } from '../../src/lib/flow/index.ts';
+import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
 import { evaluate } from '../../src/lib/flow/model.ts';
 import { defaultSettings } from '../../src/lib/flow/settings.ts';
 import { presetSearch } from '../../src/lib/flow/state.ts';
@@ -24,7 +24,7 @@ const inFile = (recording: Recording, step: string) =>
 const current = (page: Page) => page.locator('[data-step][data-state="current"]');
 
 test.describe('every named state, walked in advanced mode', () => {
-	for (const preset of presets) {
+	for (const preset of base.presets) {
 		test(`${preset.title}: what is shown is what the recording holds`, async ({ page }) => {
 			const check = watchForErrors(page);
 			const recording = read(preset.id);

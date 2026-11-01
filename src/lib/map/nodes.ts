@@ -1,5 +1,5 @@
-import { flows, presets } from '#lib/flow/index.ts';
-import { evaluate, type DiagramId, type FlowDef } from '#lib/flow/model.ts';
+import { flows } from '#lib/flow/index.ts';
+import { evaluate, type DiagramId, type DiagramDef } from '#lib/flow/model.ts';
 import { defaultSettings, normalize, settingIds, type Settings } from '#lib/flow/settings.ts';
 import { resolveStep, serializeState, type AppState } from '#lib/flow/state.ts';
 import type { Mode } from '#lib/flow/vocabulary.ts';
@@ -262,16 +262,16 @@ export const mapTracks: readonly MapTrack[] = [
 export const mapNodes: readonly MapNode[] = mapTracks.flatMap((track) => track.chains.flat());
 
 export function nodeSettings(of: MapNode): Settings {
-	const preset = presets.find((candidate) => candidate.id === of.preset);
+	const preset = flows[of.flow].presets.find((candidate) => candidate.id === of.preset);
 	if (!preset) throw new Error(`No named state ${of.preset}`);
 	return normalize({ ...defaultSettings, ...preset.settings }).settings;
 }
 
-const flowOf = (of: MapNode): FlowDef => flows[of.flow].diagrams[of.diagram];
+const diagramOf = (of: MapNode): DiagramDef => flows[of.flow].diagrams[of.diagram];
 
 export function nodeState(of: MapNode): AppState {
 	const settings = nodeSettings(of);
-	const flow = flowOf(of);
+	const flow = diagramOf(of);
 	return {
 		flow: of.flow,
 		diagram: of.diagram,
@@ -284,10 +284,10 @@ export function nodeState(of: MapNode): AppState {
 	};
 }
 
-export const nodeView = (of: MapNode) => evaluate(flowOf(of), nodeSettings(of));
+export const nodeView = (of: MapNode) => evaluate(diagramOf(of), nodeSettings(of));
 
 /** The same diagram with nothing switched on, which is what a node's diagram adds to. */
-export const nodeBaseView = (of: MapNode) => evaluate(flowOf(of), defaultSettings);
+export const nodeBaseView = (of: MapNode) => evaluate(diagramOf(of), defaultSettings);
 
 /** The question to go on to, in the order the map lays them out. */
 export const nextQuestion = (of: MapNode): MapNode | null =>

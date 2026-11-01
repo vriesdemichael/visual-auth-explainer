@@ -427,9 +427,13 @@ export const noteDefs: readonly NoteDef[] = [
 	}
 ];
 
-/** The notes on a step, in these settings. */
-export function notesFor(step: string, settings: Settings): Note[] {
-	return noteDefs
+const notesOfFlow: Readonly<Record<string, readonly NoteDef[]>> = {
+	'authorization-code': noteDefs
+};
+
+/** The notes on a step of this base flow, in these settings. */
+export function notesFor(flow: string, step: string, settings: Settings): Note[] {
+	return (notesOfFlow[flow] ?? [])
 		.filter((def) => def.steps.includes(step) && (!def.when || holds(def.when, settings)))
 		.map((def) => ({
 			id: def.id,

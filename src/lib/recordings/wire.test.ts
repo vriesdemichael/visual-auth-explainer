@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
+import { flagStatus } from '#lib/keycloak/flags.ts';
+import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import { evaluate, type Step } from '#lib/flow/model.ts';
 import {
 	allValidSettings,
@@ -13,7 +14,6 @@ import { whyOf } from '#lib/flow/vocabulary.ts';
 import type { RecordedMessage, Recording } from '#lib/recordings/format.ts';
 import { loadsOnce } from '#lib/recordings/load.ts';
 import {
-	flagStatus,
 	nearestRecordings,
 	recordedIndex,
 	recordingFor,
@@ -32,7 +32,7 @@ import {
 const FOLDER = 'static/recordings/authorization-code';
 const read = (preset: string): Recording =>
 	JSON.parse(readFileSync(`${FOLDER}/${preset}.json`, 'utf8'));
-const recordings = presets.map((preset) => read(preset.id));
+const recordings = base.presets.map((preset) => read(preset.id));
 const asCases = recordings.map((recording) => [recording.preset, recording] as const);
 
 const messageOn = (recording: Recording, step: string) =>
@@ -228,22 +228,25 @@ describe('which steps get Execute', () => {
 
 describe('which recording goes with which settings', () => {
 	it('is the named state with exactly those settings', () => {
-		for (const preset of presets) expect(recordingFor(settingsOf(preset))?.id).toBe(preset.id);
+		for (const preset of base.presets)
+			expect(recordingFor(base, settingsOf(preset))?.id).toBe(preset.id);
 	});
 
 	it('is none for a combination that was not recorded, because a recording is never adapted', () => {
-		expect(recordingFor({ ...defaultSettings, oidc: true, binding: 'dpop' })).toBeNull();
+		expect(recordingFor(base, { ...defaultSettings, oidc: true, binding: 'dpop' })).toBeNull();
 	});
 
 	it('offers the closest ones instead', () => {
-		const nearest = nearestRecordings({ ...defaultSettings, oidc: true, binding: 'dpop' });
+		const nearest = nearestRecordings(base, { ...defaultSettings, oidc: true, binding: 'dpop' });
 		expect(nearest.map((preset) => preset.id)).toEqual(expect.arrayContaining(['oidc', 'dpop']));
 	});
 
 	it('covers what people actually use', () => {
-		expect(recordingFor({ ...defaultSettings, oidc: true, pkce: true })?.id).toBe('oidc-pkce');
+		expect(recordingFor(base, { ...defaultSettings, oidc: true, pkce: true })?.id).toBe(
+			'oidc-pkce'
+		);
 		expect(
-			recordingFor({ ...defaultSettings, oidc: true, pkce: true, clientType: 'public' })?.id
+			recordingFor(base, { ...defaultSettings, oidc: true, pkce: true, clientType: 'public' })?.id
 		).toBe('browser-app');
 	});
 });

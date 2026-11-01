@@ -1,6 +1,6 @@
 import { statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { flows, presets } from '#lib/flow/index.ts';
+import { authorizationCodeBase as base, flows } from '#lib/flow/index.ts';
 import { allValidSettings, defaultSettings } from '#lib/flow/settings.ts';
 import { parseState } from '#lib/flow/state.ts';
 import { socialKey } from '#lib/map/social.ts';
@@ -35,7 +35,7 @@ describe('the map', () => {
 
 	it('offers everything that was recorded', () => {
 		const used = new Set(mapNodes.map((node) => node.preset));
-		expect(presets.filter((preset) => !used.has(preset.id)).map((p) => p.id)).toEqual([]);
+		expect(base.presets.filter((preset) => !used.has(preset.id)).map((p) => p.id)).toEqual([]);
 	});
 
 	it('has a title and a summary for each, and no two alike', () => {
@@ -68,7 +68,7 @@ describe.each(asCases)('the node %s', (_, node) => {
 	});
 
 	it('has a recording to show when it opens in advanced mode', () => {
-		expect(recordingFor(nodeSettings(node))?.id).toBe(node.preset);
+		expect(recordingFor(base, nodeSettings(node))?.id).toBe(node.preset);
 	});
 
 	it('has an image for a shared link, which says what the node says', () => {

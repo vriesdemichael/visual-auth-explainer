@@ -11,11 +11,13 @@
 		type Settings
 	} from '#lib/flow/settings.ts';
 	import type { Mode } from '#lib/flow/vocabulary.ts';
-	import { flagStatus } from '#lib/recordings/known.ts';
+	import { flagStatus } from '#lib/keycloak/flags.ts';
 	import { isVendorSource, refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	interface Props {
 		settings: Settings;
+		/** The settings this base flow has. */
+		available?: readonly SettingId[];
 		mode?: Mode;
 		onchange: <K extends SettingId>(id: K, value: Settings[K]) => void;
 		onopensource: (setting: SettingId, ref: SourceRef) => void;
@@ -31,6 +33,7 @@
 
 	let {
 		settings,
+		available = settingIds,
 		mode = 'advanced',
 		onchange,
 		onopensource,
@@ -43,8 +46,8 @@
 
 	const simple = $derived(mode === 'simple');
 	const offered = $derived(
-		(simple ? simpleSettingIds.filter((id) => !notHere.includes(id)) : settingIds).filter((id) =>
-			isOffered(id, settings)
+		(simple ? simpleSettingIds.filter((id) => !notHere.includes(id)) : settingIds).filter(
+			(id) => available.includes(id) && isOffered(id, settings)
 		)
 	);
 	// An advanced setting stays on in simple mode, as a chip that says so (ADR-004).

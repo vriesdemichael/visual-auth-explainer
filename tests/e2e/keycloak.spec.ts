@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { authorizationCodeBase as base, presets } from '../../src/lib/flow/index.ts';
+import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
 import { evaluate } from '../../src/lib/flow/model.ts';
 import { presetSearch } from '../../src/lib/flow/state.ts';
 import { settingsOf } from '../../src/lib/recordings/known.ts';
@@ -142,7 +142,7 @@ test.describe('with the switch off, the word is not on the screen', () => {
 		expect(text.match(/keycloak/gi), where).toBeNull();
 	};
 
-	for (const preset of presets) {
+	for (const preset of base.presets) {
 		test(`in ${preset.title}, on every step`, async ({ page }) => {
 			const search = presetSearch(base, preset.settings);
 			const { steps } = evaluate(base.diagrams.flow, settingsOf(preset));
@@ -157,7 +157,7 @@ test.describe('with the switch off, the word is not on the screen', () => {
 	}
 
 	test('in setup', async ({ page }) => {
-		const { steps } = evaluate(base.diagrams.setup, settingsOf(presets[0]));
+		const { steps } = evaluate(base.diagrams.setup, settingsOf(base.presets[0]));
 		await open(page, 'keycloak=off', 'setup');
 		for (const step of steps) {
 			await noWord(page, step.id);

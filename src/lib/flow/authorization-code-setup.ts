@@ -1,4 +1,4 @@
-import type { FlowDef } from '#lib/flow/model.ts';
+import type { DiagramDef } from '#lib/flow/model.ts';
 import { any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
@@ -12,9 +12,10 @@ const apiV2 = is('upstreamTokens', 'v2');
  * What happens before any user arrives. It has a diagram of its own, because no user does this: the
  * people on it do. Each person sits next to the system they look after.
  */
-export const authorizationCodeSetup: FlowDef = {
+export const authorizationCodeSetup: DiagramDef = {
 	id: 'authorization-code-setup',
 	title: 'Setting up the authorization code flow',
+	caption: 'What people do before any user arrives.',
 	summary:
 		'What people do before any user arrives, so the app and the identity provider know each other.',
 	intro:

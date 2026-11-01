@@ -4,7 +4,11 @@ import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 const meta = {
 	title: 'DiagramSwitch',
 	component: DiagramSwitch,
-	args: { current: 'flow', hrefs: { flow: '#flow', setup: '#setup' } }
+	args: {
+		caption: 'What happens when a user arrives.',
+		current: 'flow',
+		hrefs: { flow: '#flow', setup: '#setup' }
+	}
 } satisfies Meta<typeof DiagramSwitch>;
 
 export default meta;

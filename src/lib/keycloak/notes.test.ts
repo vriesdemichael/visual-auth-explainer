@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
-import { evaluate, type FlowDef } from '#lib/flow/model.ts';
+import { evaluate, type DiagramDef } from '#lib/flow/model.ts';
 import {
 	allValidSettings,
 	defaultSettings,
@@ -21,7 +21,7 @@ const answers: Record<string, unknown> = JSON.parse(
 const allSteps = [...flow.steps, ...setup.steps].map((step) => step.id);
 
 describe('the protocol layer', () => {
-	const inEveryCombination = (diagram: FlowDef) =>
+	const inEveryCombination = (diagram: DiagramDef) =>
 		allValidSettings().flatMap((settings) => {
 			const view = evaluate(diagram, settings);
 			return [
@@ -109,7 +109,7 @@ describe('the notes', () => {
 	it('all have words, in every combination they appear in', () => {
 		for (const settings of allValidSettings()) {
 			for (const step of allSteps) {
-				for (const note of notesFor(step, settings)) {
+				for (const note of notesFor('authorization-code', step, settings)) {
 					expect(note.text.length, note.id).toBeGreaterThan(20);
 				}
 			}
@@ -118,7 +118,9 @@ describe('the notes', () => {
 
 	it('follow the settings', () => {
 		const ids = (step: string, settings: Partial<Settings>) =>
-			notesFor(step, { ...defaultSettings, ...settings }).map((note) => note.id);
+			notesFor('authorization-code', step, { ...defaultSettings, ...settings }).map(
+				(note) => note.id
+			);
 		expect(ids('token-request', {})).not.toContain('require-dpop');
 		expect(ids('token-request', { binding: 'dpop' })).toContain('require-dpop');
 		expect(ids('retrieve-upstream-token', { broker: true, upstreamTokens: 'v1' })).toContain(
@@ -131,7 +133,7 @@ describe('the notes', () => {
 
 	it('change their words with the settings where they have to', () => {
 		const text = (settings: Partial<Settings>) =>
-			notesFor('token-request', { ...defaultSettings, ...settings }).find(
+			notesFor('authorization-code', 'token-request', { ...defaultSettings, ...settings }).find(
 				(note) => note.id === 'client-authentication'
 			)?.text;
 		expect(text({})).toMatch(/^On/);
@@ -168,7 +170,7 @@ describe('the notes', () => {
 
 describe('what a note says about a stolen code', () => {
 	const noteFor = (settings: Partial<Settings>) =>
-		notesFor('attacker-token-response', {
+		notesFor('authorization-code', 'attacker-token-response', {
 			...defaultSettings,
 			attacker: true,
 			...settings

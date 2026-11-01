@@ -1,4 +1,4 @@
-import { holdingsAt, type FlowView, type StepKind } from '#lib/flow/model.ts';
+import { holdingsAt, type DiagramView, type StepKind } from '#lib/flow/model.ts';
 import {
 	artifacts,
 	type ArtifactId,
@@ -142,7 +142,7 @@ export function labelCentre(x1: number, x2: number, label: string): number {
 }
 
 /** A pure function of the view, so the prerendered page and every test see the same geometry. */
-export function layoutDiagram(view: FlowView, mode: Mode = 'simple'): DiagramLayout {
+export function layoutDiagram(view: DiagramView, mode: Mode = 'simple'): DiagramLayout {
 	const simple = mode === 'simple';
 	const spacing = (WIDTH - LANE_MARGIN * 2) / Math.max(1, view.lifelines.length - 1);
 	const lanes: LaneLayout[] = view.lifelines.map((line, i) => ({
@@ -236,7 +236,7 @@ export function layoutDiagram(view: FlowView, mode: Mode = 'simple'): DiagramLay
 	};
 }
 
-function headHeightOf(view: FlowView): number {
+function headHeightOf(view: DiagramView): number {
 	const last = view.steps.at(-1);
 	const held = Object.values(last ? holdingsAt(view, last.id) : {});
 	const lines = held.map((seen) => new Set(layHeld(seen).map((chip) => chip.y)).size);

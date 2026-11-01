@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/sveltekit';
 import Workspace from '#lib/components/Workspace.svelte';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
+import { secondFlow } from '#lib/flow/second-flow.fixture.ts';
 import { parseState } from '#lib/flow/state.ts';
 import type { Recording } from '#lib/recordings/format.ts';
 import oidc from '../../../static/recordings/authorization-code/oidc.json';
@@ -48,4 +49,8 @@ export const WithSomethingExplained: Story = {
 
 export const WithASourceOpen: Story = {
 	args: { state: parseState(base, 'flow', 'binding=dpop&source=rfc9449&for=binding') }
+};
+
+export const ASecondBaseFlow: Story = {
+	args: { base: secondFlow, state: parseState(secondFlow, 'flow', '') }
 };

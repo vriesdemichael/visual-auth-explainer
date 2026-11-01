@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { diffViews, evaluate, holdingsAt, isEmptyDiff, type DiagramId } from '#lib/flow/model.ts';
-import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
+import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import {
 	allValidSettings,
 	defaultSettings,
@@ -583,8 +583,11 @@ describe('diffs', () => {
 });
 
 describe('presets', () => {
-	it.each(presets.map((preset) => [preset.id, preset] as const))('%s is valid', (_, preset) => {
-		const settings = { ...defaultSettings, ...preset.settings };
-		expect(allValidSettings()).toContainEqual(settings);
-	});
+	it.each(base.presets.map((preset) => [preset.id, preset] as const))(
+		'%s is valid',
+		(_, preset) => {
+			const settings = { ...defaultSettings, ...preset.settings };
+			expect(allValidSettings()).toContainEqual(settings);
+		}
+	);
 });
