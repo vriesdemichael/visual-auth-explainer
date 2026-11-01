@@ -284,6 +284,7 @@ const list: readonly Term[] = [
 		id: 'logout',
 		name: 'Logging out',
 		words: ['log out', 'logout', 'logging out', 'logs out'],
+		at: flowAt('session-ended', { oidc: true, logout: true }),
 		explains:
 			'Ending a session. An app’s own session and the identity provider’s are separate, so ending one does not by itself end the other, and tokens already handed out can still work until they expire.'
 	},

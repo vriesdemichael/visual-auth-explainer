@@ -22,6 +22,7 @@ const apiV1 = is('upstreamTokens', 'v1');
 const apiV2 = is('upstreamTokens', 'v2');
 const sends = (value: Settings['apiToken']) => is('apiToken', value);
 const apiRefuses = not(sends('good'));
+const logsOut = is('logout', true);
 const secondApp = is('sso', true);
 const secondInsists = all(secondApp, is('ssoAsks', 'insists'));
 const secondIsFresh = all(secondApp, is('ssoAsks', 'fresh'));
@@ -1633,6 +1634,265 @@ export const authorizationCode: DiagramDef = {
 				{ name: 'expires_in', place: 'body' },
 				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' },
 				{ name: 'scope', place: 'body' }
+			]
+		},
+		{
+			id: 'logout-start',
+			when: logsOut,
+			from: 'browser',
+			to: 'app',
+			kind: 'request',
+			plain: 'The user presses log out',
+			label: 'GET /logout',
+			concept:
+				'The user wants to be logged out. There are two sessions to end: the one the app keeps for itself, and the one on the identity provider. Neither ends the other.',
+			inPractice: 'This is your own route, and what it does is up to you.'
+		},
+		{
+			id: 'app-forgets',
+			when: logsOut,
+			from: 'app',
+			to: 'app',
+			kind: 'internal',
+			plain: 'The app forgets the user',
+			label: 'End its own session',
+			concept:
+				'The app clears what it keeps for this user, such as its own cookie and the tokens. That says nothing to the identity provider, and forgetting a token does not cancel it.',
+			pitfall: {
+				title: 'What if it stops here?',
+				text: 'The user looks logged out of this app, but the identity provider still knows the browser. So the next login asks nothing, and they are straight back in.'
+			},
+			fields: []
+		},
+		{
+			id: 'logout-redirect',
+			when: logsOut,
+			from: 'app',
+			to: 'browser',
+			kind: 'response',
+			plain: 'It sends the browser to log out',
+			label: '302 to the end session address',
+			concept:
+				'To end the other session, the app sends the browser to the identity provider, because that is where its cookie goes. The ID token goes along to say who this is, so here it does cross the browser.',
+			pitfall: {
+				title: 'What if the app sends no ID token?',
+				text: 'The identity provider cannot be sure who is asking, so it has to ask the user whether to log out. Without it, it will not send the browser back either, unless it has some other way to trust the address.'
+			},
+			fields: [
+				{
+					name: 'id_token_hint',
+					place: 'query',
+					note: 'Says who is logging out, and from which app',
+					artifact: 'id-token'
+				},
+				{
+					name: 'post_logout_redirect_uri',
+					place: 'query',
+					note: 'Where to come back to, which has to be registered'
+				},
+				{ name: 'state', place: 'query' }
+			]
+		},
+		{
+			id: 'end-session',
+			when: logsOut,
+			from: 'browser',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The browser asks to log out, and its session goes along',
+			label: 'GET end_session_endpoint',
+			concept: 'The cookie goes along, as it does with any request to this address.',
+			fields: [
+				{
+					name: 'id_token_hint',
+					place: 'query',
+					note: 'Says who is logging out, and from which app',
+					artifact: 'id-token'
+				},
+				{
+					name: 'post_logout_redirect_uri',
+					place: 'query',
+					note: 'Where to come back to, which has to be registered'
+				},
+				{ name: 'state', place: 'query' },
+				{
+					name: 'Cookie',
+					place: 'header',
+					note: 'Sent to this address, and to nowhere else',
+					artifact: 'session'
+				}
+			]
+		},
+		{
+			id: 'session-ended',
+			when: logsOut,
+			from: 'idp',
+			to: 'idp',
+			kind: 'internal',
+			plain: 'It ends the session',
+			label: 'End the session',
+			concept:
+				'The session is over, so it has gone from under the names. The tokens are still there. Ending a session does not take back what was already handed out, and the logout specifications say nothing about access tokens.',
+			ends: ['session'],
+			fields: []
+		},
+		{
+			id: 'backchannel-logout',
+			when: all(logsOut, secondApp),
+			from: 'idp',
+			to: 'second-app',
+			kind: 'request',
+			plain: 'It tells the second app',
+			label: 'POST logout_token',
+			concept:
+				'An app that registered an address is told right away and directly, with a signed token saying who logged out, and clears what it holds for them. Its next login asks again, because the session it relied on has gone. An app that registered no address only finds out when it next asks. There is also a front-channel way, through hidden pages in the browser, which was not tried here.',
+			fields: [{ name: 'logout_token', place: 'body', note: 'Signed, and says who logged out' }]
+		},
+		{
+			id: 'backchannel-response',
+			when: all(logsOut, secondApp),
+			from: 'second-app',
+			to: 'idp',
+			kind: 'response',
+			plain: 'It says it understood',
+			label: '200',
+			concept: 'That is all the identity provider needs to hear.',
+			fields: []
+		},
+		{
+			id: 'logout-redirect-back',
+			when: logsOut,
+			from: 'idp',
+			to: 'browser',
+			kind: 'response',
+			plain: 'Sent back to the app',
+			label: '302 back to the app',
+			concept: 'The cookie is emptied, and the browser goes back to the address the app gave.',
+			fields: [
+				{ name: 'state', place: 'query' },
+				{ name: 'Set-Cookie', place: 'header', note: 'Empties the session cookie' }
+			]
+		},
+		{
+			id: 'logged-out',
+			when: logsOut,
+			from: 'browser',
+			to: 'app',
+			kind: 'request',
+			plain: 'The user is back, and logged out',
+			label: 'Back at the app',
+			concept: 'As far as the user can tell, that is the end of it.',
+			fields: [{ name: 'state', place: 'query' }]
+		},
+		{
+			id: 'token-after-logout',
+			when: logsOut,
+			from: 'app',
+			to: 'api',
+			kind: 'request',
+			plain: 'The same token, at an API that only looks at it',
+			label: 'GET /resource',
+			concept:
+				'The app has forgotten this token, but suppose someone has a copy. Most APIs check a token by looking at the token itself, as the first call here did.',
+			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token' }]
+		},
+		{
+			id: 'token-after-logout-response',
+			when: logsOut,
+			from: 'api',
+			to: 'app',
+			kind: 'response',
+			plain: 'It still works',
+			label: '200 with the resource',
+			concept:
+				'Its signature is good and it has not expired, so this API has no reason to refuse it, and will not until it expires. That is one reason to keep access tokens short-lived.',
+			fields: []
+		},
+		{
+			id: 'asks-after-logout',
+			when: logsOut,
+			from: 'app',
+			to: 'api',
+			kind: 'request',
+			plain: 'The same token, at an API that asks the server',
+			label: 'GET /asks/resource',
+			concept: 'The same token again, at an API that does not go by the token alone.',
+			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token' }]
+		},
+		{
+			id: 'introspect',
+			when: logsOut,
+			from: 'api',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The API asks the identity provider about it',
+			label: 'POST /introspect',
+			concept:
+				'The API sends the token to the identity provider and asks whether it is still good. That is a call for every request it wants to be sure about, which is why many APIs do not.',
+			fields: [
+				{
+					name: 'token',
+					place: 'body',
+					note: 'The token being asked about',
+					artifact: 'access-token'
+				},
+				{
+					name: 'Authorization: Basic',
+					place: 'header',
+					note: 'The client ID and secret of the API'
+				}
+			]
+		},
+		{
+			id: 'introspect-response',
+			when: logsOut,
+			from: 'idp',
+			to: 'api',
+			kind: 'response',
+			plain: 'It is no longer good',
+			label: 'active: false',
+			concept: 'The identity provider knows the session has ended, which the token could not say.',
+			fields: [{ name: 'active', place: 'body', note: 'Whether the token is still good' }]
+		},
+		{
+			id: 'asks-after-logout-response',
+			when: logsOut,
+			from: 'api',
+			to: 'app',
+			kind: 'response',
+			plain: 'The API refuses',
+			label: '401 invalid_token',
+			concept:
+				'The same token, and another answer. So whether a token still works after a logout depends on who checks it.',
+			fields: [{ name: 'WWW-Authenticate', place: 'header', note: 'What was wrong with this one' }]
+		},
+		{
+			id: 'refresh-after-logout',
+			when: logsOut,
+			from: 'app',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The refresh token is tried',
+			label: 'POST /token',
+			concept: 'The one that could have got new access tokens for a long time.',
+			fields: [
+				...refreshFields,
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' }
+			]
+		},
+		{
+			id: 'refresh-after-logout-response',
+			when: logsOut,
+			from: 'idp',
+			to: 'app',
+			kind: 'response',
+			plain: 'Refused: the session is over',
+			label: '400 invalid_grant',
+			concept:
+				'A refresh token belongs to the session here, so it went with it, which is what the logout specification asks for. So a stolen access token runs out soon, and nobody gets a new one.',
+			fields: [
+				{ name: 'error=invalid_grant', place: 'body', note: 'The session it belonged to is over' },
+				{ name: 'error_description', place: 'body' }
 			]
 		},
 		{

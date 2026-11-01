@@ -29,7 +29,8 @@ const NOT_BEFORE_AND_AFTER = [
 	'brokering-api-flags',
 	'how-an-api-says-no',
 	'short-for-this-recording',
-	'session-cookie'
+	'session-cookie',
+	'after-a-logout'
 ];
 
 describe('the protocol layer', () => {
@@ -216,7 +217,8 @@ describe('the notes', () => {
 							'code-used-twice',
 							'how-an-api-says-no',
 							'short-for-this-recording',
-							'session-cookie'
+							'session-cookie',
+							'after-a-logout'
 						].includes(note.id)
 				).toBe(true);
 				return;
@@ -257,6 +259,9 @@ describe('where each note is', () => {
 			'revoke-refresh-token': ['refresh-again-response', 'refresh-newest-response'],
 			'short-for-this-recording': ['token-runs-out'],
 			'sso-session-max': ['idp-recognises'],
+			'post-logout-address': ['logout-redirect'],
+			'backchannel-logout-url': ['backchannel-logout'],
+			'who-may-ask': ['introspect', 'introspect-response'],
 			'session-cookie': ['redirect-with-code', 'second-authorize'],
 			audience: ['api-check-token', 'token-response'],
 			'require-dpop': ['token-request'],

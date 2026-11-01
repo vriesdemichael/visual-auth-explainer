@@ -45,6 +45,12 @@ const presets: readonly Preset[] = [
 		title: 'A second app, in a new browser',
 		settings: { sso: true, oidc: true, ssoAsks: 'fresh' }
 	},
+	{ id: 'logout', title: 'Logging out', settings: { oidc: true, logout: true } },
+	{
+		id: 'logout-two-apps',
+		title: 'Logging out, with a second app',
+		settings: { oidc: true, sso: true, logout: true }
+	},
 	{ id: 'oidc', title: 'OpenID Connect', settings: { oidc: true } },
 	{
 		id: 'consent',

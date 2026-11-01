@@ -317,8 +317,8 @@ function rowHeightFor(steps: DiagramView['steps'], height?: number): number {
 }
 
 function headHeightOf(view: DiagramView, heldWidth: number): number {
-	const last = view.steps.at(-1);
-	const held = Object.values(last ? holdingsAt(view, last.id) : {});
+	// At its fullest, which is not always the end, because something can stop existing.
+	const held = view.steps.flatMap((step) => Object.values(holdingsAt(view, step.id)));
 	const lines = held.map((seen) => new Set(layHeld(seen, heldWidth).map((chip) => chip.y)).size);
 	return HELD_TOP + Math.max(HELD_LINES, ...lines) * HELD_LINE_HEIGHT + 2;
 }

@@ -36,6 +36,32 @@ export const breakages = [
 		to: 'works, which is what PKCE stops.'
 	},
 
+	// Logging out.
+	{
+		name: 'logout: the session stays',
+		file: AC,
+		from: "ends: ['session'],",
+		to: ''
+	},
+	{
+		name: 'logout: the token is said to stop working everywhere',
+		file: AC,
+		from: "plain: 'It still works',\n\t\t\tlabel: '200 with the resource',\n\t\t\tconcept:\n\t\t\t\t'Its signature",
+		to: "plain: 'It still works',\n\t\t\tlabel: '401 invalid_token',\n\t\t\tconcept:\n\t\t\t\t'Its signature"
+	},
+	{
+		name: 'logout: the API that asks is said to take it',
+		file: AC,
+		from: "plain: 'The API refuses',\n\t\t\tlabel: '401 invalid_token',",
+		to: "plain: 'The API refuses',\n\t\t\tlabel: '200 with the resource',"
+	},
+	{
+		name: 'logout: the note says the other app stays logged in',
+		file: NOTES,
+		from: 'otherAppNextLoginSawForm: true',
+		to: 'otherAppNextLoginSawForm: false'
+	},
+
 	// A second app.
 	{
 		name: 'sso: the app is said to have the session',

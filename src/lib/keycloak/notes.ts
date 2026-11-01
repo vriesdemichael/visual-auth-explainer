@@ -351,6 +351,94 @@ export const noteDefs: readonly NoteDef[] = [
 		}
 	},
 	{
+		id: 'post-logout-address',
+		steps: ['logout-redirect'],
+		title: 'Valid post logout redirect URIs',
+		text: 'Where the browser may come back to after logging out. An address not listed here gets a page saying Invalid redirect uri, and stays there.',
+		when: is('logout', true),
+		place: clientSettings('Access settings', 'Valid post logout redirect URIs'),
+		backedBy: {
+			question: 'postLogoutAddress',
+			shows: {
+				before: { status: 400, saysInvalidRedirect: true },
+				after: { backAtTheApp: true }
+			}
+		}
+	},
+	{
+		id: 'backchannel-logout-url',
+		steps: ['backchannel-logout'],
+		title: 'Backchannel logout URL',
+		text: 'Where Keycloak tells this client that a session has ended. With it empty nothing is delivered, and the app only finds out when it next asks.',
+		when: is('logout', true),
+		place: clientSettings('Logout settings', 'Backchannel logout URL'),
+		backedBy: {
+			question: 'backchannelLogoutUrl',
+			shows: { before: { delivered: 0 }, after: { delivered: 1, hasTheEvent: true } }
+		}
+	},
+	{
+		id: 'who-may-ask',
+		steps: ['introspect', 'introspect-response'],
+		title: 'Who may ask about a token',
+		text: 'Introspection says active: false to a client that the token does not name in aud, even for a good token, which is easy to take for a broken one. Here an audience mapper names the API, so it got active: true before the logout, and active: false after.',
+		when: is('logout', true),
+		place: {
+			path: [
+				'Clients',
+				YOUR_CLIENT,
+				'Client scopes',
+				'your client-dedicated',
+				'Configure a new mapper',
+				'Audience'
+			],
+			page: 'client-dedicated-scope',
+			opens: 'Configure a new mapper',
+			shows: ['Audience']
+		},
+		backedBy: {
+			question: 'whoMayAsk',
+			shows: {
+				before: { active: false },
+				after: { active: true },
+				afterALogout: { active: false }
+			}
+		}
+	},
+	{
+		id: 'after-a-logout',
+		steps: [
+			'token-after-logout-response',
+			'asks-after-logout-response',
+			'refresh-after-logout-response'
+		],
+		title: 'What a real server did after a logout',
+		text: "The access token still had most of its life, and an API that only looks at the token took it. UserInfo said 401, and a refresh said Session not active, for the other app too, and the other app's next login showed the form.",
+		when: is('logout', true),
+		backedBy: {
+			question: 'loggingOut',
+			shows: {
+				onlyTheAppForgets: { nextLoginSawForm: false },
+				withAnIdToken: { backAtTheApp: true, state: 'kept' },
+				withNoIdToken: { asks: true },
+				after: {
+					tokenNotExpired: true,
+					demoApi: 200,
+					userinfo: 401,
+					otherAppUserinfo: 401,
+					refresh: { status: 400, error: 'invalid_grant', description: 'Session not active' },
+					otherAppRefresh: {
+						status: 400,
+						error: 'invalid_grant',
+						description: 'Session not active'
+					},
+					otherAppNextLoginSawForm: true
+				}
+			}
+		},
+		seen: 'Tried each of these with two clients, on'
+	},
+	{
 		id: 'sso-session-max',
 		steps: ['idp-recognises'],
 		title: 'SSO Session Max',
