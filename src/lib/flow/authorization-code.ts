@@ -4,6 +4,13 @@ import { all, any, is, not } from '#lib/flow/settings.ts';
 const oidc = is('oidc', true);
 const confidential = is('clientType', 'confidential');
 const pkce = is('pkce', true);
+const attacker = is('attacker', true);
+// The code is one-time, and on a public client nothing stops someone else using it first.
+const codeGone = all(attacker, not(confidential));
+const stillGoing = not(codeGone);
+const attackerWins = all(codeGone, not(pkce));
+const stoppedByPkce = all(codeGone, pkce);
+const stoppedBySecret = all(attacker, confidential);
 const dpop = is('binding', 'dpop');
 const bearer = is('binding', 'bearer');
 const nonce = is('dpopNonce', true);
@@ -61,6 +68,17 @@ export const authorizationCode: FlowDef = {
 			startsWith: [{ artifact: 'secret', when: confidential }],
 			concept:
 				'The identity provider, or IdP, logs users in and issues tokens. Its issuer is the address that names it: every token says who issued it, and everyone checks that against the address they were set up with.'
+		},
+		{
+			id: 'attacker',
+			plainName: 'Someone else',
+			plainRole: 'Has no business here',
+			name: 'Attacker',
+			role: 'Has a copy of the code',
+			icon: 'attacker',
+			concept:
+				'Someone who can see what goes through the browser, but is not the app. On a phone that can be another app claiming the same address. In a browser it can be an extension, or a log that keeps addresses.',
+			when: attacker
 		},
 		{
 			id: 'upstream',
@@ -404,6 +422,125 @@ export const authorizationCode: FlowDef = {
 			]
 		},
 		{
+			id: 'attacker-steals-code',
+			from: 'browser',
+			to: 'attacker',
+			kind: 'request',
+			plain: 'Someone else copies the code',
+			label: 'Code intercepted',
+			concept:
+				'The code crosses the browser, so anything that can see that can copy it, the moment it goes by.',
+			when: attacker,
+			fields: [
+				{ name: 'code', place: 'query', artifact: 'code' },
+				{ name: 'state', place: 'query', note: 'Means nothing to them, and they can ignore it' },
+				{ name: 'iss', place: 'query', note: 'Tells them where to take the code' }
+			]
+		},
+		{
+			id: 'attacker-token-request',
+			from: 'attacker',
+			to: 'idp',
+			kind: 'request',
+			plain: 'They try to trade it for tokens',
+			label: 'POST /token',
+			execute: { answer: 'attacker-token-response', when: attackerWins },
+			concept: [
+				{
+					when: not(confidential),
+					text: 'They send the code to the identity provider, exactly as the real app would. This client has no secret, so nothing marks this request as not coming from the app.'
+				},
+				{
+					text: 'They send the code to the identity provider, as the real app would, but they do not have the secret to send with it.'
+				}
+			],
+			when: attacker,
+			fields: [
+				{ name: 'grant_type=authorization_code', place: 'body' },
+				{ name: 'code', place: 'body', artifact: 'code' },
+				{ name: 'redirect_uri', place: 'body' },
+				{ name: 'client_id', place: 'body', note: 'Not a secret, and it was in the login address' }
+			]
+		},
+		{
+			id: 'attacker-token-response',
+			from: 'idp',
+			to: 'attacker',
+			kind: 'response',
+			plain: [
+				{ when: attackerWins, text: 'They get the tokens' },
+				{ when: stoppedByPkce, text: 'Refused: they have no verifier' },
+				{ text: 'Refused: they have no secret' }
+			],
+			label: [
+				{ when: attackerWins, text: '200 with tokens' },
+				{ when: stoppedByPkce, text: '400 invalid_grant' },
+				{ text: '401 unauthorized_client' }
+			],
+			concept: [
+				{
+					when: attackerWins,
+					text: 'The identity provider has no way to tell. They now hold what the app was supposed to get, and the user never knew.'
+				},
+				{
+					when: stoppedByPkce,
+					text: 'The code was tied to a challenge when it was issued, and only the verifier matches it. That has never been near the browser, so they cannot have it.'
+				},
+				{
+					text: 'Without the secret, the identity provider will not even look at the code. But they could still hand it to the real app from their own browser, so that it trades the code for them, which is what PKCE stops.'
+				}
+			],
+			when: attacker,
+			fields: [
+				{ name: 'access_token', place: 'body', artifact: 'access-token', when: attackerWins },
+				{ name: 'token_type=Bearer', place: 'body', when: attackerWins },
+				{ name: 'id_token', place: 'body', when: all(attackerWins, oidc) },
+				{ name: 'expires_in', place: 'body', when: attackerWins },
+				{ name: 'refresh_token', place: 'body', when: attackerWins },
+				{ name: 'scope', place: 'body', when: attackerWins },
+				{
+					name: 'error=invalid_grant',
+					place: 'body',
+					note: 'The code cannot be used this way',
+					when: stoppedByPkce
+				},
+				{
+					name: 'error=unauthorized_client',
+					place: 'body',
+					note: 'The client did not prove who it is',
+					when: stoppedBySecret
+				},
+				{
+					name: 'error_description',
+					place: 'body',
+					note: 'Which check it failed',
+					when: not(attackerWins)
+				}
+			]
+		},
+		{
+			id: 'attacker-api-request',
+			from: 'attacker',
+			to: 'api',
+			kind: 'request',
+			plain: 'They call the API as the user',
+			label: 'GET /resource',
+			concept: 'A bearer token works for whoever holds it, so this is all it takes.',
+			when: attackerWins,
+			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token' }]
+		},
+		{
+			id: 'attacker-api-response',
+			from: 'api',
+			to: 'attacker',
+			kind: 'response',
+			plain: 'The API answers them',
+			label: '200 with the resource',
+			concept:
+				"The API has no way to tell either. As far as it knows, this is the user's app, doing what the user allowed.",
+			when: attackerWins
+		},
+		{
 			id: 'callback',
 			from: 'browser',
 			to: 'app',
@@ -430,7 +567,7 @@ export const authorizationCode: FlowDef = {
 			kind: 'request',
 			plain: 'The app trades the code for tokens',
 			label: 'POST /token',
-			execute: { answer: 'token-response' },
+			execute: { answer: 'token-response', when: stillGoing },
 			concept: [
 				{
 					when: all(confidential, pkce),
@@ -503,7 +640,7 @@ export const authorizationCode: FlowDef = {
 			plain: 'The server asks for a fresh proof',
 			label: '400 use_dpop_nonce',
 			concept: 'The server rejects the proof and hands the app a nonce to sign into the next one.',
-			when: all(dpop, nonce),
+			when: all(all(dpop, nonce), stillGoing),
 			specOnly: 'RFC 9449 section 8',
 			fields: [
 				{ name: 'error=use_dpop_nonce', place: 'body' },
@@ -519,9 +656,31 @@ export const authorizationCode: FlowDef = {
 			plain: 'The app tries again',
 			label: 'POST /token',
 			concept: 'The same request again, with a new proof that includes the nonce.',
-			when: all(dpop, nonce),
+			when: all(all(dpop, nonce), stillGoing),
 			specOnly: 'RFC 9449 section 8',
 			fields: [{ name: 'DPoP', place: 'header', note: 'A proof with the nonce', artifact: 'proof' }]
+		},
+		{
+			id: 'real-app-refused',
+			from: 'idp',
+			to: 'app',
+			kind: 'response',
+			plain: 'The real app is refused',
+			label: '400 invalid_grant',
+			concept: [
+				{
+					when: pkce,
+					text: 'A code works once, and trying it uses it up, even when the try fails. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
+				},
+				{
+					text: 'A code works once, and it has been used. So the app gets nothing, the user sees an error, and someone else has their tokens.'
+				}
+			],
+			when: codeGone,
+			fields: [
+				{ name: 'error=invalid_grant', place: 'body', note: 'The code cannot be used this way' },
+				{ name: 'error_description', place: 'body', note: 'Which check it failed' }
+			]
 		},
 		{
 			id: 'check-verifier',
@@ -532,7 +691,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Check the verifier',
 			concept:
 				'The identity provider works out the fingerprint of the verifier it just got, and compares it with the challenge it kept with this code. They only match for whoever started this login.',
-			when: pkce,
+			when: all(pkce, stillGoing),
 			fields: [
 				{
 					name: 'code_verifier',
@@ -545,6 +704,7 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'token-response',
+			when: stillGoing,
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
@@ -580,7 +740,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Validate the ID token',
 			concept:
 				'The app checks signature, issuer, audience, expiry and nonce before it trusts the token.',
-			when: oidc,
+			when: all(oidc, stillGoing),
 			fields: [
 				{ name: 'iss', place: 'token' },
 				{ name: 'aud', place: 'token' },
@@ -596,7 +756,7 @@ export const authorizationCode: FlowDef = {
 			plain: 'The app asks about the user',
 			label: 'GET /userinfo',
 			concept: 'The app can ask for more about the user, using the access token.',
-			when: oidc,
+			when: all(oidc, stillGoing),
 			fields: [
 				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: bearer },
 				{ name: 'Authorization: DPoP', place: 'header', artifact: 'access-token', when: dpop },
@@ -617,11 +777,12 @@ export const authorizationCode: FlowDef = {
 			plain: 'Details about the user',
 			label: 'User claims',
 			concept: 'Who the user is, limited to what the requested scopes allow.',
-			when: oidc,
+			when: all(oidc, stillGoing),
 			fields: [{ name: 'sub', place: 'body' }]
 		},
 		{
 			id: 'api-request',
+			when: stillGoing,
 			from: 'app',
 			to: 'api',
 			kind: 'request',
@@ -648,6 +809,7 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'api-check-token',
+			when: stillGoing,
 			from: 'api',
 			to: 'api',
 			kind: 'internal',
@@ -668,6 +830,7 @@ export const authorizationCode: FlowDef = {
 		},
 		{
 			id: 'api-response',
+			when: stillGoing,
 			from: 'api',
 			to: 'app',
 			kind: 'response',
@@ -695,7 +858,7 @@ export const authorizationCode: FlowDef = {
 					text: "The app asks for the stored upstream token with the user's access token. A role on the user allows it."
 				}
 			],
-			when: storedTokens,
+			when: all(storedTokens, stillGoing),
 			fields: [
 				{
 					name: 'Authorization: Bearer',
@@ -743,7 +906,7 @@ export const authorizationCode: FlowDef = {
 					text: 'Everything the other provider issued, handed over by the identity provider: the access token, and its ID and refresh tokens too.'
 				}
 			],
-			when: storedTokens,
+			when: all(storedTokens, stillGoing),
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'upstream-token' },
 				{ name: 'expires_in', place: 'body' },
@@ -762,7 +925,7 @@ export const authorizationCode: FlowDef = {
 			plain: 'The app calls the other provider',
 			label: "Call the upstream's API",
 			concept: "With that token, the app can call the upstream provider's APIs directly.",
-			when: storedTokens,
+			when: all(storedTokens, stillGoing),
 			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'upstream-token' }]
 		}
 	]

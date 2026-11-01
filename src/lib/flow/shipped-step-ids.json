@@ -1,4 +1,10 @@
 [
+	"attacker-steals-code",
+	"attacker-token-request",
+	"attacker-token-response",
+	"attacker-api-request",
+	"attacker-api-response",
+	"real-app-refused",
 	"make-verifier",
 	"check-verifier",
 	"register-client",

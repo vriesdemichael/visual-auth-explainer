@@ -144,4 +144,4 @@ export const channels: Readonly<Record<Channel, { label: string; explains: strin
 	}
 };
 
-export type LifelineIcon = 'browser' | 'app' | 'idp' | 'upstream' | 'api' | 'people';
+export type LifelineIcon = 'browser' | 'app' | 'idp' | 'upstream' | 'api' | 'people' | 'attacker';

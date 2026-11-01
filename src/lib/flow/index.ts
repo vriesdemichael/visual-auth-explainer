@@ -47,6 +47,30 @@ export const presets: readonly Preset[] = [
 		flow: authorizationCode.id,
 		settings: { oidc: true, clientType: 'public', pkce: true }
 	},
+	{
+		id: 'attack-public',
+		title: 'An attacker, against an app with no secret',
+		flow: authorizationCode.id,
+		settings: { attacker: true, clientType: 'public' }
+	},
+	{
+		id: 'attack-public-pkce',
+		title: 'An attacker, against an app with no secret, with PKCE',
+		flow: authorizationCode.id,
+		settings: { attacker: true, clientType: 'public', pkce: true }
+	},
+	{
+		id: 'attack-confidential',
+		title: 'An attacker, against an app with a secret',
+		flow: authorizationCode.id,
+		settings: { attacker: true }
+	},
+	{
+		id: 'attack-confidential-pkce',
+		title: 'An attacker, against an app with a secret, with PKCE',
+		flow: authorizationCode.id,
+		settings: { attacker: true, pkce: true }
+	},
 	{ id: 'dpop', title: 'DPoP', flow: authorizationCode.id, settings: { binding: 'dpop' } },
 	{
 		id: 'dpop-nonce',

@@ -83,6 +83,7 @@ const OPEN_ENDED = new Set([
 	'discovery-document',
 	'userinfo-response',
 	'api-response',
+	'attacker-api-response',
 	'redirect-to-idp',
 	'redirect-to-upstream'
 ]);

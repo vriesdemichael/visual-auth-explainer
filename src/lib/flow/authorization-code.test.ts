@@ -3,7 +3,12 @@ import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { diffViews, evaluate, holdingsAt, isEmptyDiff, type DiagramId } from '#lib/flow/model.ts';
 import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
-import { allValidSettings, defaultSettings, type Settings } from '#lib/flow/settings.ts';
+import {
+	allValidSettings,
+	defaultSettings,
+	unavailable,
+	type Settings
+} from '#lib/flow/settings.ts';
 import shippedStepIds from '#lib/flow/shipped-step-ids.json';
 
 const view = (settings: Partial<Settings> = {}) =>
@@ -353,6 +358,69 @@ describe('PKCE', () => {
 		expect(said({})).toMatch(/worth little/);
 		expect(said({ clientType: 'public', pkce: true })).toMatch(/worth little/);
 		expect(said({ clientType: 'public' })).toMatch(/all anyone needs/);
+	});
+});
+
+describe('an attacker', () => {
+	const on = (settings: Partial<Settings>) => view({ attacker: true, ...settings });
+	const held = (settings: Partial<Settings>) => {
+		const flowView = on(settings);
+		return holdingsAt(flowView, flowView.steps.at(-1)!.id).attacker;
+	};
+	const answer = (settings: Partial<Settings>) =>
+		on(settings).steps.find((step) => step.id === 'attacker-token-response');
+	const steps = (settings: Partial<Settings>) => on(settings).steps.map((step) => step.id);
+
+	it('adds a lifeline and what they try, and changes nothing the app does up to there', () => {
+		const change = diff({}, { attacker: true });
+		expect(change.addedLifelines).toEqual(['attacker']);
+		expect(change.addedSteps).toContain('attacker-steals-code');
+		expect(change.removedSteps).toEqual([]);
+		expect(change.addedFields).toEqual([]);
+	});
+
+	it('gets the tokens from an app with no secret and no PKCE, and uses them', () => {
+		expect(held({ clientType: 'public' })).toEqual(['code', 'access-token']);
+		expect(answer({ clientType: 'public' })?.label).toMatch(/^200/);
+		expect(steps({ clientType: 'public' })).toContain('attacker-api-request');
+	});
+
+	it('gets nothing with PKCE, and the real app still loses the code', () => {
+		const settings = { clientType: 'public', pkce: true } as const;
+		expect(held(settings)).toEqual(['code']);
+		expect(answer(settings)?.label).toMatch(/^400/);
+		expect(steps(settings)).not.toContain('attacker-api-request');
+		expect(steps(settings)).toContain('real-app-refused');
+		expect(steps(settings)).not.toContain('token-response');
+	});
+
+	it('gets nothing from an app with a secret, and the app carries on', () => {
+		expect(held({})).toEqual(['code']);
+		expect(answer({})?.label).toMatch(/^401/);
+		expect(steps({})).toContain('token-response');
+		expect(steps({})).toContain('api-response');
+		expect(steps({})).not.toContain('real-app-refused');
+	});
+
+	it('changes the answer on the same arrow when PKCE is flipped, instead of redrawing it', () => {
+		const flip = diffViews(on({ clientType: 'public' }), on({ clientType: 'public', pkce: true }));
+		expect(flip.addedLifelines).toEqual([]);
+		expect(flip.removedLifelines).toEqual([]);
+		expect(flip.rewordedSteps).toContain('attacker-token-response');
+		expect(flip.removedSteps).toContain('attacker-api-request');
+	});
+
+	it('stops the flow where it really stops', () => {
+		const list = steps({ clientType: 'public' });
+		expect(list.at(-1)).toBe('real-app-refused');
+		expect(list.indexOf('attacker-api-response')).toBeLessThan(list.indexOf('callback'));
+	});
+
+	it('is only offered in the plain case, and says why otherwise', () => {
+		expect(unavailable('attacker', true, { ...defaultSettings, binding: 'dpop' })?.because).toMatch(
+			/plain case/
+		);
+		expect(unavailable('attacker', true, { ...defaultSettings, broker: true })).not.toBeNull();
 	});
 });
 

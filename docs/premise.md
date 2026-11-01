@@ -215,7 +215,7 @@ Toggles cut across messages. DPoP touches several steps and PAR changes what cro
 
 ### A toggle shows what changed, not why (Proposed)
 
-Turning on PKCE adds parameters, and the learner still does not know what they are for. "Why" is the most reported confusion, so each toggle must show the problem it solves, ideally what goes wrong when it is off. Showing an attacker's path when a protection is off is one way to do this.
+Turning on PKCE adds parameters, and the learner still does not know what they are for. "Why" is the most reported confusion, so each toggle must show the problem it solves, ideally what goes wrong when it is off. Showing an attacker's path when a protection is off is one way to do this, and it is built for a stolen code: a setting brings an attacker onto the diagram, and flipping PKCE or the client type changes the answer on the same arrow, with what a real server said ([#26](https://github.com/vriesdemichael/visual-auth-explainer/issues/26)).
 
 ### User federation and brokering are different (Proposed, from Keycloak's docs)
 
@@ -278,6 +278,7 @@ An order for later releases. **Proposed**, and expected to change.
 | Client registration, discovery | Setup diagram | Steps before any user arrives |
 | Authorization code | Base flow | The main flow |
 | OIDC | Modifier | Adds the `openid` scope, an ID token and UserInfo. The access token does not change on a default Keycloak client |
+| An attacker | Modifier | Adds a lifeline, the theft and what they get. Only in the plain case, with a Bearer token and no other provider |
 | PKCE | Modifier, off to start with | Adds `code_challenge` and `code_verifier`, with a step where the app makes them and one where the IdP checks them. Independent of the client type, because a real Keycloak takes all four combinations |
 | Public or confidential client | Exclusive | Changes setup and the token request |
 | Pre-registered, DCR or CIMD | Exclusive | Changes the setup diagram. CIMD is the `cimd` flag, experimental |
@@ -379,6 +380,6 @@ Still to settle:
 
 - The maintainer reaches for it instead of drawing a new diagram, including when presenting.
 - People find it, come back to it unprompted, and can get to the settings that match their question.
-- Adding a toggle is a small change of flow data, recordings and tests, and the click-through still passes. **The first measurement is PKCE ([#10](https://github.com/vriesdemichael/visual-auth-explainer/issues/10)):** about 200 lines of flow data, settings, words and sources, 7 lines in the recording app, and tests. It did touch the engine three times, in small and general ways: a value can be held in memory rather than on a message, a pitfall's text can vary with the settings, and the heads of the lifelines now keep as much room as their chips need, where it used to be a fixed two rows. Its new chips also needed colours in two components, so those moved to one place and the next one needs none.
+- Adding a toggle is a small change of flow data, recordings and tests, and the click-through still passes. **The first measurement is PKCE ([#10](https://github.com/vriesdemichael/visual-auth-explainer/issues/10)):** about 200 lines of flow data, settings, words and sources, 7 lines in the recording app, and tests. It did touch the engine three times, in small and general ways: a value can be held in memory rather than on a message, a pitfall's text can vary with the settings, and the heads of the lifelines now keep as much room as their chips need, where it used to be a fixed two rows. Its new chips also needed colours in two components, so those moved to one place and the next one needs none. **The second measurement is the attacker ([#26](https://github.com/vriesdemichael/visual-auth-explainer/issues/26)):** flow data, a new icon, a recording, no change to the model or the renderer, and every answer in the data matched a real server the first time it ran.
 - If new toggles keep forcing engine changes, rethink the model before adding more.
 - If IdentiFlows ships toggles first, drop the general mechanic as the differentiator and keep the Keycloak layer.

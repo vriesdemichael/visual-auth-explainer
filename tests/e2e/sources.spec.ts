@@ -14,8 +14,10 @@ const rfcRequests = (page: Page) => {
 	return seen;
 };
 
-// Every setting is on offer with DPoP and an external IdP on.
+// Every setting is on offer with DPoP and an external IdP on, apart from the attacker, which is
+// only for the plain case.
 const ALL_ON_OFFER = 'binding=dpop&broker=1';
+const onOffer = (setting: string) => (setting === 'attacker' ? '' : ALL_ON_OFFER);
 
 test.describe('a source', () => {
 	for (const setting of settingIds) {
@@ -23,7 +25,7 @@ test.describe('a source', () => {
 			test(`${setting} opens ${ref.source}`, async ({ page }) => {
 				const check = watchForErrors(page);
 				const source = sources[ref.source];
-				await open(page, ALL_ON_OFFER);
+				await open(page, onOffer(setting));
 				await opener(page, setting, ref.source).click();
 
 				await expect(panel(page).getByRole('heading', { level: 2 })).toHaveText(source.title);
