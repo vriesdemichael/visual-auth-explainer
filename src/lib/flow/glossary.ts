@@ -1,0 +1,528 @@
+import type { DiagramId } from '#lib/flow/model.ts';
+import type { SettingId, Settings } from '#lib/flow/settings.ts';
+import type { ArtifactId } from '#lib/flow/vocabulary.ts';
+
+/** Where on the diagram something can be seen, and what has to be on for it to be there. */
+export interface TermPlace {
+	diagram: DiagramId;
+	settings?: Partial<Settings>;
+	step?: string;
+	lifeline?: string;
+}
+
+export interface Term {
+	id: string;
+	name: string;
+	/** How it appears in text. Words with capitals after the first letter only match exactly. */
+	words: readonly string[];
+	explains: string;
+	/** What else it is called, because docs and tools use all of them. */
+	alsoCalled?: readonly string[];
+	at?: TermPlace;
+	/** It is something the diagram already explains, so it says that instead of saying it twice. */
+	artifact?: ArtifactId;
+	setting?: SettingId;
+	/** Only about one server, so it goes when the notes about that server do (ADR-015). */
+	vendor?: boolean;
+	/** A part of the diagram itself, which lights up as it is explained. */
+	part?: boolean;
+}
+
+const flowAt = (step: string, settings?: Partial<Settings>): TermPlace => ({
+	diagram: 'flow',
+	step,
+	settings
+});
+
+const list: readonly Term[] = [
+	{
+		id: 'oauth',
+		name: 'OAuth',
+		words: ['OAuth', 'OAuth 2.0'],
+		explains:
+			'A way for an app to get access on behalf of a user, without being given their password. It is about access, and does not say who the user is.'
+	},
+	{
+		id: 'openid-connect',
+		name: 'OpenID Connect',
+		words: ['OpenID Connect', 'OIDC'],
+		explains: 'A layer on top of OAuth that also tells the app who logged in, with an ID token.',
+		alsoCalled: ['OIDC'],
+		at: flowAt('token-response', { oidc: true })
+	},
+	{
+		id: 'identity-provider',
+		name: 'Identity provider',
+		words: ['identity provider', 'identity providers', 'IdP'],
+		explains:
+			'The service that logs users in and hands out tokens, so that each app does not have to handle passwords itself.',
+		alsoCalled: ['IdP', 'authorization server, in OAuth', 'OpenID provider, in OpenID Connect'],
+		at: { diagram: 'flow', lifeline: 'idp' }
+	},
+	{
+		id: 'issuer',
+		name: 'Issuer',
+		words: ['issuer', 'issuers'],
+		explains:
+			'The address that names an identity provider. A token says which issuer made it, and an app or API only trusts the issuer it was told about.',
+		at: { diagram: 'setup', step: 'configure-app' }
+	},
+	{
+		id: 'client',
+		name: 'Client',
+		words: ['client', 'clients'],
+		explains:
+			'What the specs call the app, because it is a client of the identity provider. It has nothing to do with the user’s computer.',
+		alsoCalled: ['app', 'relying party, in OpenID Connect'],
+		at: { diagram: 'flow', lifeline: 'app' }
+	},
+	{
+		id: 'client-id',
+		name: 'Client ID',
+		words: ['client ID'],
+		explains: 'The name an app is registered under at the identity provider. It is not a secret.',
+		at: { diagram: 'setup', step: 'create-client' }
+	},
+	{
+		id: 'public-client',
+		name: 'Public client',
+		words: ['public client', 'public clients'],
+		explains:
+			'An app that cannot keep a secret, such as one in a browser or on a phone, because whoever has the device can read what is on it.',
+		at: flowAt('token-request', { clientType: 'public' })
+	},
+	{
+		id: 'confidential-client',
+		name: 'Confidential client',
+		words: ['confidential client', 'confidential clients'],
+		explains: 'An app that can keep a secret, usually because it runs on a server.',
+		at: flowAt('token-request', { clientType: 'confidential' })
+	},
+	{
+		id: 'scope',
+		name: 'Scope',
+		words: ['scope', 'scopes'],
+		explains:
+			'What the app is asking to be allowed to do or know, as a list of names. What is granted is not always what was asked for.',
+		at: flowAt('consent-page', { consent: true })
+	},
+	{
+		id: 'consent',
+		name: 'Consent',
+		words: ['consent'],
+		explains: 'The user agreeing that this app may have this access.',
+		at: flowAt('consent-page', { consent: true })
+	},
+	{
+		id: 'access-denied',
+		name: 'access_denied',
+		words: ['access_denied'],
+		explains: 'The error the app gets back when the user says no.',
+		at: flowAt('consent-page', { consent: true })
+	},
+	{
+		id: 'redirect',
+		name: 'Redirect',
+		words: ['redirect', 'redirects'],
+		explains:
+			'A server telling the browser to go to another address. It is how this flow moves between the app and the identity provider, and why what is in it passes through the browser.',
+		at: flowAt('redirect-with-code')
+	},
+	{
+		id: 'redirect-uri',
+		name: 'Redirect URI',
+		words: ['redirect URI', 'redirect URIs'],
+		explains:
+			'The address a user is sent back to after logging in. It has to be registered first, and has to match, so that a code cannot be sent somewhere else.',
+		alsoCalled: ['callback address'],
+		at: flowAt('authorize')
+	},
+	{
+		id: 'token',
+		name: 'Token',
+		words: ['token', 'tokens'],
+		explains:
+			'A piece of data that stands for something, such as what the app may do. Whoever presents it gets treated accordingly, so it has to be looked after.',
+		at: flowAt('token-response')
+	},
+	{
+		id: 'access-token',
+		name: 'Access token',
+		words: ['access token', 'access tokens'],
+		explains: '',
+		artifact: 'access-token',
+		at: flowAt('token-response')
+	},
+	{
+		id: 'id-token',
+		name: 'ID token',
+		words: ['ID token', 'ID tokens'],
+		explains: '',
+		artifact: 'id-token',
+		at: flowAt('token-response', { oidc: true })
+	},
+	{
+		id: 'refresh-token',
+		name: 'Refresh token',
+		words: ['refresh token', 'refresh tokens', 'token for getting new ones'],
+		explains:
+			'Gets the app a new access token later, without the user having to log in again. So it is worth more to a thief than the access token itself.',
+		at: flowAt('token-response')
+	},
+	{
+		id: 'code',
+		name: 'Code',
+		words: ['the code', 'one-time code', 'authorization code'],
+		explains: '',
+		artifact: 'code',
+		at: flowAt('redirect-with-code')
+	},
+	{
+		id: 'client-secret',
+		name: 'Client secret',
+		words: ['client secret', 'the secret', 'its secret', 'a secret'],
+		explains: '',
+		artifact: 'secret',
+		at: flowAt('token-request')
+	},
+	{
+		id: 'verifier',
+		name: 'Code verifier',
+		words: ['verifier', 'code verifier'],
+		explains: '',
+		artifact: 'verifier',
+		at: flowAt('make-verifier', { pkce: true })
+	},
+	{
+		id: 'challenge',
+		name: 'Code challenge',
+		words: ['challenge', 'code challenge'],
+		explains: '',
+		artifact: 'challenge',
+		at: flowAt('make-verifier', { pkce: true })
+	},
+	{
+		id: 'proof',
+		name: 'Key proof',
+		words: ['proof', 'key proof'],
+		explains: '',
+		artifact: 'proof',
+		at: flowAt('api-request', { binding: 'dpop' })
+	},
+	{
+		id: 'pkce',
+		name: 'PKCE',
+		words: ['PKCE'],
+		explains: '',
+		setting: 'pkce',
+		at: flowAt('make-verifier', { pkce: true })
+	},
+	{
+		id: 'dpop',
+		name: 'DPoP',
+		words: ['DPoP'],
+		explains: '',
+		setting: 'binding',
+		at: flowAt('generate-key', { binding: 'dpop' })
+	},
+	{
+		id: 'session',
+		name: 'Session',
+		words: ['session', 'sessions'],
+		explains:
+			'What a server keeps to remember that someone has logged in, usually with a cookie in their browser. An app and an identity provider each have their own.'
+	},
+	{
+		id: 'library',
+		name: 'Library',
+		words: ['library', 'libraries'],
+		explains:
+			'Code someone else wrote, that yours calls to do a job. For this flow, it is what you add so you do not have to write each of these messages yourself.'
+	},
+	{
+		id: 'framework',
+		name: 'Framework',
+		words: ['framework', 'frameworks'],
+		explains:
+			'Code that your whole app is built on, and so it can do more of this for you than a library that you call yourself.'
+	},
+	{
+		id: 'gateway',
+		name: 'Gateway',
+		words: ['gateway', 'gateways'],
+		explains: 'A server in front of an API, which can do checks before a request gets to it.'
+	},
+	{
+		id: 'http',
+		name: 'HTTP',
+		words: ['HTTP', 'HTTPS'],
+		explains:
+			'How browsers and servers talk: a request, and an answer. HTTPS is the same with the connection encrypted, which is what all of this needs outside a test.',
+		at: flowAt('open-app')
+	},
+	{
+		id: 'tls',
+		name: 'TLS',
+		words: ['TLS'],
+		explains:
+			'What encrypts a connection, and shows it is really that server. It is the S in HTTPS.'
+	},
+	{
+		id: 'api',
+		name: 'API',
+		words: ['API', 'APIs'],
+		explains: 'A service the app calls to get or change something, such as someone’s calendar.',
+		alsoCalled: ['resource server, in OAuth'],
+		at: { diagram: 'flow', lifeline: 'api' }
+	},
+	{
+		id: 'endpoint',
+		name: 'Endpoint',
+		words: ['endpoint', 'endpoints'],
+		explains: 'An address on a server that does one job, such as where tokens are handed out.',
+		at: { diagram: 'setup', step: 'discover' }
+	},
+	{
+		id: 'discovery',
+		name: 'Discovery',
+		words: ['discovery', 'discovers'],
+		explains: 'An app looking up the addresses of an identity provider, starting from its issuer.',
+		at: { diagram: 'setup', step: 'discover' }
+	},
+	{
+		id: 'signature',
+		name: 'Signature',
+		words: ['signature', 'signatures', 'signed'],
+		explains:
+			'A value made with a private key, which anyone with the matching public key can check. So a token cannot be changed without that being noticed.',
+		at: flowAt('api-check-token')
+	},
+	{
+		id: 'bearer',
+		name: 'Bearer token',
+		words: ['bearer', 'bearer token', 'bearer tokens'],
+		explains: 'A token where holding it is enough: whoever presents it gets in.',
+		at: flowAt('api-request')
+	},
+	{
+		id: 'fingerprint',
+		name: 'Fingerprint',
+		words: ['fingerprint'],
+		explains:
+			'A short value worked out from a longer one, in a way that cannot be turned back. The same input always gives the same fingerprint.',
+		at: flowAt('make-verifier', { pkce: true })
+	},
+	{
+		id: 'state',
+		name: 'State',
+		words: ['state'],
+		explains:
+			'A random value the app sends with the login and checks when the user comes back, so nobody can slip in an answer it did not ask for.',
+		at: flowAt('authorize')
+	},
+	{
+		id: 'nonce',
+		name: 'Nonce',
+		words: ['nonce'],
+		explains:
+			'A value that is only used once, so that something made with it cannot be used again.',
+		at: flowAt('authorize', { oidc: true })
+	},
+	{
+		id: 'audience',
+		name: 'Audience',
+		words: ['audience'],
+		explains:
+			'Who a token is for. An API should refuse a token that names someone else, because otherwise a token meant for another API gets in.',
+		alsoCalled: ['aud'],
+		at: flowAt('api-check-token')
+	},
+	{
+		id: 'front-channel',
+		name: 'Front channel',
+		words: ['front channel'],
+		explains:
+			'Messages that go through the browser, where the user and anything running in their browser can see them.',
+		at: flowAt('redirect-with-code')
+	},
+	{
+		id: 'back-channel',
+		name: 'Back channel',
+		words: ['back channel'],
+		explains: 'Messages one system sends straight to another, which do not go through the browser.',
+		at: flowAt('token-request')
+	},
+	{
+		id: 'jwt',
+		name: 'JWT',
+		words: ['JWT', 'JWTs'],
+		explains:
+			'JSON Web Token, a token format that can be read by anyone and is signed so it cannot be changed. Many tokens here are JWTs, though an access token does not have to be one.',
+		at: flowAt('token-response')
+	},
+	{
+		id: 'sso',
+		name: 'Single sign-on',
+		words: ['SSO', 'single sign-on'],
+		explains:
+			'Logging in once, and then not being asked again by other apps that use the same identity provider, because it remembers you in your browser.',
+		alsoCalled: ['SSO']
+	},
+	{
+		id: 'keycloak',
+		name: 'Keycloak',
+		words: ['Keycloak'],
+		vendor: true,
+		explains:
+			'A free identity provider you can run yourself. The messages on this site came from one. What the specs say is the same on other identity providers, and its error codes, token contents, defaults and console are its own.'
+	},
+	{
+		id: 'realm',
+		name: 'Realm',
+		words: ['realm', 'realms'],
+		vendor: true,
+		explains:
+			'What Keycloak calls one separate set of users and apps. Each realm has its own issuer, so to an app each one is an identity provider of its own.',
+		at: { diagram: 'setup', step: 'configure-app' }
+	}
+];
+
+/** What is on the diagram itself. Someone new has not been told what any of it means. */
+const parts: readonly Term[] = [
+	{
+		id: 'part-column',
+		name: 'A column',
+		words: [],
+		part: true,
+		explains:
+			'Someone or something taking part, with its name at the top. Select a name to learn more.'
+	},
+	{
+		id: 'part-arrow',
+		name: 'A solid arrow',
+		words: [],
+		part: true,
+		explains: 'A message, from the column it starts at to the one it points to.'
+	},
+	{
+		id: 'part-answer',
+		name: 'A dashed arrow',
+		words: [],
+		part: true,
+		explains: 'An answer to a message before it.'
+	},
+	{
+		id: 'part-browser',
+		name: 'Orange',
+		words: [],
+		part: true,
+		explains:
+			'This message goes through the browser, where the user and software in their browser can see it.'
+	},
+	{
+		id: 'part-direct',
+		name: 'Teal',
+		words: [],
+		part: true,
+		explains: 'One system calls another directly, so the browser never sees this message.'
+	},
+	{
+		id: 'part-number',
+		name: 'A number',
+		words: [],
+		part: true,
+		explains: 'The order things happen in. Next moves through them, and a number can be selected.'
+	},
+	{
+		id: 'part-chip',
+		name: 'A chip on an arrow',
+		words: [],
+		part: true,
+		explains: 'Something this message carries, such as a code or a token. Select one to learn more.'
+	},
+	{
+		id: 'part-seen',
+		name: 'A chip under a name',
+		words: [],
+		part: true,
+		explains:
+			'What that one has seen so far. It grows as you step, and it is the point of all this.'
+	},
+	{
+		id: 'part-ahead',
+		name: 'A faint arrow',
+		words: [],
+		part: true,
+		explains: 'What is still to come. Point at one to see what it is.'
+	}
+];
+
+export const diagramParts = parts;
+
+export const READING: Term = {
+	id: 'reading',
+	name: 'How to read this',
+	words: [],
+	explains: 'Select a part to see what it means, and it lights up on the diagram.'
+};
+
+export const terms: Readonly<Record<string, Term>> = Object.fromEntries(
+	[...list, ...parts, READING].map((term) => [term.id, term])
+);
+
+const escaped = (word: string) => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const isExact = (word: string) => /[A-Z]/.test(word.slice(1));
+
+// Longest first, so that "access token" is that and not "token", and each word only in its own case
+// when it has capitals in it, so that "API" does not match in "apiary" and "the code" does in "The code".
+const byWord = new Map(
+	list
+		.flatMap((term) => term.words.map((word) => [word, term] as const))
+		.sort(([a], [b]) => b.length - a.length)
+);
+const pattern = new RegExp(
+	`(?<![\\w-])(?:${[...byWord.keys()].map(escaped).join('|')})(?![\\w-])`,
+	'gi'
+);
+
+function termFor(found: string): Term | undefined {
+	const exact = byWord.get(found);
+	if (exact) return exact;
+	for (const [word, term] of byWord) {
+		if (!isExact(word) && word.toLowerCase() === found.toLowerCase()) return term;
+	}
+	return undefined;
+}
+
+/** Whether a word in text has an explanation, whichever way it is written. */
+export const isExplained = (word: string) => termFor(word) !== undefined;
+
+export interface Segment {
+	text: string;
+	term?: Term;
+}
+
+/**
+ * Text cut up by the terms in it. Only the first use of each is marked across what is passed in,
+ * because the same word underlined six times on a step is noise. Nobody writes a mark by hand.
+ */
+export function markTerms(
+	texts: readonly string[],
+	{ serverNamed = true }: { serverNamed?: boolean } = {}
+): Segment[][] {
+	const marked = new Set<string>();
+	return texts.map((text) => {
+		const segments: Segment[] = [];
+		let last = 0;
+		for (const match of text.matchAll(pattern)) {
+			const term = termFor(match[0]);
+			if (!term || marked.has(term.id) || (term.vendor && !serverNamed)) continue;
+			marked.add(term.id);
+			if (match.index > last) segments.push({ text: text.slice(last, match.index) });
+			segments.push({ text: match[0], term });
+			last = match.index + match[0].length;
+		}
+		if (last < text.length) segments.push({ text: text.slice(last) });
+		return segments;
+	});
+}

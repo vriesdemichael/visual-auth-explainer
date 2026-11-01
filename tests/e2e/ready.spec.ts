@@ -154,7 +154,7 @@ test.describe('when a link is shared', () => {
 		test(`${node.id} has its own title and image`, async ({ page, request }) => {
 			await page.goto(`authorization-code/${node.id}/`);
 			expect(await content(page, 'og:title')).toBe(node.title);
-			expect(await content(page, 'og:description')).toBe(node.summary);
+			expect(await content(page, 'og:description')).toBe(node.answer);
 			expect(await content(page, 'og:image')).toMatch(new RegExp(`/social/${node.id}\\.png$`));
 			expect(await content(page, 'og:url')).toMatch(new RegExp(`/${node.id}/$`));
 			const image = await request.get(`social/${node.id}.png`);

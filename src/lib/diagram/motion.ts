@@ -22,7 +22,10 @@ export type FrameGroup = GroupLayout & Visibility;
 
 export interface Frame {
 	width: number;
+	viewX: number;
+	viewWidth: number;
 	height: number;
+	heldWidth: number;
 	headHeight: number;
 	lanes: FrameLane[];
 	rows: FrameRow[];
@@ -35,7 +38,10 @@ const settled = <T>(item: T) => ({ ...item, opacity: 1, draw: 1, leaving: false 
 export function toFrame(layout: DiagramLayout): Frame {
 	return {
 		width: layout.width,
+		viewX: layout.viewX,
+		viewWidth: layout.viewWidth,
 		height: layout.height,
+		heldWidth: layout.heldWidth,
 		headHeight: layout.headHeight,
 		lanes: layout.lanes.map(settled),
 		rows: layout.rows.map(settled),
@@ -86,11 +92,15 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 	if (t >= 1) return to;
 	return {
 		width: to.width,
+		viewX: to.viewX,
+		viewWidth: to.viewWidth,
 		height: lerp(from.height, to.height, moveAt(t)),
+		heldWidth: to.heldWidth,
 		headHeight: lerp(from.headHeight, to.headHeight, moveAt(t)),
 		lanes: blend(from.lanes, to.lanes, t, (a, b, p) => ({
 			...b,
 			x: lerp(a.x, b.x, p),
+			headWidth: lerp(a.headWidth, b.headWidth, p),
 			role: p < 0.5 ? a.role : b.role
 		})),
 		rows: blend(from.rows, to.rows, t, (a, b, p) => ({

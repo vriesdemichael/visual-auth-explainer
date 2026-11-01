@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { ICONS } from '#lib/diagram/icons.ts';
 	import {
+		FULL_HEAD_WIDTH,
 		labelCentre,
 		layHeld,
 		ROW_OFFSET,
@@ -9,6 +10,7 @@
 		type DiagramLayout
 	} from '#lib/diagram/layout.ts';
 	import { interpolate, toFrame, TRANSITION_MS, type Frame } from '#lib/diagram/motion.ts';
+	import type { Lit } from '#lib/flow/explain.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 
 	interface Props {
@@ -16,6 +18,8 @@
 		currentStep: string;
 		fresh?: ReadonlySet<string>;
 		animate?: boolean;
+		/** What is being explained, to light up where it is. */
+		lit?: Lit | null;
 		/** What each lifeline has seen, up to the current step. */
 		holdings?: Readonly<Record<string, readonly ArtifactId[]>>;
 		onselect?: (step: string) => void;
@@ -28,6 +32,7 @@
 		currentStep,
 		fresh = new Set(),
 		animate = true,
+		lit = null,
 		holdings = {},
 		onselect,
 		onexplainlifeline,
@@ -44,11 +49,13 @@
 	$effect(() => {
 		// The first frame is already this layout, so a new diagram appears without moving.
 		if (layout === drawn) return;
+		// A new window size is not a change to the flow, so nothing should look as if it changed.
+		const resized = layout.roomKey !== drawn.roomKey;
 		drawn = layout;
 		const target = toFrame(layout);
 		const start = untrack(() => $state.snapshot(frame)) as Frame;
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		if (!untrack(() => animate) || reduced) {
+		if (!untrack(() => animate) || reduced || resized) {
 			frame = target;
 			animating = false;
 			return;
@@ -130,65 +137,73 @@
 	};
 </script>
 
-<div class="diagram" data-testid="diagram" data-animating={animating}>
-	<svg
-		class="heads"
-		viewBox={`0 0 ${frame.width} ${frame.headHeight}`}
-		role="group"
-		aria-label="Who takes part, and what each has seen so far"
-		data-testid="diagram-heads"
-	>
-		{#each frame.lanes as lane (lane.id)}
-			<g
-				class="lane-head"
-				class:fresh={fresh.has(lane.id)}
-				class:active={currentRow && (lane.id === currentRow.from || lane.id === currentRow.to)}
-				style:opacity={lane.opacity}
-				data-lifeline={lane.leaving ? undefined : lane.id}
-				transform={`translate(${lane.x} 0)`}
-				role="button"
-				tabindex={lane.leaving ? -1 : 0}
-				aria-describedby={`seen-${lane.id}`}
-				onclick={() => {
-					// On its way out, so there is nothing left to explain.
-					if (!lane.leaving) onexplainlifeline?.(lane.id);
-				}}
-				onkeydown={(event) => activate(event, () => onexplainlifeline?.(lane.id))}
-			>
-				<desc id={`seen-${lane.id}`}>Has seen: {heldText(holdings[lane.id] ?? [])}.</desc>
-				<rect x="-72" y="5" width="144" height="46" rx="8" />
-				<path class="icon" d={ICONS[lane.icon]} transform="translate(-65 16) scale(0.95)" />
-				<text class="name" x="-38" y="25">{lane.name}</text>
-				<text class="role" x="-38" y="41">{lane.role}</text>
-				{#if !lane.leaving}
-					{#each layHeld(holdings[lane.id] ?? []) as chip (chip.artifact)}
-						<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
+<div class="diagram" data-testid="diagram" data-animating={animating} data-lit={lit?.part}>
+	<div class="heads-band">
+		<svg
+			class="heads"
+			viewBox={`${frame.viewX} 0 ${frame.viewWidth} ${frame.headHeight}`}
+			role="group"
+			aria-label="Who takes part, and what each has seen so far"
+			data-testid="diagram-heads"
+		>
+			{#each frame.lanes as lane (lane.id)}
+				<g
+					class="lane-head"
+					class:fresh={fresh.has(lane.id)}
+					class:lit={lit?.lifeline === lane.id}
+					class:active={currentRow && (lane.id === currentRow.from || lane.id === currentRow.to)}
+					style:opacity={lane.opacity}
+					data-lifeline={lane.leaving ? undefined : lane.id}
+					transform={`translate(${lane.x} 0)`}
+					role="button"
+					tabindex={lane.leaving ? -1 : 0}
+					aria-describedby={`seen-${lane.id}`}
+					onclick={() => {
+						// On its way out, so there is nothing left to explain.
+						if (!lane.leaving) onexplainlifeline?.(lane.id);
+					}}
+					onkeydown={(event) => activate(event, () => onexplainlifeline?.(lane.id))}
+				>
+					<desc id={`seen-${lane.id}`}>Has seen: {heldText(holdings[lane.id] ?? [])}.</desc>
+					<rect x={-lane.headWidth / 2} y="5" width={lane.headWidth} height="46" rx="8" />
+					{#if lane.headWidth >= FULL_HEAD_WIDTH}
+						<path class="icon" d={ICONS[lane.icon]} transform="translate(-65 16) scale(0.95)" />
+						<text class="name" x="-38" y="25">{lane.name}</text>
+						<text class="role" x="-38" y="41">{lane.role}</text>
+					{:else}
+						<text class="name tight" y="25" text-anchor="middle">{lane.name}</text>
+						<text class="role tight" y="41" text-anchor="middle">{lane.role}</text>
+					{/if}
+					{#if !lane.leaving}
+						{#each layHeld(holdings[lane.id] ?? [], frame.heldWidth) as chip (chip.artifact)}
+							<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
 							     the lifeline's own explanation, which lists these as buttons. -->
-						<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-						<g
-							class="held"
-							data-artifact={chip.artifact}
-							data-held={`${lane.id}:${chip.artifact}`}
-							onclick={(event) => {
-								event.stopPropagation();
-								onexplainartifact?.(chip.artifact);
-							}}
-						>
-							<rect x={chip.x} y={chip.y} width={chip.width} height="16" rx="8" />
-							<text x={chip.x + chip.width / 2} y={chip.y + 11.5} text-anchor="middle">
-								{chip.text}
-							</text>
-						</g>
-					{/each}
-				{/if}
-			</g>
-		{/each}
-	</svg>
+							<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+							<g
+								class="held"
+								data-artifact={chip.artifact}
+								data-held={`${lane.id}:${chip.artifact}`}
+								onclick={(event) => {
+									event.stopPropagation();
+									onexplainartifact?.(chip.artifact);
+								}}
+							>
+								<rect x={chip.x} y={chip.y} width={chip.width} height="16" rx="8" />
+								<text x={chip.x + chip.width / 2} y={chip.y + 11.5} text-anchor="middle">
+									{chip.text}
+								</text>
+							</g>
+						{/each}
+					{/if}
+				</g>
+			{/each}
+		</svg>
+	</div>
 
 	<div class="scroller" bind:this={scroller}>
 		<svg
 			class="body"
-			viewBox={`0 0 ${frame.width} ${frame.height}`}
+			viewBox={`${frame.viewX} 0 ${frame.viewWidth} ${frame.height}`}
 			role="group"
 			aria-label="The messages in this diagram"
 		>
@@ -221,6 +236,7 @@
 				<g
 					class={`row ${row.kind} ${row.channel} ${state}`}
 					class:fresh={fresh.has(row.id)}
+					class:lit={lit?.step === row.id}
 					style:opacity={row.opacity}
 					data-step={row.leaving ? undefined : row.id}
 					data-state={state}
@@ -241,7 +257,13 @@
 					}}
 				>
 					<desc id={`route-${row.id}`}>{row.route}</desc>
-					<rect class="hit" x="0" y={row.y - ROW_OFFSET} width={frame.width} height={row.band} />
+					<rect
+						class="hit"
+						x={frame.viewX}
+						y={row.y - ROW_OFFSET}
+						width={frame.viewWidth}
+						height={row.band}
+					/>
 					{#if row.self}
 						<path
 							d={`M ${row.x1} ${row.y - 6} h ${row.selfSide * SELF_LOOP.width} v ${SELF_LOOP.height} h ${-row.selfSide * (SELF_LOOP.width - 6)}`}
@@ -284,7 +306,7 @@
 					{:else}
 						<text
 							class="label"
-							x={labelCentre(row.x1, row.x2, row.label)}
+							x={labelCentre(row.x1, row.x2, row.label, frame.width)}
 							y={row.y - 8}
 							text-anchor="middle"
 						>
@@ -329,17 +351,21 @@
 		min-height: 0;
 	}
 
-	.heads {
+	.heads-band {
 		flex: none;
-		display: block;
-		width: 100%;
 		border-bottom: 1px solid var(--line);
 		background: var(--panel);
+	}
+
+	.heads {
+		display: block;
+		width: 100%;
 	}
 
 	.scroller {
 		flex: 1;
 		min-height: 0;
+		overflow-x: hidden;
 		overflow-y: auto;
 	}
 
@@ -380,6 +406,14 @@
 		font-size: 11px;
 	}
 
+	.lane-head .tight {
+		font-size: 11.5px;
+	}
+
+	.lane-head .name.tight {
+		font-size: 12.5px;
+	}
+
 	.lane-head.active > rect {
 		fill: var(--accent-soft);
 		stroke: var(--accent);
@@ -388,6 +422,49 @@
 
 	.lane-head.active .icon {
 		stroke: var(--accent);
+	}
+
+	/* What is being explained, and what a part of the diagram is, shown where it is. */
+	.row.lit .hit {
+		stroke: var(--accent);
+		stroke-width: 1.5;
+	}
+
+	.lane-head.lit > rect,
+	[data-lit='part-column'] .lane-head > rect {
+		stroke: var(--accent);
+		stroke-width: 2;
+	}
+
+	[data-lit='part-column'] .lifeline {
+		stroke: var(--accent);
+		stroke-width: 2;
+		opacity: 1 !important;
+	}
+
+	[data-lit='part-arrow'] .row.request:not(.future) line,
+	[data-lit='part-arrow'] .row.request:not(.future) polygon,
+	[data-lit='part-answer'] .row.response:not(.future) line,
+	[data-lit='part-answer'] .row.response:not(.future) polygon,
+	[data-lit='part-browser'] .row.front:not(.future) line,
+	[data-lit='part-browser'] .row.front:not(.future) polygon,
+	[data-lit='part-direct'] .row.back:not(.future) line,
+	[data-lit='part-direct'] .row.back:not(.future) polygon {
+		stroke-width: 4;
+	}
+
+	[data-lit='part-number'] .number circle,
+	[data-lit='part-chip'] .chip rect,
+	[data-lit='part-seen'] .held rect {
+		stroke: var(--accent);
+		stroke-width: 2;
+	}
+
+	[data-lit='part-ahead'] .row.future line,
+	[data-lit='part-ahead'] .row.future path,
+	[data-lit='part-ahead'] .row.future polygon {
+		opacity: 1;
+		stroke-width: 3;
 	}
 
 	.lane-head.fresh > rect {
@@ -547,6 +624,26 @@
 		.row.future .label,
 		.chip.future:not(.fresh) {
 			opacity: 1 !important;
+		}
+	}
+
+	@media (forced-colors: active) {
+		.row.current .hit,
+		.row.current:hover .hit {
+			fill: none;
+			stroke: Highlight;
+			stroke-width: 2;
+			forced-color-adjust: none;
+		}
+
+		.row.current .number circle {
+			fill: Highlight;
+			forced-color-adjust: none;
+		}
+
+		.row.current .number text {
+			fill: HighlightText;
+			forced-color-adjust: none;
 		}
 	}
 

@@ -83,8 +83,19 @@
 {#each jwts as jwt (jwt.name)}
 	<details class="jwt" data-testid="jwt">
 		<summary>Inside <code>{jwt.name}</code></summary>
-		<pre>{JSON.stringify(jwt.header, null, 2)}</pre>
-		<pre>{JSON.stringify(jwt.claims, null, 2)}</pre>
+		<!-- Long enough to scroll, which a keyboard can only do to something it can focus. -->
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+		<pre tabindex="0" aria-label={`Header of ${jwt.name}`}>{JSON.stringify(
+				jwt.header,
+				null,
+				2
+			)}</pre>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+		<pre tabindex="0" aria-label={`Claims of ${jwt.name}`}>{JSON.stringify(
+				jwt.claims,
+				null,
+				2
+			)}</pre>
 		{#if settingsBehind(jwt).length}
 			<ul class="behind" data-testid="token-settings">
 				{#each settingsBehind(jwt) as { note, claims } (note.id)}

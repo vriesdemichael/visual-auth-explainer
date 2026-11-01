@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Execute from '#lib/components/Execute.svelte';
 
 	interface Props {
@@ -24,20 +25,52 @@
 		onexecute = () => {},
 		onwardHref = null
 	}: Props = $props();
+
+	// At the end Next becomes a link, and whoever pressed it should still be on the way forward.
+	let nextButton = $state<HTMLButtonElement>();
+	let onwardLink = $state<HTMLAnchorElement>();
+	let nextHadFocus = false;
+	$effect.pre(() => {
+		void position;
+		// Not tracked, because by the time the button has gone it is too late to ask.
+		const button = untrack(() => nextButton);
+		nextHadFocus = button !== undefined && document.activeElement === button;
+	});
+	$effect(() => {
+		if (onwardLink && nextHadFocus) onwardLink.focus();
+		nextHadFocus = false;
+	});
+
+	const atStart = $derived(!canGoBack);
+	const atEnd = $derived(position >= total);
 </script>
 
 <div class="controls">
-	<button data-testid="back" disabled={!canGoBack} onclick={onback}>Back</button>
-	{#if position >= total && onwardHref}
+	<!-- Not disabled, because that would drop the focus of whoever just pressed it. -->
+	<button
+		data-testid="back"
+		aria-disabled={atStart}
+		onclick={() => {
+			if (!atStart) onback();
+		}}
+	>
+		Back
+	</button>
+	{#if atEnd && onwardHref}
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
-		<a class="next onward" href={onwardHref} data-testid="next-question">Next question</a>
+		<a class="next onward" href={onwardHref} data-testid="next-question" bind:this={onwardLink}>
+			Next question
+		</a>
 	{:else}
 		<button
 			class="next"
 			class:invite={position === 1}
 			data-testid="next"
-			disabled={position >= total}
-			onclick={onnext}
+			aria-disabled={atEnd}
+			bind:this={nextButton}
+			onclick={() => {
+				if (!atEnd) onnext();
+			}}
 		>
 			Next
 		</button>
@@ -60,7 +93,7 @@
 		gap: 8px;
 	}
 
-	.next:not(:disabled) {
+	.next:not([aria-disabled='true']) {
 		background: var(--accent);
 		border-color: var(--accent);
 		color: var(--on-tone);
@@ -113,6 +146,17 @@
 		border-radius: 2px;
 		background: var(--accent);
 		transition: width 0.25s;
+	}
+
+	@media (forced-colors: active) {
+		.track {
+			border: 1px solid CanvasText;
+		}
+
+		.fill {
+			background: Highlight;
+			forced-color-adjust: none;
+		}
 	}
 
 	@media (max-width: 767px) {

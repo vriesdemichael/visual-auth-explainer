@@ -63,6 +63,8 @@ test.describe('someone on another provider', () => {
 		await open(page, 'mode=simple');
 		await expect(page.getByTestId('provenance')).toContainText('Keycloak');
 		await page.getByTestId('server-notes-quick').click();
+		await expect(page.getByTestId('explanation')).toContainText('A free identity provider');
+		await page.getByTestId('leave-out-server').click();
 		await expect(page.getByTestId('provenance')).not.toContainText('Keycloak');
 		await expect(page.getByTestId('provenance')).toContainText('a real server');
 		await page.getByTestId('server-notes-quick').click();

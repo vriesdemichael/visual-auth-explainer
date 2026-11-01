@@ -21,6 +21,7 @@
 		<a
 			href={hrefs[diagram.id]}
 			aria-current={diagram.id === current ? 'page' : undefined}
+			data-sveltekit-reset="false"
 			data-diagram={diagram.id}
 		>
 			{diagram.label}
@@ -54,6 +55,14 @@
 	a[aria-current='page'] {
 		background: var(--accent-soft);
 		color: var(--accent);
+	}
+
+	@media (forced-colors: active) {
+		a[aria-current='page'] {
+			background: Highlight;
+			color: HighlightText;
+			forced-color-adjust: none;
+		}
 	}
 
 	p {

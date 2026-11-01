@@ -4,6 +4,7 @@
 	import Diagram from '#lib/components/Diagram.svelte';
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
+	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
 	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
 	import OnTheWire from '#lib/components/OnTheWire.svelte';
 	import SettingsPanel from '#lib/components/SettingsPanel.svelte';
@@ -43,7 +44,7 @@
 		type AppState,
 		type Explained
 	} from '#lib/flow/state.ts';
-	import { explanationOf } from '#lib/flow/explain.ts';
+	import { explanationOf, litBy, stateShowing } from '#lib/flow/explain.ts';
 	import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
@@ -62,6 +63,10 @@
 		animate?: boolean;
 		/** What someone came to find out, when this came from the map. */
 		question?: string | null;
+		/** The answer to it, in a sentence or two. */
+		answer?: string | null;
+		/** The question someone came with, once the settings no longer answer it. */
+		leftQuestion?: { title: string; href: string } | null;
 		/** The question to go on to, once this flow is done. */
 		onward?: { title: string; summary: string; href: string } | null;
 		homeHref: string;
@@ -76,6 +81,8 @@
 		state: appState,
 		animate = true,
 		question = null,
+		answer: questionAnswer = null,
+		leftQuestion = null,
 		onward = null,
 		homeHref,
 		hrefFor,
@@ -98,13 +105,37 @@
 	});
 	const mode = $derived(appState.mode);
 	const steps = $derived(view.steps);
-	const layout = $derived(layoutDiagram(view, mode));
+	// Measured, because the diagram is laid out for the room it has and not scaled to fit.
+	let canvasWidth = $state(0);
+	let canvasHeight = $state(0);
+	const room = $derived(canvasWidth ? { width: canvasWidth, height: canvasHeight } : undefined);
+	const layout = $derived(layoutDiagram(view, mode, room));
+
+	// Below this the settings do not fit beside the diagram, so they open over it when asked for.
+	let settingsDoNotFit = $state(false);
+	let settingsOpen = $state(false);
+	$effect(() => {
+		const query = window.matchMedia('(max-width: 1239px)');
+		const check = () => {
+			settingsDoNotFit = query.matches;
+			if (!query.matches) settingsOpen = false;
+		};
+		check();
+		query.addEventListener('change', check);
+		return () => query.removeEventListener('change', check);
+	});
+	const settingsShown = $derived(settingsDoNotFit ? settingsOpen : !appState.settingsHidden);
+	function toggleSettings() {
+		if (settingsDoNotFit) settingsOpen = !settingsOpen;
+		else onnavigate(withSettingsHidden(appState, !appState.settingsHidden), 'replace');
+	}
 	const position = $derived(steps.findIndex((step) => step.id === appState.step));
 	const current = $derived(steps[position]);
 	const holdings = $derived(holdingsAt(view, appState.step));
 	const channelsHere = $derived([...new Set(steps.map((step) => step.channel))]);
 	const origin = $derived(provenance(base, flow, appState.settings));
 
+	let statusLine = $state<HTMLElement>();
 	let last = $state.raw<LastChange>(NOTHING_CHANGED);
 	// Set by flipping a setting, until the screen has moved to what that asked for.
 	let flipping: Settings | null = null;
@@ -185,14 +216,23 @@
 	function showAdded() {
 		const first = last.diff?.addedSteps[0];
 		if (!first) return;
-		window.document
-			.querySelector(`[data-step="${CSS.escape(first)}"]`)
-			?.scrollIntoView({ block: 'center' });
+		const row = window.document.querySelector(`[data-step="${CSS.escape(first)}"]`);
+		const scroller = row?.closest('.scroller');
+		if (!row || !scroller) return;
+		// Measured, because Firefox scrolls to the top when asked to bring something in an SVG into view.
+		const box = row.getBoundingClientRect();
+		const view = scroller.getBoundingClientRect();
+		scroller.scrollTop += box.top + box.height / 2 - (view.top + view.height / 2);
 	}
 
 	function go(next: AppState | null) {
 		if (next) onnavigate(next, 'replace');
 	}
+
+	const focusControls = () =>
+		window.document
+			.querySelector<HTMLElement>('[data-testid="next"], [data-testid="next-question"]')
+			?.focus();
 
 	const back = () => go(previousStep(base, appState));
 	const forward = () => go(nextStep(base, appState));
@@ -200,11 +240,15 @@
 	const explain = (explained: Explained | null) =>
 		onnavigate(withExplained(appState, explained), 'push');
 	const explanation = $derived(explanationOf(appState, view, holdings));
+	const lit = $derived(litBy(appState, view));
+	const showing = $derived(stateShowing(base, appState));
+	const explainTerm = (id: string) => explain({ kind: 'term', id });
 	// The setting an open explanation is about is where its sources should open from.
 	const explainedSetting = $derived(
 		appState.explained?.kind === 'setting' ? appState.explained.id : null
 	);
-	const intro = $derived(position === 0 ? flow.intro : null);
+	// Someone with a question has its answer, which already says what this would.
+	const intro = $derived(position === 0 && !questionAnswer ? flow.intro : null);
 	const notes = $derived(
 		appState.serverNotes ? notesFor(base.id, current.id, appState.settings) : []
 	);
@@ -335,21 +379,33 @@
 
 <div
 	class="workspace"
+	data-testid="workspace"
 	class:settings-hidden={appState.settingsHidden}
+	class:settings-open={settingsOpen}
 	data-ready={animate}
 	data-diagram={appState.diagram}
 >
 	<header>
+		<!-- The way forward is after every setting, so it should not take thirty presses to get to. -->
+		<button type="button" class="skip" data-testid="skip-to-controls" onclick={focusControls}>
+			Skip to the step controls
+		</button>
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
 		<a class="brand" href={homeHref}>Map</a>
 		<span class="slash" aria-hidden="true">/</span>
-		<h1 data-testid="title">{question ?? flow.title}</h1>
+		<h1 data-testid="title" title={question ?? flow.title}>{question ?? flow.title}</h1>
+		{#if leftQuestion}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+			<a class="from" href={leftQuestion.href} data-testid="from-question">
+				From: {leftQuestion.title}
+			</a>
+		{/if}
 		<ModeSwitch
 			mode={appState.mode}
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
 		/>
 		<p class="status" data-testid="provenance">
-			<span class="what">
+			<span class="what" bind:this={statusLine} title={statusLine?.textContent?.trim()}>
 				Prototype.
 				{#if appState.mode === 'advanced'}
 					{#if question}{flow.title}.{/if} Based on {origin.specs.join(', ')}.
@@ -372,9 +428,12 @@
 				type="button"
 				class="quiet"
 				data-testid="server-notes-quick"
-				onclick={() => onnavigate(withServerNotes(appState, !appState.serverNotes), 'push')}
+				onclick={() =>
+					appState.serverNotes
+						? explainTerm('keycloak')
+						: onnavigate(withServerNotes(appState, true), 'push')}
 			>
-				{appState.serverNotes ? 'Not on Keycloak?' : 'Show the server notes'}
+				{appState.serverNotes ? 'What is Keycloak?' : 'Show the server notes'}
 			</button>
 		</p>
 	</header>
@@ -405,14 +464,16 @@
 			<button
 				type="button"
 				class="quiet"
-				data-testid="settings-toggle"
-				onclick={() =>
-					onnavigate(withSettingsHidden(appState, !appState.settingsHidden), 'replace')}
+				data-testid="how-to-read"
+				onclick={() => explainTerm('reading')}
 			>
-				{appState.settingsHidden ? 'Show settings' : 'Hide settings'}
+				How to read this
+			</button>
+			<button type="button" class="quiet" data-testid="settings-toggle" onclick={toggleSettings}>
+				{settingsShown ? 'Hide settings' : 'Show settings'}
 			</button>
 		</div>
-		<div class="canvas">
+		<div class="canvas" bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight}>
 			<!-- Two diagrams, not two states of one, so switching does not animate. -->
 			{#key appState.diagram}
 				<Diagram
@@ -420,6 +481,7 @@
 					{animate}
 					{fresh}
 					{holdings}
+					{lit}
 					currentStep={appState.step}
 					onexplainlifeline={(id) => explain({ kind: 'lifeline', id })}
 					onexplainartifact={(id: ArtifactId) => explain({ kind: 'artifact', id })}
@@ -427,13 +489,28 @@
 				/>
 			{/key}
 		</div>
-		<ChannelLegend present={channelsHere} />
+		<div class="legend">
+			<ChannelLegend present={channelsHere} />
+		</div>
 	</main>
 
 	<aside class="detail" aria-label="The current step">
+		{#if questionAnswer}
+			<QuestionAnswer
+				answer={questionAnswer}
+				onrewind={position > 0 ? () => goToStep(steps[0].id) : null}
+				onterm={explainTerm}
+				serverNamed={appState.serverNotes}
+			/>
+		{/if}
 		{#if explanation}
 			<Explanation
 				{...explanation}
+				onpart={explainTerm}
+				seeIt={showing ? hrefFor(showing) : null}
+				onleaveout={explanation.aboutTheServer
+					? () => onnavigate(withServerNotes(withExplained(appState, null), false), 'push')
+					: null}
 				onclose={() => explain(null)}
 				onexplainartifact={(id) => explain({ kind: 'artifact', id })}
 				onopensource={(ref) => {
@@ -457,6 +534,7 @@
 			changed={last.setting}
 			onshowadded={showAdded}
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
+			onterm={explainTerm}
 			{notes}
 			serverNamed={appState.serverNotes}
 			known={knownFrom(base, current, appState.settings)}
@@ -539,13 +617,37 @@
 	}
 
 	.slash {
-		color: var(--strong-line);
+		color: var(--muted);
+	}
+
+	.skip {
+		position: absolute;
+		z-index: 2;
+		transform: translateY(-300%);
+	}
+
+	.skip:focus-visible {
+		transform: none;
 	}
 
 	h1 {
+		flex: 0 1 auto;
+		min-width: 0;
 		margin: 0;
+		overflow: hidden;
 		font-size: 16px;
 		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.from {
+		flex: 0 2 auto;
+		min-width: 0;
+		overflow: hidden;
+		color: var(--muted);
+		font-size: 12.5px;
+		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
@@ -582,9 +684,12 @@
 	.above {
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
 		gap: 12px;
 		padding-right: 12px;
+	}
+
+	.above :global(nav) {
+		margin-right: auto;
 	}
 
 	.settings-hidden {
@@ -647,6 +752,76 @@
 
 	.narrow-note {
 		display: none;
+	}
+
+	/* Too narrow for the settings beside the diagram at a readable size, so they open over it. */
+	@media (max-width: 1239px) {
+		.workspace,
+		.settings-hidden {
+			grid-template-columns: 0 minmax(0, 1fr) 330px;
+		}
+
+		.settings,
+		.settings-hidden .settings {
+			display: none;
+		}
+
+		.settings-open .settings {
+			display: block;
+			grid-area: 2 / 2 / 4 / 3;
+			z-index: 2;
+			justify-self: start;
+			width: 260px;
+			background: var(--bg);
+			box-shadow: 8px 0 24px rgb(0 0 0 / 0.12);
+		}
+	}
+
+	/* Too narrow for the step beside it as well, so it goes underneath. */
+	@media (max-width: 1023px) {
+		.workspace,
+		.settings-hidden {
+			grid-template:
+				'header' auto
+				'diagram' minmax(0, 1fr)
+				'detail' minmax(96px, 30%)
+				'controls' auto
+				/ minmax(0, 1fr);
+		}
+
+		.detail {
+			border-top: 1px solid var(--line);
+			border-left: 0;
+		}
+
+		.settings-open .settings {
+			grid-area: diagram;
+		}
+
+		.source {
+			grid-row: 2 / 5;
+			grid-column: 1;
+		}
+	}
+
+	/* Not much height: the rows need it more than these do. */
+	@media (max-height: 560px) {
+		.legend {
+			display: none;
+		}
+
+		header {
+			padding-block: 4px;
+		}
+
+		footer {
+			padding-block: 4px;
+		}
+
+		.workspace,
+		.settings-hidden {
+			grid-template-rows: auto minmax(0, 1fr) minmax(72px, 22%) auto;
+		}
 	}
 
 	/* Everything to read, on a screen too small for the diagram (ADR-008). */

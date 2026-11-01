@@ -15,7 +15,7 @@ const pathOf = (id: string) => `authorization-code/${id}/`;
 // (ADR-003), so a change that breaks one has to show up here and not pass through a helper.
 const STABLE_NODES = [
 	{ id: 'how-access-works', step: 'open-app', stepCount: 12, mode: 'simple' },
-	{ id: 'who-logged-in', step: 'open-app', stepCount: 15, mode: 'simple' },
+	{ id: 'who-logged-in', step: 'token-response', stepCount: 15, mode: 'simple' },
 	{ id: 'getting-to-know-each-other', step: 'register-client', stepCount: 6, mode: 'simple' },
 	{ id: 'stolen-code', step: 'attacker-steals-code', stepCount: 14, mode: 'simple' },
 	{ id: 'pkce', step: 'make-verifier', stepCount: 14, mode: 'simple' },
@@ -83,7 +83,7 @@ test.describe('every node', () => {
 			await expect(page).toHaveTitle(node.title);
 			await expect(page.locator('meta[name="description"]')).toHaveAttribute(
 				'content',
-				node.summary
+				node.answer
 			);
 			expect(await visibleStepIds(page)).toEqual(nodeView(node).steps.map((step) => step.id));
 			await expect(page.locator('[data-state="current"]')).toHaveAttribute(

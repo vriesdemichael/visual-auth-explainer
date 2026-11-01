@@ -53,6 +53,12 @@
 		const candidate = data.node ?? asked;
 		return candidate && stillAnswers(candidate, appState) ? candidate : null;
 	});
+	// Someone exploring from a question should be able to get back to it.
+	const nodeHref = (node: MapNode) =>
+		resolve('/[flow]/[[view]]', { flow: node.flow, view: node.id });
+	const leftQuestion = $derived(
+		asked && !question ? { title: asked.title, href: nodeHref(asked) } : null
+	);
 	const onward = $derived.by(() => {
 		const next = question && nextQuestion(question);
 		return next
@@ -65,7 +71,7 @@
 	});
 
 	const title = $derived(question?.title ?? flow.title);
-	const description = $derived(data.node?.summary ?? flow.summary);
+	const description = $derived(data.node?.answer ?? flow.summary);
 	const sharing = $derived(
 		sharingTags({
 			title,
@@ -130,6 +136,8 @@
 	state={appState}
 	animate={settled}
 	question={question?.title ?? null}
+	answer={question?.answer ?? null}
+	{leftQuestion}
 	{onward}
 	homeHref={resolve('/') + ((question ?? here) ? `?at=${(question ?? here)?.id}` : '')}
 	{hrefFor}

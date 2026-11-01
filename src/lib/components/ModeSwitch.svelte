@@ -51,4 +51,12 @@
 		color: var(--accent);
 		font-weight: 600;
 	}
+
+	@media (forced-colors: active) {
+		button[aria-pressed='true'] {
+			background: Highlight;
+			color: HighlightText;
+			forced-color-adjust: none;
+		}
+	}
 </style>

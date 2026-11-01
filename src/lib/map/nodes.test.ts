@@ -49,6 +49,33 @@ describe('the map', () => {
 		}
 	});
 
+	it('says each answer straight away, in a sentence or two', () => {
+		for (const node of mapNodes) {
+			expect(node.answer.length, node.id).toBeGreaterThan(30);
+			expect(node.answer.length, node.id).toBeLessThan(260);
+			expect(node.answer, node.id).not.toMatch(/[a-z][.,:;!?][A-Za-z]/);
+			expect(node.answer, node.id).not.toBe(node.summary);
+		}
+	});
+
+	it('opens each question where its answer can be seen, or says why not', () => {
+		const left = mapNodes.filter((node) => !node.step && !node.startsAtTheBeginning);
+		expect(left.map((node) => node.id)).toEqual([]);
+		const both = mapNodes.filter((node) => node.step && node.startsAtTheBeginning);
+		expect(both.map((node) => node.id)).toEqual([]);
+	});
+
+	it('opens these two on the step that shows what was asked', () => {
+		const stepOf = (id: string) => nodeState(mapNodes.find((node) => node.id === id)!).step;
+		expect(stepOf('who-logged-in')).toBe('token-response');
+		expect(stepOf('another-provider')).toBe('redirect-to-upstream');
+	});
+
+	it('does not answer with what only one server calls things, on a plain question', () => {
+		const simple = mapNodes.filter((node) => node.mode === 'simple');
+		for (const node of simple) expect(node.answer, node.id).not.toMatch(/keycloak/i);
+	});
+
 	it('speaks plainly where it is meant for someone new', () => {
 		const wire = /\b(GET|POST|302|client_id|redirect_uri|scope|nonce|IdP)\b/;
 		const simple = mapNodes.filter((node) => node.mode === 'simple');
@@ -101,6 +128,14 @@ describe('where someone is', () => {
 	it('is the one in this mode, when the step does not settle it', () => {
 		const state = { ...nodeState(start), mode: 'advanced' as const, step: 'callback' };
 		expect(nodeMatching(state)?.mode).toBe('advanced');
+	});
+
+	it('is only a question in the mode someone is in', () => {
+		const wire = mapNodes.find((node) => node.id === 'on-the-wire')!;
+		const state = { ...nodeState(wire), mode: 'simple' as const };
+		expect(nodeMatching(state)?.mode).toBe('simple');
+		const advancedOnly = mapNodes.find((node) => node.id === 'calling-the-other-provider')!;
+		expect(nodeMatching({ ...nodeState(advancedOnly), mode: 'simple' })).toBeNull();
 	});
 
 	it('is no node at all for a state that has none', () => {

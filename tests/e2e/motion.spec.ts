@@ -103,9 +103,13 @@ test.describe('what changed', () => {
 	test('does not explain Back with the words of another setting', async ({ page }) => {
 		await open(page, '');
 		await oidc(page).click();
+		await expect(page).toHaveURL(/oidc=1/);
 		await page.getByRole('radio', { name: 'DPoP' }).click();
 		await expect(why(page)).toContainText('bearer token');
+		// The state moves at once and the address catches up, and Back goes by the address.
+		await expect(page).toHaveURL(/binding=dpop/);
 		await page.goBack();
+		await expect(page.getByRole('radio', { name: 'DPoP' })).not.toBeChecked();
 		await page.goBack();
 		await expect(oidc(page)).not.toBeChecked();
 		await expect(page.getByTestId('change-summary')).toBeVisible();
@@ -116,6 +120,7 @@ test.describe('what changed', () => {
 		await open(page, 'broker=1&upstream=v2');
 		await page.getByRole('radio', { name: /Public/ }).click();
 		await expect(page.getByTestId('change-summary')).toContainText('was reset');
+		await expect(page).toHaveURL(/client=public/);
 		await page.goBack();
 		await expect(page.getByRole('radio', { name: /Public/ })).not.toBeChecked();
 		await expect(page.getByTestId('change-summary')).not.toContainText('was reset');

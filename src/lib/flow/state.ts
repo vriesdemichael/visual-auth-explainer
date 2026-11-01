@@ -1,3 +1,4 @@
+import { terms } from '#lib/flow/glossary.ts';
 import {
 	evaluate,
 	type BaseFlow,
@@ -30,7 +31,8 @@ export interface OpenSource {
 export type Explained =
 	| { kind: 'lifeline'; id: string }
 	| { kind: 'artifact'; id: ArtifactId }
-	| { kind: 'setting'; id: SettingId };
+	| { kind: 'setting'; id: SettingId }
+	| { kind: 'term'; id: string };
 
 export interface AppState {
 	flow: string;
@@ -98,6 +100,7 @@ function parseExplained(base: BaseFlow, diagram: DiagramId, raw: string | null):
 	if (kind === 'setting' && settingIds.includes(id as SettingId)) {
 		return { kind, id: id as SettingId };
 	}
+	if (kind === 'term' && Object.hasOwn(terms, id)) return { kind, id };
 	return null;
 }
 

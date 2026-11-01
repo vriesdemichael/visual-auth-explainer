@@ -13,12 +13,16 @@ export interface MapNode {
 	id: string;
 	title: string;
 	summary: string;
+	/** The answer, in a sentence or two, because someone with a question should not have to walk to it. */
+	answer: string;
 	flow: string;
 	diagram: DiagramId;
 	mode: Mode;
 	preset: string;
-	/** Where to start, when that is not the first step. */
+	/** The step where the answer can be seen. */
 	step?: string;
+	/** Why there is no such step, because a question should not open a walk away from its answer. */
+	startsAtTheBeginning?: string;
 }
 
 export interface MapTrack {
@@ -46,12 +50,17 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'how-access-works',
+					answer:
+						'The user logs in at an identity provider, and never at the app. The app gets a token that lets it act for them, without ever seeing their password.',
+					startsAtTheBeginning: 'It is the whole flow, so its start is its answer.',
 					title: 'How does an app get access?',
 					summary: 'An app acts for a user, without ever seeing their password.',
 					preset: 'oauth'
 				}),
 				node({
 					id: 'why-a-code',
+					answer:
+						'Anything in a redirect passes through the browser, where it can be seen. So the browser only carries a one-time code, and the app trades that for tokens on a direct call.',
 					title: 'Why not just send the token back through the browser?',
 					summary: 'Why the browser only gets a code, and what happened to the way that did not.',
 					preset: 'oauth',
@@ -59,12 +68,17 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'who-logged-in',
+					answer:
+						'OAuth alone only gives the app access, and does not tell it who logged in. OpenID Connect adds an ID token that does, made for the app to read.',
 					title: 'How does an app know who logged in?',
 					summary: 'Access is not identity, which is what OpenID Connect adds.',
-					preset: 'oidc'
+					preset: 'oidc',
+					step: 'token-response'
 				}),
 				node({
 					id: 'when-do-i-get-asked',
+					answer:
+						'When the identity provider is set up to ask for this app, and it then lists what the app wants. Many are set up not to, which is why you may never have seen it.',
 					title: 'When does the user get asked?',
 					summary: 'What a scope is, and why you may never have seen the question.',
 					preset: 'consent',
@@ -72,6 +86,9 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'getting-to-know-each-other',
+					answer:
+						'Before anyone logs in, the identity provider is told about the app, including where users may be sent back to. The app is told the issuer, and can look up the rest from that.',
+					startsAtTheBeginning: 'Setup is the answer, from its first step.',
 					title: 'How do an app and a provider get to know each other?',
 					summary: 'What people have to do before anyone can log in.',
 					diagram: 'setup',
@@ -81,6 +98,9 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'adding-login',
+					answer:
+						'Someone registers your app with the identity provider, and your configuration gets the issuer, the client ID and any secret. A library can do much of the rest, and which pages need a login and your own session stay your code.',
+					startsAtTheBeginning: 'What they have to do starts with the first step of setup.',
 					title: 'I have to add login to an app. What do I do?',
 					summary:
 						'The part you do once, which part of your code is left, and what a library does.',
@@ -98,6 +118,8 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'no-secret',
+					answer:
+						'An app in a browser or on a phone cannot keep a secret, because what is on someone’s device can be read there. So its token request shows nothing about which app sent it, unless PKCE does.',
 					title: 'What is different about an app with no secret?',
 					summary: 'An app in a browser or on a phone cannot keep one, so what proves who it is?',
 					preset: 'public',
@@ -105,6 +127,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'stolen-code',
+					answer:
+						'With no secret and no PKCE, whoever has the code gets the tokens, because nothing in the request shows it is not the real app.',
 					title: 'What if someone steals the code?',
 					summary: 'Watch them take it as it crosses the browser, and get the tokens.',
 					preset: 'attack-public',
@@ -112,6 +136,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'pkce',
+					answer:
+						'The app makes up a random value for each login, and only its fingerprint goes through the browser. The value itself goes with the code on a direct call, so someone who only saw the code does not have it.',
 					title: 'How does PKCE work?',
 					summary:
 						'The app proves it started this login, with a value that was never in a redirect.',
@@ -120,6 +146,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'pkce-stops-it',
+					answer:
+						'They are refused, because they do not have the verifier. On this server that try also uses up the code, so the real user has to log in again.',
 					title: 'What does PKCE do to the attacker?',
 					summary: 'The same attempt, a different answer, and a cost that remains.',
 					preset: 'attack-public-pkce',
@@ -129,6 +157,8 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'stolen-from-a-secret',
+					answer:
+						'They cannot trade it themselves, because they do not have the secret. They could still hand it to the real app from their own browser, so that it trades the code for them.',
 					title: 'Can a code be stolen from an app with a secret?',
 					summary: 'They get the code, but cannot trade it. That is not the end of it.',
 					preset: 'attack-confidential',
@@ -136,6 +166,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'pkce-with-a-secret',
+					answer:
+						'Yes. A secret stops someone trading a stolen code themselves, and PKCE also stops them handing it to the real app. Current advice is to have both.',
 					title: 'Does an app with a secret need PKCE too?',
 					summary: 'Why current advice says yes, even when a stolen code is not enough alone.',
 					preset: 'pkce',
@@ -143,6 +175,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'both-protections',
+					answer:
+						'Nothing. Without the secret the identity provider will not look at the code, and handing it to the real app fails because the verifier does not match, though that uses up the code.',
 					title: 'What does an attacker get against both?',
 					summary: 'A secret and PKCE together, against the same attempt.',
 					preset: 'attack-confidential-pkce',
@@ -152,6 +186,8 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'stolen-token',
+					answer:
+						'It ties the token to a key that never leaves the app, and each call has to carry a proof signed with that key. At an API that checks the proof, the token alone gets nobody in.',
 					title: 'How does DPoP stop a stolen token being used?',
 					summary:
 						'It ties a token to a key that never leaves the app. The theft itself is not drawn.',
@@ -160,6 +196,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'dpop-nonce',
+					answer:
+						'The server hands out a nonce that the next proof has to include, so a proof made earlier is refused. The spec allows this, and the server recorded here did not ask for one.',
 					title: 'How can a proof be stopped from being used later?',
 					summary: 'A nonce from the server. The spec allows it, and Keycloak did not ask.',
 					preset: 'dpop-nonce',
@@ -176,12 +214,17 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'another-provider',
+					answer:
+						'The identity provider sends the user on to the other provider, and then gives the app its usual code. The app does not notice.',
 					title: 'How do you log in with another provider?',
 					summary: 'The app does not notice, and that is the point.',
-					preset: 'broker'
+					preset: 'broker',
+					step: 'redirect-to-upstream'
 				}),
 				node({
 					id: 'calling-the-other-provider',
+					answer:
+						'The identity provider can keep the tokens the other provider issued, and hand them over when the app asks. Whether it keeps them, and who may ask, are settings.',
 					title: "How does the app call the other provider's API?",
 					summary: 'The identity provider kept its tokens, and hands them over.',
 					mode: 'advanced',
@@ -190,6 +233,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'token-api-v2',
+					answer:
+						'The app also has to say which client it is, and that client has to be allowed to ask. What comes back is only the access token.',
 					title: 'What changes with API V2 for stored tokens?',
 					summary: 'Only the access token, and the client has to be allowed to ask.',
 					mode: 'advanced',
@@ -207,6 +252,9 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'web-app',
+					answer:
+						'It can keep a secret, so that is how it proves which app it is. OpenID Connect tells it who logged in, and PKCE protects the code as well.',
+					startsAtTheBeginning: 'It is about the whole flow, with these settings.',
 					title: 'A web app on a server',
 					summary:
 						'It can keep a secret. With OpenID Connect to know who logged in, and PKCE on top.',
@@ -215,6 +263,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'browser-app',
+					answer:
+						'It has no secret, so PKCE protects the code. The harder problem is what follows: the tokens live in the page, where any script running there can reach them.',
 					title: 'An app that runs in the browser',
 					summary:
 						'No secret to keep, so PKCE protects the code. The tokens then live in the page, which is the harder problem.',
@@ -233,6 +283,8 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'on-the-wire',
+					answer:
+						'Each message here is from one real run against a real server. Step through it to read the raw request and answer.',
 					title: 'What really goes over the wire?',
 					summary: 'The raw request and answer, from one real run.',
 					mode: 'advanced',
@@ -241,6 +293,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'redirect-uri-error',
+					answer:
+						'The address the app sent is not one registered for this client, so the server refuses before anyone logs in. It has to match what was registered, exactly.',
 					title: 'Why do I get Invalid parameter: redirect_uri?',
 					summary: 'Where the address is checked, and where it was registered.',
 					mode: 'advanced',
@@ -249,6 +303,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'what-is-in-my-token',
+					answer:
+						'Mostly the scopes and mappers of the client it was issued to, on the server that issued it. Open the token to see which setting put each thing there.',
 					title: 'Why does my access token say that?',
 					summary: 'Open it, and see which setting put each thing there.',
 					mode: 'advanced',
@@ -257,6 +313,8 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'everything',
+					answer: 'Still one diagram. This is as many settings as fit together, on the same flow.',
+					startsAtTheBeginning: 'It is about how far the whole diagram stretches.',
 					title: 'What does it all look like at once?',
 					summary: 'As much as fits together, to see how far one diagram stretches.',
 					mode: 'advanced',
@@ -319,13 +377,13 @@ export const stillAnswers = (of: MapNode, state: AppState) =>
 
 /** The node someone is at, going by what is on screen. Stepping through it is still being at it. */
 export function nodeMatching(state: AppState): MapNode | null {
+	// Only in the mode someone is in, because a question in the other one is not where they are.
 	const same = mapNodes.filter(
 		(candidate) =>
 			candidate.flow === state.flow &&
 			candidate.diagram === state.diagram &&
+			candidate.mode === state.mode &&
 			sameSettings(nodeSettings(candidate), state.settings)
 	);
-	const exact = same.find((candidate) => nodeState(candidate).step === state.step);
-	const inThisMode = same.find((candidate) => candidate.mode === state.mode);
-	return exact ?? inThisMode ?? same[0] ?? null;
+	return same.find((candidate) => nodeState(candidate).step === state.step) ?? same[0] ?? null;
 }

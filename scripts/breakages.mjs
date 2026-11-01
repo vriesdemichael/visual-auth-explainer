@@ -204,6 +204,46 @@ export const breakages = [
 		to: "if (kind === 'artifact' && id in artifacts) return { kind, id: id as ArtifactId };"
 	},
 
+	// Words.
+	{
+		name: 'words: a word used on screen has no explanation',
+		file: 'src/lib/flow/glossary.ts',
+		from: "words: ['issuer', 'issuers'],",
+		to: 'words: [],'
+	},
+	{
+		name: 'words: every use is marked',
+		file: 'src/lib/flow/glossary.ts',
+		from: 'if (!term || marked.has(term.id) || (term.vendor && !serverNamed)) continue;',
+		to: 'if (!term || (term.vendor && !serverNamed)) continue;'
+	},
+	{
+		name: 'words: one server is named with its notes off',
+		file: 'src/lib/flow/glossary.ts',
+		from: 'if (!term || marked.has(term.id) || (term.vendor && !serverNamed)) continue;',
+		to: 'if (!term || marked.has(term.id)) continue;'
+	},
+	{
+		name: 'words: a term points at something that is not there',
+		file: 'src/lib/flow/glossary.ts',
+		from: "at: flowAt('consent-page', { consent: true })\n\t},\n\t{\n\t\tid: 'consent',",
+		to: "at: flowAt('consent-page')\n\t},\n\t{\n\t\tid: 'consent',"
+	},
+
+	// Answers.
+	{
+		name: 'map: a question opens away from its answer, with no reason',
+		file: NODES,
+		from: "preset: 'broker',\n\t\t\t\t\tstep: 'redirect-to-upstream'",
+		to: "preset: 'broker'"
+	},
+	{
+		name: 'map: a question from another mode is where someone is',
+		file: NODES,
+		from: 'candidate.mode === state.mode &&',
+		to: ''
+	},
+
 	// The map.
 	{
 		name: 'map: the next question skips one',
@@ -220,9 +260,27 @@ export const breakages = [
 
 	// The diagram and the state.
 	{
+		name: 'layout: a head runs off the side',
+		file: LAYOUT,
+		from: 'Math.max(TIGHT_MARGIN, headFor(TIGHT_MARGIN) / 2 + 4)',
+		to: 'TIGHT_MARGIN'
+	},
+	{
+		name: 'layout: scales up past what can be followed',
+		file: LAYOUT,
+		from: 'clamp(room?.width ?? WIDTH, MIN_WIDTH, MAX_WIDTH)',
+		to: 'Math.max(room?.width ?? WIDTH, MIN_WIDTH)'
+	},
+	{
+		name: 'layout: rows ignore the height there is',
+		file: LAYOUT,
+		from: 'if (height === undefined) return ROW_HEIGHT;',
+		to: 'return ROW_HEIGHT;'
+	},
+	{
 		name: 'layout: chips can run out of the diagram',
 		file: LAYOUT,
-		from: 'let x = clamp(center - total / 2, 6, Math.max(6, WIDTH - total - 6));',
+		from: 'let x = clamp(center - total / 2, 6, Math.max(6, width - total - 6));',
 		to: 'let x = center - total / 2;'
 	},
 	{
