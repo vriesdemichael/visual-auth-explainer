@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { layHeld, layoutDiagram, SELF_LOOP, WIDTH } from '#lib/diagram/layout.ts';
+import { labelCentre, layHeld, layoutDiagram, SELF_LOOP, WIDTH } from '#lib/diagram/layout.ts';
 import { interpolate, toFrame, type Frame } from '#lib/diagram/motion.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
@@ -25,6 +25,25 @@ describe('layout', () => {
 			}
 		}
 	);
+
+	it('keeps a label off its step number, and inside the diagram', () => {
+		const half = (label: string) => (label.length * 7) / 2;
+		const wrong = allValidSettings().flatMap((settings) =>
+			(['simple', 'advanced'] as const).flatMap((mode) =>
+				[flow, setup].flatMap((diagram) =>
+					layoutDiagram(evaluate(diagram, settings), mode)
+						.rows.filter((row) => !row.self)
+						.flatMap((row) => {
+							const centre = labelCentre(row.x1, row.x2, row.label);
+							const clear = Math.abs(centre - row.x1) - half(row.label) >= 10;
+							const inside = centre - half(row.label) >= 0 && centre + half(row.label) <= WIDTH;
+							return clear && inside ? [] : [`${mode} ${row.id}: ${row.label}`];
+						})
+				)
+			)
+		);
+		expect([...new Set(wrong)]).toEqual([]);
+	});
 
 	// A label on a message to itself has only the room beside the lane, and nothing wraps it.
 	it('keeps the label of a message to itself inside the diagram', () => {

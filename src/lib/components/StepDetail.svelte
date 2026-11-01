@@ -112,9 +112,6 @@
 	{#if showChange}
 		<section class="change" data-testid="change-summary">
 			<h2>What changed</h2>
-			{#if changed}
-				<p class="why" data-testid="change-why">{settingDefs[changed].why}</p>
-			{/if}
 			<ul>
 				{#each summary as line (line)}<li>{line}</li>{/each}
 				{#each resets as reset (reset.setting)}
@@ -128,6 +125,9 @@
 					</li>
 				{/if}
 			</ul>
+			{#if changed}
+				<p class="why" data-testid="change-why">{settingDefs[changed].why}</p>
+			{/if}
 		</section>
 	{/if}
 </div>
@@ -235,10 +235,9 @@
 
 	.change {
 		margin-bottom: 16px;
-		padding: 10px 12px;
-		background: var(--fresh-soft);
-		border: 1px solid var(--fresh);
-		border-radius: 8px;
+		padding: 8px 10px;
+		background: var(--panel);
+		border-left: 3px solid var(--fresh);
 	}
 
 	.change h2 {
@@ -255,7 +254,7 @@
 	}
 
 	.why {
-		margin: 4px 0;
+		margin: 6px 0 0;
 		font-size: 12.5px;
 	}
 
@@ -303,8 +302,10 @@
 
 	.change ul {
 		margin: 4px 0 0;
-		padding-left: 16px;
+		padding: 0;
+		list-style: none;
 		font-size: 12.5px;
+		font-weight: 600;
 	}
 
 	.route {

@@ -14,6 +14,7 @@
 	import { layoutDiagram } from '#lib/diagram/layout.ts';
 	import {
 		diffViews,
+		changesInPlainWords,
 		evaluate,
 		holdingsAt,
 		isEmptyDiff,
@@ -21,7 +22,15 @@
 		type DiagramId,
 		type ViewDiff
 	} from '#lib/flow/model.ts';
-	import { settingDefs, type Reset, type SettingId, type Settings } from '#lib/flow/settings.ts';
+	import {
+		change as changeSetting,
+		defaultSettings,
+		settingDefs,
+		simpleSettingIds,
+		type Reset,
+		type SettingId,
+		type Settings
+	} from '#lib/flow/settings.ts';
 	import {
 		nextStep,
 		previousStep,
@@ -132,6 +141,26 @@
 				}
 			: null
 	);
+
+	// A switch that visibly does nothing here, because it is about the other diagram, reads as broken.
+	// So someone new is only offered the ones that do something, along with any they have left on.
+	const notHere = $derived(
+		appState.mode === 'simple'
+			? simpleSettingIds.filter((id) => {
+					if (appState.settings[id] !== defaultSettings[id]) return false;
+					const flipped = changeSetting(appState.settings, id, !appState.settings[id] as never);
+					return (
+						flipped.settings[id] !== appState.settings[id] &&
+						!changesInPlainWords(flow, appState.settings, flipped.settings) &&
+						changesInPlainWords(base.diagrams[otherDiagram], appState.settings, flipped.settings)
+					);
+				})
+			: []
+	);
+	const settingsElsewhere = $derived({
+		text: otherDiagram === 'flow' ? 'user flow' : 'setup',
+		href: hrefs[otherDiagram]
+	});
 
 	function setSetting<K extends SettingId>(id: K, value: Settings[K]) {
 		const result = withSetting(base, appState, id, value);
@@ -292,13 +321,18 @@
 			return;
 		}
 		const target = event.target as HTMLElement;
-		if (target.closest('input, select, textarea, [data-testid="source-panel"]')) return;
-		if (event.key === 'ArrowRight') {
+		// A switch has no use for these keys, and keeps the focus after it is clicked.
+		const typing = 'input:not([type="checkbox"]), select, textarea, [data-testid="source-panel"]';
+		if (target.closest(typing)) return;
+		const move = {
+			ArrowRight: forward,
+			ArrowLeft: back,
+			Home: () => goToStep(steps[0].id),
+			End: () => goToStep(steps[steps.length - 1].id)
+		}[event.key];
+		if (move) {
 			event.preventDefault();
-			forward();
-		} else if (event.key === 'ArrowLeft') {
-			event.preventDefault();
-			back();
+			move();
 		}
 	}
 </script>
@@ -339,6 +373,8 @@
 			onchange={setSetting}
 			serverNotes={appState.serverNotes}
 			onservernotes={(on) => onnavigate(withServerNotes(appState, on), 'push')}
+			{notHere}
+			elsewhere={settingsElsewhere}
 			onexplain={(id) => explain({ kind: 'setting', id })}
 			onopensource={(setting, ref) => onnavigate(withSourceOpen(appState, setting, ref), 'push')}
 		/>

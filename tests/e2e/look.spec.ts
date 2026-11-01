@@ -77,7 +77,7 @@ test.describe('what each has seen', () => {
 
 	test('builds up as the flow goes on', async ({ page }) => {
 		await open(page);
-		await expect(held(page, 'browser', 'password')).toBeVisible();
+		await expect(held(page, 'browser', 'password')).toHaveCount(0);
 		await expect(held(page, 'app', 'secret')).toBeVisible();
 		await expect(held(page, 'browser', 'code')).toHaveCount(0);
 

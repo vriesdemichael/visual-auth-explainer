@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { ICONS } from '#lib/diagram/icons.ts';
-	import { layHeld, ROW_OFFSET, SELF_LOOP, type DiagramLayout } from '#lib/diagram/layout.ts';
+	import {
+		labelCentre,
+		layHeld,
+		ROW_OFFSET,
+		SELF_LOOP,
+		type DiagramLayout
+	} from '#lib/diagram/layout.ts';
 	import { interpolate, toFrame, TRANSITION_MS, type Frame } from '#lib/diagram/motion.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 
@@ -32,6 +38,7 @@
 	let animating = $state(false);
 	let scroller = $state<HTMLElement>();
 	let drawn = untrack(() => layout);
+	const BREATHING_ROOM = 60;
 
 	$effect(() => {
 		// The first frame is already this layout, so a new diagram appears without moving.
@@ -62,12 +69,30 @@
 	const currentIndex = $derived(order.get(currentStep) ?? 0);
 	const currentRow = $derived(layout.rows[currentIndex]);
 
+	/** The current step stays on screen with room around it, whatever moved it there. */
+	function keepInView() {
+		const hit = scroller?.querySelector(`[data-step="${CSS.escape(currentStep)}"] .hit`);
+		if (!scroller || !hit) return;
+		const row = hit.getBoundingClientRect();
+		const view = scroller.getBoundingClientRect();
+		const room = Math.max(0, Math.min(BREATHING_ROOM, (view.height - row.height) / 2));
+		if (row.top - room < view.top) scroller.scrollTop -= view.top - (row.top - room);
+		else if (row.bottom + room > view.bottom) scroller.scrollTop += row.bottom + room - view.bottom;
+	}
+
+	// Every frame of a transition, because rows move under it, but not on someone scrolling by hand.
 	$effect(() => {
-		const row = scroller?.querySelector(`[data-step="${CSS.escape(currentStep)}"]`);
-		row?.scrollIntoView({ block: 'nearest' });
+		void frame;
+		keepInView();
 	});
 
-	const middle = (a: number, b: number) => (a + b) / 2;
+	$effect(() => {
+		if (!scroller) return;
+		const observer = new ResizeObserver(() => keepInView());
+		observer.observe(scroller);
+		return () => observer.disconnect();
+	});
+
 	const tipX = (x1: number, x2: number, draw: number) => x1 + (x2 - x1) * draw;
 	const headPoints = (x: number, y: number, direction: number) =>
 		`${x},${y} ${x - 8 * direction},${y - 4.5} ${x - 8 * direction},${y + 4.5}`;
@@ -116,7 +141,18 @@
 				<text class="role" x="-38" y="41">{lane.role}</text>
 				{#if !lane.leaving}
 					{#each layHeld(holdings[lane.id] ?? []) as chip (chip.artifact)}
-						<g class="held" data-artifact={chip.artifact} data-held={`${lane.id}:${chip.artifact}`}>
+						<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
+							     the lifeline's own explanation, which lists these as buttons. -->
+						<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+						<g
+							class="held"
+							data-artifact={chip.artifact}
+							data-held={`${lane.id}:${chip.artifact}`}
+							onclick={(event) => {
+								event.stopPropagation();
+								onexplainartifact?.(chip.artifact);
+							}}
+						>
 							<rect x={chip.x} y={chip.y} width={chip.width} height="16" rx="8" />
 							<text x={chip.x + chip.width / 2} y={chip.y + 11.5} text-anchor="middle">
 								{chip.text}
@@ -222,7 +258,12 @@
 							{row.label}
 						</text>
 					{:else}
-						<text class="label" x={middle(row.x1, row.x2)} y={row.y - 8} text-anchor="middle">
+						<text
+							class="label"
+							x={labelCentre(row.x1, row.x2, row.label)}
+							y={row.y - 8}
+							text-anchor="middle"
+						>
 							{row.label}
 						</text>
 					{/if}
@@ -276,7 +317,6 @@
 		flex: 1;
 		min-height: 0;
 		overflow-y: auto;
-		scroll-padding: 40px 0;
 	}
 
 	.body {

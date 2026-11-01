@@ -28,15 +28,16 @@
 	}
 
 	p {
+		max-width: 190px;
 		margin: 0;
 		color: var(--muted);
 		font-size: 12px;
-		white-space: nowrap;
+		line-height: 1.25;
 	}
 
 	@media (max-width: 767px) {
 		p {
-			white-space: normal;
+			max-width: none;
 		}
 	}
 </style>

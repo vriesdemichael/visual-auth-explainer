@@ -135,7 +135,7 @@ export const authorizationCodeSetup: FlowDef = {
 			to: 'upstream',
 			kind: 'human',
 			plain: 'Register with the other provider',
-			label: 'Register the identity provider as a client',
+			label: 'Register the IdP as a client',
 			concept:
 				'The identity provider is itself a client of the other provider, so it has to be registered there the same way.',
 			when: broker,

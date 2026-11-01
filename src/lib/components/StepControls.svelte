@@ -84,6 +84,7 @@
 
 	.track {
 		flex: 1;
+		min-width: 60px;
 		height: 4px;
 		margin: 0 8px;
 		border-radius: 2px;
