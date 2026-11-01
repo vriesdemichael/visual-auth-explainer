@@ -112,6 +112,17 @@ export interface StepDef {
 	when?: Condition;
 }
 
+/**
+ * A named stretch of a diagram, and the reason its steps are there. It runs until the next part
+ * starts, and steps are one ordered list, so where a step sits is what places it in a part.
+ */
+export interface PartDef {
+	label: string;
+	why: string;
+	/** Its first step, whether or not that step is there under the current settings. */
+	from: string;
+}
+
 /** Steps are one ordered list, so a toggle can only add, remove or reword, never reorder. */
 export interface DiagramDef {
 	id: string;
@@ -125,6 +136,7 @@ export interface DiagramDef {
 	specs: readonly SourceId[];
 	lifelines: readonly LifelineDef[];
 	groups: readonly GroupDef[];
+	parts: readonly PartDef[];
 	steps: readonly StepDef[];
 }
 
@@ -191,10 +203,18 @@ export interface Step {
 	causes: SettingId[];
 }
 
+/** A part as it is under the current settings, with the steps that are there. */
+export interface Part {
+	label: string;
+	why: string;
+	steps: string[];
+}
+
 export interface DiagramView {
 	lifelines: Lifeline[];
 	steps: Step[];
 	groups: GroupDef[];
+	parts: Part[];
 }
 
 export function resolveText(text: Text, settings: Settings): string {
@@ -223,6 +243,18 @@ function channelOf(flow: DiagramDef, step: StepDef): Channel {
 	if (step.kind === 'internal' || step.kind === 'time') return 'internal';
 	const front = flow.lifelines.some((l) => l.front && (l.id === step.from || l.id === step.to));
 	return front ? 'front' : 'back';
+}
+
+function partsOf(flow: DiagramDef, steps: readonly Step[]): Part[] {
+	const here = new Set(steps.map((step) => step.id));
+	const parts: Part[] = [];
+	for (const step of flow.steps) {
+		const starts = flow.parts.find((part) => part.from === step.id);
+		if (starts) parts.push({ label: starts.label, why: starts.why, steps: [] });
+		if (!parts.length) throw new Error(`${step.id} comes before the first part of ${flow.id}`);
+		if (here.has(step.id)) parts[parts.length - 1].steps.push(step.id);
+	}
+	return parts.filter((part) => part.steps.length);
 }
 
 export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
@@ -276,7 +308,8 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 					.map((held) => held.artifact)
 			})),
 		steps,
-		groups: flow.groups.filter((group) => present(group.when, settings))
+		groups: flow.groups.filter((group) => present(group.when, settings)),
+		parts: partsOf(flow, steps)
 	};
 }
 
@@ -300,6 +333,20 @@ export function holdingsAt(view: DiagramView, stepId: string): Record<string, Ar
 		if (step.id === stepId) break;
 	}
 	return held;
+}
+
+/** What a step adds to what each lifeline has seen, as `lifeline:artifact`. */
+export function arrivalsAt(view: DiagramView, stepId: string): Set<string> {
+	const at = view.steps.findIndex((step) => step.id === stepId);
+	const before: Record<string, readonly ArtifactId[]> =
+		at > 0
+			? holdingsAt(view, view.steps[at - 1].id)
+			: Object.fromEntries(view.lifelines.map((line) => [line.id, line.startsWith]));
+	return new Set(
+		Object.entries(holdingsAt(view, stepId)).flatMap(([line, held]) =>
+			held.filter((artifact) => !before[line].includes(artifact)).map((a) => `${line}:${a}`)
+		)
+	);
 }
 
 export interface ViewDiff {

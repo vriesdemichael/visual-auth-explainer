@@ -8,7 +8,7 @@ import {
 	type LabelLine,
 	type RowLayout
 } from '#lib/diagram/layout.ts';
-import { interpolate, toFrame, type Frame } from '#lib/diagram/motion.ts';
+import { interpolate, readingTime, toFrame, type Frame } from '#lib/diagram/motion.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { evaluate, holdingsAt } from '#lib/flow/model.ts';
@@ -406,9 +406,27 @@ describe('transitions', () => {
 		expect(row(early, 'upstream-authorize')?.opacity).toBe(0);
 		expect(row(early, 'upstream-authorize')?.draw).toBe(0);
 
+		const coming = interpolate(before, after, 0.6);
+		expect(row(coming, 'upstream-authorize')?.draw).toBeGreaterThan(0);
+		expect(row(coming, 'upstream-authorize')?.draw).toBeLessThan(1);
+		expect(row(coming, 'upstream-authorize')?.words).toBe(0);
+
 		const late = interpolate(before, after, 0.85);
-		expect(row(late, 'upstream-authorize')?.draw).toBeGreaterThan(0);
-		expect(row(late, 'upstream-authorize')?.draw).toBeLessThan(1);
+		expect(row(late, 'upstream-authorize')?.draw).toBe(1);
+		expect(row(late, 'upstream-authorize')?.words).toBeGreaterThan(0);
+		expect(row(late, 'upstream-authorize')?.words).toBeLessThan(1);
+	});
+
+	it('have something coming into the room before what made room has gone', () => {
+		const start = toFrame(layout());
+		const end = toFrame(layout({ attacker: true }));
+		const added = end.rows
+			.filter(({ id }) => !start.rows.some((row) => row.id === id))
+			.map(({ id }) => id);
+		expect(added.length).toBeGreaterThan(0);
+		// By the time the rows after them are half way, they are on their way.
+		const halfway = interpolate(start, end, 0.5);
+		for (const id of added) expect(row(halfway, id)?.opacity).toBeGreaterThan(0.05);
 	});
 
 	it('bring in a new field on a message that stays', () => {
@@ -419,10 +437,97 @@ describe('transitions', () => {
 		expect(row(middle, 'authorize')?.opacity).toBe(1);
 	});
 
+	describe.each([
+		['OpenID Connect', {}, { oidc: true }],
+		['an external provider', {}, { broker: true }],
+		['DPoP with a nonce', { oidc: true }, { oidc: true, binding: 'dpop', dpopNonce: true }],
+		['the attacker', {}, { attacker: true }],
+		['PKCE', {}, { pkce: true }],
+		['PKCE with the attacker', { attacker: true }, { attacker: true, pkce: true }],
+		['consent', {}, { consent: true }]
+	] as [string, Partial<Settings>, Partial<Settings>][])('filmed, turning on %s', (_, off, on) => {
+		const moments = Array.from({ length: 41 }, (_, i) => i / 40);
+
+		function drawn(frame: Frame) {
+			const words = frame.rows
+				.filter((row) => row.opacity > 0.05 && row.words > 0.05)
+				.flatMap((row) => row.lines.map((line) => lineBox(line)));
+			const chips = frame.chips
+				.filter((chip) => chip.opacity > 0.05)
+				.map((chip) => ({
+					what: chip.text,
+					left: chip.x,
+					right: chip.x + chip.width,
+					top: chip.y,
+					bottom: chip.y + 18
+				}));
+			return { words, chips };
+		}
+
+		it.each(['simple', 'advanced'] as Mode[])('no chip crosses any words, in %s mode', (mode) => {
+			for (const [a, b] of [
+				[off, on],
+				[on, off]
+			]) {
+				const start = toFrame(layout(a, mode));
+				const end = toFrame(layout(b, mode));
+				const wrong = new Set<string>();
+				for (const t of moments) {
+					const { words, chips } = drawn(interpolate(start, end, t));
+					for (const chip of chips) {
+						for (const line of words) {
+							if (overlap(chip, line)) wrong.add(`${chip.what} on "${line.what}"`);
+						}
+					}
+				}
+				expect([...wrong]).toEqual([]);
+			}
+		});
+
+		it('never loses what is staying', () => {
+			const start = toFrame(layout(off));
+			const end = toFrame(layout(on));
+			const staying = end.rows.filter(({ id }) => start.rows.some((row) => row.id === id));
+			for (const t of moments) {
+				const frame = interpolate(start, end, t);
+				for (const { id } of staying) {
+					expect(frame.rows.find((row) => row.id === id)?.opacity).toBe(1);
+				}
+			}
+		});
+	});
+
+	it('take words that change away and bring the new ones in, and swap them unseen', () => {
+		const start = toFrame(layout());
+		const end = toFrame(layout({ oidc: true }));
+		const id = start.rows.find((a) =>
+			end.rows.some((b) => b.id === a.id && b.label !== a.label)
+		)!.id;
+		expect(row(interpolate(start, end, 0), id)?.words).toBe(1);
+		expect(row(interpolate(start, end, 0.45), id)?.words).toBe(0);
+		expect(row(interpolate(start, end, 0.45), id)?.label).toBe(row(start, id)?.label);
+		expect(row(interpolate(start, end, 0.55), id)?.words).toBe(0);
+		expect(row(interpolate(start, end, 0.55), id)?.label).toBe(row(end, id)?.label);
+		expect(row(interpolate(start, end, 0.85), id)?.words).toBeGreaterThan(0);
+	});
+
 	it('continue smoothly when a toggle flips mid-transition', () => {
 		const middle = interpolate(before, after, 0.5);
 		const reversed = interpolate(middle, before, 0);
 		expect(row(reversed, 'token-request')?.y).toBeCloseTo(row(middle, 'token-request')!.y);
 		expect(interpolate(middle, before, 1)).toEqual(before);
+	});
+});
+
+describe('playing by itself', () => {
+	const words = (count: number) => Array.from({ length: count }, () => 'word').join(' ');
+
+	it('leaves longer for more to read', () => {
+		expect(readingTime(words(20))).toBeGreaterThan(readingTime(words(10)));
+	});
+
+	it('leaves a moment even for a word, and does not wait for ever', () => {
+		expect(readingTime('word')).toBeGreaterThanOrEqual(2000);
+		expect(readingTime(words(500))).toBeLessThanOrEqual(9000);
 	});
 });
