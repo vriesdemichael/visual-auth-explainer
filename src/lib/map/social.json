@@ -16,7 +16,7 @@
 	"calling-the-other-provider": "How does the app call the other provider's API?|The identity provider kept its tokens, and hands them over.|22|5",
 	"token-api-v2": "What changes with API V2 for stored tokens?|Only the access token, and the client has to be allowed to ask.|22|5",
 	"web-app": "A web app, set up the way it should be|On a server that can keep a secret, with OpenID Connect and PKCE.|17|4",
-	"browser-app": "An app that runs in the browser|No secret to keep, so PKCE does the work.|17|4",
+	"browser-app": "An app that runs in the browser|No secret to keep, so PKCE does the work. Recorded from a server standing in for it.|17|4",
 	"on-the-wire": "What really goes over the wire?|The raw request and answer, from one real run.|12|4",
 	"redirect-uri-error": "Why do I get Invalid parameter: redirect_uri?|Where the address is checked, and where it was registered.|12|4",
 	"what-is-in-my-token": "Why does my access token say that?|Open it, and see which setting put each thing there.|12|4",

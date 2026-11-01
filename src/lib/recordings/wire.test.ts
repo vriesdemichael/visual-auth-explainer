@@ -127,7 +127,7 @@ describe('following a value through a run', () => {
 		const names = trace.map((value) => value.name);
 		expect(names).not.toContain('client_id');
 		expect(names).not.toContain('redirect_uri');
-		expect(originOn('token-request', 'client_id')).toBeNull();
+		expect(originOn('token-request', 'redirect_uri')).toBeNull();
 	});
 
 	it('has each value once, where it first appears', () => {

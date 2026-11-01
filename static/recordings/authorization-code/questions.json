@@ -10,19 +10,43 @@
 			"after": {
 				"status": 200,
 				"says": null
+			},
+			"wildcard": {
+				"atTheEnd": {
+					"sameSite": 200,
+					"otherSite": 400
+				},
+				"alone": {
+					"sameSite": 200,
+					"otherSite": 200
+				}
+			}
+		},
+		"webOrigins": {
+			"before": {
+				"blocked": true,
+				"status": null
+			},
+			"after": {
+				"blocked": false,
+				"status": 200
 			}
 		},
 		"consentRequired": {
 			"before": {
-				"asked": false
+				"asked": false,
+				"audience": "account",
+				"hasRoles": true
 			},
 			"after": {
 				"asked": true,
 				"lists": [
-					"User roles",
 					"User profile",
-					"Email address"
+					"Email address",
+					"User roles"
 				],
+				"audience": "account",
+				"hasRoles": true,
 				"gotCode": true,
 				"secondLoginAsked": false,
 				"whenDeclined": "access_denied"
@@ -217,6 +241,36 @@
 				}
 			}
 		},
+		"stolenTokensAfterTheRealAppTried": {
+			"theRealApp": {
+				"status": 400,
+				"description": "Code not valid"
+			},
+			"before": {
+				"userinfo": 200,
+				"demoApi": 200
+			},
+			"after": {
+				"userinfo": 401,
+				"demoApi": 200
+			},
+			"refresh": {
+				"status": 400,
+				"error": "invalid_grant"
+			}
+		},
+		"theDemoChecks": {
+			"appWithAnotherState": 400,
+			"apiWithAGoodProof": 200,
+			"apiWithTheSameProofAgain": 401,
+			"apiWithNoProof": 401,
+			"apiAsBearer": 401,
+			"apiWithAnotherKey": 401,
+			"apiWithANoAudienceToken": {
+				"aud": null,
+				"status": 401
+			}
+		},
 		"wrongRedirectUri": {
 			"status": 400,
 			"location": null,
@@ -243,6 +297,9 @@
 			}
 		},
 		"storeTokens": {
+			"byDefault": {
+				"storeToken": false
+			},
 			"before": {
 				"status": 200,
 				"says": "a successful answer"
@@ -253,6 +310,9 @@
 			}
 		},
 		"storedTokensReadable": {
+			"byDefault": {
+				"addReadTokenRoleOnCreate": false
+			},
 			"before": {
 				"status": 200,
 				"says": "a successful answer"
@@ -318,6 +378,13 @@
 				"found": [
 					"Capability config",
 					"Client authentication"
+				],
+				"missing": []
+			},
+			"web-origins": {
+				"found": [
+					"Access settings",
+					"Web origins"
 				],
 				"missing": []
 			},

@@ -94,11 +94,15 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'valid-redirect-uris',
 		steps: ['authorize', 'create-client'],
 		title: 'Valid redirect URIs',
-		text: 'The addresses this client may send users back to. Anything else gets a 400, and the page says: Invalid parameter: redirect_uri.',
+		text: 'The addresses this client may send users back to. Anything else gets a 400, and the page says: Invalid parameter: redirect_uri. It does take a * at the end of an address, and * alone takes any site at all, which is the hole an exact match closes.',
 		place: clientSettings('Access settings', 'Valid redirect URIs'),
 		backedBy: {
 			question: 'validRedirectUris',
-			shows: { before: { status: 400 }, after: { status: 200 } }
+			shows: {
+				before: { status: 400 },
+				after: { status: 200 },
+				wildcard: { atTheEnd: { otherSite: 400 }, alone: { otherSite: 200 } }
+			}
 		}
 	},
 	{
@@ -118,8 +122,14 @@ export const noteDefs: readonly NoteDef[] = [
 		backedBy: {
 			question: 'consentRequired',
 			shows: {
-				before: { asked: false },
-				after: { asked: true, secondLoginAsked: false, whenDeclined: 'access_denied' }
+				before: { asked: false, audience: 'account', hasRoles: true },
+				after: {
+					asked: true,
+					secondLoginAsked: false,
+					whenDeclined: 'access_denied',
+					audience: 'account',
+					hasRoles: true
+				}
 			}
 		}
 	},
@@ -140,6 +150,18 @@ export const noteDefs: readonly NoteDef[] = [
 		backedBy: {
 			question: 'clientAuthentication',
 			shows: { before: { status: 401 }, after: { status: 200 } }
+		}
+	},
+	{
+		id: 'web-origins',
+		steps: ['token-request'],
+		title: 'Web origins',
+		text: "An app that runs in the page makes this request from the page, so the browser only lets it read the answer if the app's address is listed here. Otherwise it gets a CORS error, with the tokens in an answer it cannot read. The app in this recording is a server standing in for one, which needs nothing here.",
+		when: not(confidential),
+		place: clientSettings('Access settings', 'Web origins'),
+		backedBy: {
+			question: 'webOrigins',
+			shows: { before: { blocked: true }, after: { blocked: false, status: 200 } }
 		}
 	},
 	{
@@ -198,6 +220,22 @@ export const noteDefs: readonly NoteDef[] = [
 		seen: 'Tried with each kind of client, with and without PKCE, on'
 	},
 	{
+		id: 'code-used-twice',
+		steps: ['real-app-refused'],
+		title: 'A code used twice',
+		text: 'Keycloak cancels what the code got when someone uses it again: after this, UserInfo says 401 to their access token and their refresh token is refused. The demo API only checks the signature, so it goes on answering until the token expires, and so would yours.',
+		when: not(pkce),
+		backedBy: {
+			question: 'stolenTokensAfterTheRealAppTried',
+			shows: {
+				before: { userinfo: 200, demoApi: 200 },
+				after: { userinfo: 401, demoApi: 200 },
+				refresh: { status: 400 }
+			}
+		},
+		seen: 'Tried on'
+	},
+	{
 		id: 'client-scopes',
 		steps: ['token-response'],
 		title: 'Client scopes',
@@ -234,7 +272,7 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'audience',
 		steps: ['api-check-token'],
 		title: 'Audience mapper',
-		text: "A default client's access token names account as its audience, not your API, so an API that checks the audience refuses it. Add an Audience mapper to the client's dedicated scope to name your API.",
+		text: "A default client's access token names account as its audience, not your API, so an API that checks the audience refuses it. Add an Audience mapper to the client's dedicated scope to name your API. The demo API here is told to accept account, so that it can run against a default client.",
 		place: {
 			path: [
 				'Clients',
@@ -319,7 +357,11 @@ export const noteDefs: readonly NoteDef[] = [
 		place: providerSettings('Store tokens'),
 		backedBy: {
 			question: 'storeTokens',
-			shows: { before: { status: 200 }, after: { status: 400 } }
+			shows: {
+				byDefault: { storeToken: false },
+				before: { status: 200 },
+				after: { status: 400 }
+			}
 		}
 	},
 	{

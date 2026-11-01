@@ -662,8 +662,14 @@ export const authorizationCode: FlowDef = {
 				{ name: 'grant_type=authorization_code', place: 'body' },
 				{ name: 'code', place: 'body', artifact: 'code' },
 				{ name: 'redirect_uri', place: 'body' },
-				{ name: 'client_id', place: 'body' },
-				{ name: 'client_secret', place: 'body', artifact: 'secret', when: confidential },
+				{ name: 'client_id', place: 'body', when: not(confidential) },
+				{
+					name: 'Authorization: Basic',
+					place: 'header',
+					note: 'The client ID and secret',
+					artifact: 'secret',
+					when: confidential
+				},
 				{
 					name: 'code_verifier',
 					place: 'body',
@@ -722,7 +728,7 @@ export const authorizationCode: FlowDef = {
 					text: 'A code works once, and this server counts a failed try as that once, which the specs do not ask for. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
 				},
 				{
-					text: 'A code works once, and it has been used. So the app gets nothing, the user sees an error, and someone else has their tokens.'
+					text: 'A code works once, and it has been used, so the app gets nothing and the user sees an error. The specs advise the server to cancel what that code got, and this one does. But someone else has had the tokens by then, and an API that only checks the signature goes on taking them until they expire.'
 				}
 			],
 			when: codeGone,

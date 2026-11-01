@@ -123,6 +123,10 @@ Recorded on 2026-11-01 with `pnpm record`, against `quay.io/keycloak/keycloak:26
 | Does a refused try use up the code? | It depends where it was refused. When the PKCE check fails the code is gone, and the real app gets `Code not valid`, so someone with only the code can still spoil a login that PKCE protects. When client authentication fails the code survives, and the real app still got its tokens |
 | What does a server say about the feature flags the settings name? | `dpop` and `identity-brokering-api:v1` are `DEFAULT` and on, and `identity-brokering-api:v2` is `DISABLED_BY_DEFAULT` and off, from `/admin/serverinfo`. The server does not call V1 deprecated, and the 26.8.1 docs do, so a badge says which is which. `pnpm record --check` fails when these change |
 | What does a wrong redirect URI do? | 400 with `Invalid parameter: redirect_uri`, and no redirect |
+| What does a wildcard in Valid redirect URIs let through? | `http://app/*` takes any path on that site, and refuses another site with a 400. `*` alone takes any site at all |
+| Do stolen tokens survive the real app trying the same code? | Keycloak cancels what the code got, as RFC 6749 section 4.1.2 advises: UserInfo goes from 200 to 401, and the refresh token gets 400 `invalid_grant`. An API that only checks the signature still answers 200, until the token expires |
+| What does Web origins do? | On a public client with the list empty, a token request from the page is blocked by the browser. With the app's address listed, it gets a 200. A client created through the admin API with no list copies it from its redirect URIs, so this has to start from an empty one |
+| Does Consent required change what is in the token? | Turned on afterwards, as someone does in the console, no: the token has the same audience and roles. Set when a client is created through the admin API, it also turns off Full scope allowed, and the token then has no roles and no audience. **The recorder did this until 2026-11-01, and nothing noticed, because the demo API did not check the audience** |
 
 What changing a setting on a real server does, each one a real login before and after. These are what the Keycloak notes rest on, and the admin console was walked on the same version to see that each setting is where a note says.
 
@@ -153,10 +157,12 @@ What else the recordings changed or showed:
 
 ## What the content has and has not been checked against
 
-- **Recorded on Keycloak 26.8.1:** every message on the wire, in all thirteen named states, apart from the nonce retry.
+- **Recorded on Keycloak 26.8.1:** every message the identity provider takes part in, in all eighteen named states, apart from the nonce retry.
+- **From the demo app and API:** every message between the browser, the app and the API, in the same runs. They do the checks the steps say they do, in `scripts/record/checks.ts`, and a run stops if one fails, so a success in a recording means they looked. `theDemoChecks` in `questions.json` shows them refusing. That proves the check works once someone writes it, and says nothing about a server.
+- **A stand-in:** the app that runs in the browser is recorded from a server. The messages are the same, and where they come from is not. A real call from a page is in `webOrigins`, for what the browser adds.
 - **Read in RFC 9449, not seen on Keycloak:** the nonce retry with `use_dpop_nonce` and `DPoP-Nonce`. The nonce is the server's choice, so it is a setting and not part of DPoP itself, and the application marks these messages.
-- **Not on the wire, so not recorded:** what people do in setup, which the recorder does through the admin API instead.
-- **From general knowledge, not checked:** the concept texts.
+- **Not on the wire, so not recorded:** what people do in setup, which the recorder does through the admin API instead. So a note's "changed this" means through that API, and the console was only checked to have the label on that page.
+- **Audited once, not held by a test:** the concept texts. A reader who had not seen the project compared them with the RFCs and the recordings on 2026-11-01, and the corrections are in pull requests 34 and 35. OpenID Connect Core is not in the repository, so what rests on it is from memory.
 
 ## The entry and the format
 

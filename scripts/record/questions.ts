@@ -2,9 +2,11 @@
 // claim in the flow data can be held against it (docs/research/followup-checks.md).
 import { createHash, generateKeyPairSync, randomBytes, sign } from 'node:crypto';
 import type { Browser } from '@playwright/test';
+import { defaultSettings } from '#lib/flow/settings.ts';
 import type { Demo } from './demo.ts';
 import {
 	Admin,
+	API,
 	APP,
 	BROKERED_REALM,
 	CLIENT_SECRET,
@@ -199,6 +201,76 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 	}
 
 	{
+		// What a wildcard lets through. The attacker's address is only ever asked about, never visited.
+		const client = await freshClient(admin, 'note-wildcard');
+		const ask = async (redirectUri: string) => {
+			const answer = await fetch(
+				`${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/auth?${new URLSearchParams({
+					response_type: 'code',
+					client_id: 'note-wildcard',
+					redirect_uri: redirectUri,
+					state: random()
+				})}`,
+				{ redirect: 'manual' }
+			);
+			await answer.text();
+			return answer.status;
+		};
+		const attackers = 'https://someone-else.test/callback';
+		await change(client, { redirectUris: [`${APP}/*`] });
+		const atTheEnd = { sameSite: await ask(`${APP}/elsewhere`), otherSite: await ask(attackers) };
+		await change(client, { redirectUris: ['*'] });
+		answers.validRedirectUris = {
+			...(answers.validRedirectUris as object),
+			wildcard: {
+				atTheEnd,
+				alone: { sameSite: await ask(`${APP}/elsewhere`), otherSite: await ask(attackers) }
+			}
+		};
+	}
+
+	{
+		// A public client in a page calls the token endpoint from that page, so the browser has a say.
+		// Created through this API with none, a client copies them from its redirect URIs. In the
+		// console it starts with the list empty, so that is what this starts from.
+		const client = await freshClient(admin, 'note-origins', { publicClient: true, webOrigins: [] });
+		const fromThePage = async () => {
+			const { code } = await codeFor(browser, demo, LOCAL_REALM, 'note-origins');
+			const context = await browser.newContext();
+			const page = await context.newPage();
+			await page.goto(`${APP}/callback`);
+			const result = await page.evaluate(
+				async ({ url, body }) => {
+					try {
+						const answer = await fetch(url, {
+							method: 'POST',
+							headers: { 'content-type': 'application/x-www-form-urlencoded' },
+							body
+						});
+						return { blocked: false, status: answer.status };
+					} catch {
+						return { blocked: true, status: null };
+					}
+				},
+				{
+					url: `${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/token`,
+					body: new URLSearchParams({
+						grant_type: 'authorization_code',
+						code,
+						redirect_uri: REDIRECT_URI,
+						client_id: 'note-origins'
+					}).toString()
+				}
+			);
+			await context.close();
+			return result;
+		};
+		const before = await fromThePage();
+		await change(client, { webOrigins: [APP] });
+		answers.webOrigins = { before, after: await fromThePage() };
+	}
+
+	{
 		const client = await freshClient(admin, 'note-consent');
 		const logIn = async (answer?: 'accept' | 'cancel') => {
 			const context = await browser.newContext();
@@ -225,7 +297,25 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 			}
 			const landed = new URL(page.url());
 			await context.close();
-			return { asked, lists, error: landed.searchParams.get('error'), code: demo.lastCode };
+			const code = demo.lastCode;
+			const tokens = code
+				? await token(LOCAL_REALM, {
+						grant_type: 'authorization_code',
+						code,
+						redirect_uri: REDIRECT_URI,
+						client_id: 'note-consent',
+						client_secret: CLIENT_SECRET
+					})
+				: null;
+			const claims = tokens?.json.access_token ? claimsOf(tokens.json.access_token) : null;
+			return {
+				asked,
+				lists,
+				error: landed.searchParams.get('error'),
+				code,
+				audience: claims?.aud ?? null,
+				hasRoles: claims ? 'realm_access' in claims : null
+			};
 		};
 		const before = await logIn();
 		await change(client, { consentRequired: true });
@@ -233,10 +323,12 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 		const agreed = await logIn('accept');
 		const again = await logIn();
 		answers.consentRequired = {
-			before: { asked: before.asked },
+			before: { asked: before.asked, audience: before.audience, hasRoles: before.hasRoles },
 			after: {
 				asked: agreed.asked,
 				lists: agreed.lists,
+				audience: agreed.audience,
+				hasRoles: agreed.hasRoles,
 				gotCode: Boolean(agreed.code),
 				secondLoginAsked: again.asked,
 				whenDeclined: declined.error
@@ -364,6 +456,22 @@ async function behindTheBrokeringNotes(browser: Browser, demo: Demo, admin: Admi
 	const setProvider = (changes: object) =>
 		admin.call('PUT', onProvider, { ...provider, ...changes });
 
+	// Whether a provider stores anything if nobody says so.
+	await admin.call('POST', `/realms/${BROKERED_REALM}/identity-provider/instances`, {
+		alias: 'on-its-defaults',
+		providerId: 'oidc',
+		config: { authorizationUrl: `${KEYCLOAK}/x`, tokenUrl: `${KEYCLOAK}/x`, clientId: 'x' }
+	});
+	// Left out of the answer when false, which is itself how it comes back from the server.
+	const byDefault = await admin.call<{ storeToken?: boolean; addReadTokenRoleOnCreate?: boolean }>(
+		'GET',
+		`/realms/${BROKERED_REALM}/identity-provider/instances/on-its-defaults`
+	);
+	await admin.call(
+		'DELETE',
+		`/realms/${BROKERED_REALM}/identity-provider/instances/on-its-defaults`
+	);
+
 	const before = await storedTokenStatus(browser, demo, admin);
 	await setProvider({ storeToken: false });
 	const storeOff = await storedTokenStatus(browser, demo, admin);
@@ -399,8 +507,16 @@ async function behindTheBrokeringNotes(browser: Browser, demo: Demo, admin: Admi
 	const notRedirecting = await authorize();
 
 	return {
-		storeTokens: { before, after: storeOff },
-		storedTokensReadable: { before, after: readableOff },
+		storeTokens: {
+			byDefault: { storeToken: Boolean(byDefault.storeToken) },
+			before,
+			after: storeOff
+		},
+		storedTokensReadable: {
+			byDefault: { addReadTokenRoleOnCreate: Boolean(byDefault.addReadTokenRoleOnCreate) },
+			before,
+			after: readableOff
+		},
 		brokerRedirector: { before: redirecting, after: notRedirecting }
 	};
 }
@@ -516,6 +632,96 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 				...secret,
 				code_verifier: random() + random()
 			})
+		};
+	}
+
+	// Do the tokens someone stole survive the real app then trying the same code? RFC 6749 section
+	// 4.1.2 says a server should revoke them.
+	{
+		const { code } = await codeFor(browser, demo, LOCAL_REALM, PUBLIC_CLIENT, { scope: 'openid' });
+		const body = {
+			grant_type: 'authorization_code',
+			code,
+			redirect_uri: REDIRECT_URI,
+			client_id: PUBLIC_CLIENT
+		};
+		const stolen = await token(LOCAL_REALM, body);
+		const userinfo = `${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/userinfo`;
+		const bearer = { authorization: `Bearer ${stolen.json.access_token}` };
+		const looks = async () => ({
+			userinfo: (await statusOf(userinfo, bearer)).status,
+			demoApi: (await statusOf(`${API}/resource`, bearer)).status
+		});
+		const before = await looks();
+		const theRealApp = await token(LOCAL_REALM, body);
+		const after = await looks();
+		const refresh = await token(LOCAL_REALM, {
+			grant_type: 'refresh_token',
+			refresh_token: stolen.json.refresh_token,
+			client_id: PUBLIC_CLIENT
+		});
+		answers.stolenTokensAfterTheRealAppTried = {
+			theRealApp: { status: theRealApp.status, description: theRealApp.json.error_description },
+			before,
+			after,
+			refresh: { status: refresh.status, error: refresh.json.error ?? null }
+		};
+	}
+
+	// The demo's own checks, because a step says it makes them and a recording only shows them pass.
+	{
+		const proof = proofKey();
+		const { code } = await codeFor(browser, demo, LOCAL_REALM, CONFIDENTIAL_CLIENT);
+		const url = `${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/token`;
+		const bound = await token(LOCAL_REALM, confidentialBody(code), { dpop: proof('POST', url) });
+		const accessToken = bound.json.access_token;
+		const resource = `${API}/resource`;
+		const ath = { ath: sha256(accessToken) };
+		const dpop = { authorization: `DPoP ${accessToken}` };
+		const used = proof('GET', resource, ath);
+
+		const noAudience = await freshClient(admin, 'note-no-audience');
+		const scopes = await admin.call<{ id: string; name: string }[]>(
+			'GET',
+			`/realms/${LOCAL_REALM}/clients/${noAudience.id}/default-client-scopes`
+		);
+		for (const scope of scopes.filter(({ name }) => name === 'roles')) {
+			await admin.call(
+				'DELETE',
+				`/realms/${LOCAL_REALM}/clients/${noAudience.id}/default-client-scopes/${scope.id}`
+			);
+		}
+		const other = await tokensFor(browser, demo, 'note-no-audience');
+		const stateCheck = await (async () => {
+			const run = {
+				settings: defaultSettings,
+				realm: LOCAL_REALM,
+				clientId: CONFIDENTIAL_CLIENT,
+				clientSecret: CLIENT_SECRET,
+				messages: []
+			};
+			await demo.discover(run);
+			demo.current = run;
+			await fetch(APP, { redirect: 'manual' });
+			const answer = await fetch(`${APP}/callback?code=whatever&state=not-what-it-sent`);
+			demo.current = null;
+			return answer.status;
+		})();
+
+		answers.theDemoChecks = {
+			appWithAnotherState: stateCheck,
+			apiWithAGoodProof: (await statusOf(resource, { ...dpop, dpop: used })).status,
+			apiWithTheSameProofAgain: (await statusOf(resource, { ...dpop, dpop: used })).status,
+			apiWithNoProof: (await statusOf(resource, dpop)).status,
+			apiAsBearer: (await statusOf(resource, { authorization: `Bearer ${accessToken}` })).status,
+			apiWithAnotherKey: (
+				await statusOf(resource, { ...dpop, dpop: proofKey()('GET', resource, ath) })
+			).status,
+			apiWithANoAudienceToken: {
+				aud: claimsOf(other.json.access_token).aud ?? null,
+				status: (await statusOf(resource, { authorization: `Bearer ${other.json.access_token}` }))
+					.status
+			}
 		};
 	}
 
