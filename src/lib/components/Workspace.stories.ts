@@ -27,6 +27,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const SeenAsTheBrowser: Story = {
+	args: { state: parseState(base, 'flow', 'eyes=browser&step=token-response') }
+};
+
 export const AtAStepWithFields: Story = {
 	args: { state: parseState(base, 'flow', 'oidc=1&step=token-response') }
 };

@@ -46,15 +46,20 @@ export interface AppState {
 	serverNotes: boolean;
 	/** The settings put out of the way, to give the diagram the room, such as on a projector. */
 	settingsHidden: boolean;
+	/** The one party whose view to show, when it is not everyone's. */
+	eyes: string | null;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
 const SERVER_NOTES_PARAM = 'keycloak';
 const SETTINGS_PANEL_PARAM = 'settings';
+const EYES_PARAM = 'eyes';
 
 const diagramOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
 const viewOf = (base: BaseFlow, state: AppState) =>
 	evaluate(diagramOf(base, state), state.settings);
+const onTheDiagram = (view: DiagramView, party: string | null) =>
+	view.lifelines.some((line) => line.id === party) ? party : null;
 
 /** The requested step if it is on screen, otherwise the nearest earlier one that is (ADR-003). */
 export function resolveStep(flow: DiagramDef, view: DiagramView, requested: string | null): string {
@@ -113,16 +118,18 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 	const { settings } = normalize({ ...defaultSettings, ...requested });
 	const diagram = diagramFor(base, onPath, params);
 	const flow = base.diagrams[diagram];
+	const view = evaluate(flow, settings);
 	return {
 		flow: base.id,
 		diagram,
 		mode: params.get('mode') === 'advanced' ? 'advanced' : 'simple',
 		settings,
-		step: resolveStep(flow, evaluate(flow, settings), params.get('step')),
+		step: resolveStep(flow, view, params.get('step')),
 		source: parseSource(params),
 		explained: parseExplained(base, diagram, params.get('explain')),
 		serverNotes: params.get(SERVER_NOTES_PARAM) !== 'off',
-		settingsHidden: params.get(SETTINGS_PANEL_PARAM) === 'off'
+		settingsHidden: params.get(SETTINGS_PANEL_PARAM) === 'off',
+		eyes: onTheDiagram(view, params.get(EYES_PARAM))
 	};
 }
 
@@ -144,6 +151,7 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	if (state.explained) params.set('explain', `${state.explained.kind}.${state.explained.id}`);
 	if (!state.serverNotes) params.set(SERVER_NOTES_PARAM, 'off');
 	if (state.settingsHidden) params.set(SETTINGS_PANEL_PARAM, 'off');
+	if (state.eyes) params.set(EYES_PARAM, state.eyes);
 	return params.toString();
 }
 
@@ -167,7 +175,8 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		source: null,
 		explained: null,
 		serverNotes: true,
-		settingsHidden: false
+		settingsHidden: false,
+		eyes: null
 	});
 }
 
@@ -179,8 +188,9 @@ export function withSetting<K extends SettingId>(
 ): { state: AppState; resets: Reset[] } {
 	const { settings, resets } = change(state.settings, id, value);
 	const flow = diagramOf(base, state);
-	const step = resolveStep(flow, evaluate(flow, settings), state.step);
-	return { state: { ...state, settings, step }, resets };
+	const view = evaluate(flow, settings);
+	const step = resolveStep(flow, view, state.step);
+	return { state: { ...state, settings, step, eyes: onTheDiagram(view, state.eyes) }, resets };
 }
 
 /** Switching diagrams keeps the settings. A step only means something in its own diagram. */
@@ -191,10 +201,12 @@ export function withDiagram(
 	step: string | null = null
 ): AppState {
 	const flow = base.diagrams[diagram];
+	const view = evaluate(flow, state.settings);
 	return {
 		...state,
 		diagram,
-		step: resolveStep(flow, evaluate(flow, state.settings), step),
+		step: resolveStep(flow, view, step),
+		eyes: onTheDiagram(view, state.eyes),
 		// A lifeline only means something in its own diagram.
 		explained: state.explained?.kind === 'lifeline' ? null : state.explained
 	};
@@ -212,6 +224,10 @@ export function withServerNotes(state: AppState, serverNotes: boolean): AppState
 
 export function withSettingsHidden(state: AppState, settingsHidden: boolean): AppState {
 	return { ...state, settingsHidden };
+}
+
+export function withEyes(state: AppState, eyes: string | null): AppState {
+	return { ...state, eyes };
 }
 
 export function withExplained(state: AppState, explained: Explained | null): AppState {

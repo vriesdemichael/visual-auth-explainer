@@ -11,6 +11,8 @@ export interface Line {
 	name?: string;
 	/** The value itself, where the message has it encoded. */
 	decoded?: string;
+	/** How long a value someone was not sent is, which is all they get of it. */
+	hidden?: number;
 }
 
 export const lineText = (line: Line) => `${line.before}${line.value ?? ''}${line.after ?? ''}`;
@@ -136,6 +138,38 @@ export function rawLines(
 			: [{ before: `HTTP ${message.status}` }];
 	const headers = serverNamed ? message.headers : withoutServerName(message.headers);
 	return [...first, ...headerLines(headers), ...bodyLines(message)];
+}
+
+/**
+ * A message as someone who was not part of it has it: what kind of thing was there, and how long, with
+ * no value in it at all, so that it is not on the page to be selected or read out.
+ */
+export function redactedLines(lines: readonly Line[]): Line[] {
+	return lines.map((line, i) => {
+		if (line.value !== undefined) {
+			return { before: line.before, hidden: line.value.length, after: line.after };
+		}
+		// How it starts, such as POST and a path, which is what the arrow and the number say anyway.
+		if (i === 0 || !line.before.trim() || /^\s*[{}[\]],?$/.test(line.before)) return line;
+		const named = line.before.match(/^(\s*"?[\w-]+"?: ?)(.*?)(,?)$/);
+		return named
+			? { before: named[1], hidden: named[2].length, after: named[3] }
+			: { before: '', hidden: line.before.length };
+	});
+}
+
+/** The values of a run that someone was sent by now, wherever each one first appeared. */
+export function valuesSeen(
+	recording: Recording,
+	trace: readonly RunValue[],
+	seesStep: (step: string) => boolean,
+	soFar: (step: string) => boolean
+): RunValue[] {
+	const text = recording.messages
+		.filter(({ step }) => step !== null && seesStep(step) && soFar(step))
+		.flatMap((message) => rawLines(message).map(lineText))
+		.join('\n');
+	return trace.filter(({ value }) => text.includes(value));
 }
 
 /** Names of what a run makes up as it goes, as opposed to what stays the same on every run. */
