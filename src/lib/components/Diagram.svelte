@@ -21,6 +21,10 @@
 		lit?: Lit | null;
 		/** What each lifeline has seen, up to the current step. */
 		holdings?: Readonly<Record<string, readonly ArtifactId[]>>;
+		/** The step whose message is on its way, when someone just sent it. */
+		sending?: string | null;
+		/** What it adds to what they have seen, as `lifeline:artifact`, to show when it gets there. */
+		landing?: ReadonlySet<string>;
 		onselect?: (step: string) => void;
 		onexplainlifeline?: (id: string) => void;
 		onexplainartifact?: (id: ArtifactId) => void;
@@ -33,6 +37,8 @@
 		animate = true,
 		lit = null,
 		holdings = {},
+		sending = null,
+		landing = new Set(),
 		onselect,
 		onexplainlifeline,
 		onexplainartifact
@@ -76,6 +82,12 @@
 	const order = $derived(new Map(layout.rows.map((row, i) => [row.id, i])));
 	const currentIndex = $derived(order.get(currentStep) ?? 0);
 	const currentRow = $derived(layout.rows[currentIndex]);
+	// An arrow to travel, because what stays with one lifeline and time going by have nothing to carry.
+	const travelling = $derived(
+		layout.rows.find((row) => row.id === sending && row.kind !== 'time' && !row.self)?.id ?? null
+	);
+	const carries = (step: string) =>
+		frame.chips.some((chip) => chip.step === step && chip.artifact && !chip.leaving);
 
 	const boxOf = (step: string) =>
 		scroller?.querySelector(`[data-step="${CSS.escape(step)}"] .hit`)?.getBoundingClientRect() ??
@@ -189,6 +201,7 @@
 							<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 							<g
 								class="held"
+								class:landing={travelling && landing.has(`${lane.id}:${chip.artifact}`)}
 								data-artifact={chip.artifact}
 								data-held={`${lane.id}:${chip.artifact}`}
 								onclick={(event) => {
@@ -249,6 +262,7 @@
 					class={`row ${row.kind} ${row.channel} ${state}`}
 					class:fresh={fresh.has(row.id)}
 					class:lit={lit?.step === row.id}
+					class:sending={travelling === row.id}
 					style:opacity={row.opacity}
 					data-step={row.leaving ? undefined : row.id}
 					data-state={state}
@@ -297,17 +311,16 @@
 					{:else}
 						<line x1={row.x1} x2={tip} y1={row.y} y2={row.y} />
 						<polygon points={headPoints(tip, row.y, Math.sign(row.x2 - row.x1) || 1)} />
-						{#if state === 'current' && !row.leaving}
-							<!-- Restarts on every step, so the message visibly travels from one to the other. -->
-							{#key currentStep}
-								<circle
-									class="packet"
-									cx={row.x1}
-									cy={row.y}
-									r="5"
-									style:--travel={`${row.x2 - row.x1}px`}
-								/>
-							{/key}
+						{#if travelling === row.id && !row.leaving}
+							<!-- Hollow when it has no token or secret in it, like a refusal, so nothing lands. -->
+							<circle
+								class="packet"
+								class:empty={!carries(row.id)}
+								cx={row.x1}
+								cy={row.y}
+								r="5"
+								style:--travel={`${row.x2 - row.x1}px`}
+							/>
 						{/if}
 					{/if}
 					<g class="number" transform={`translate(${row.x1} ${row.self ? row.y - 6 : row.y})`}>
@@ -315,7 +328,7 @@
 						<text y="3.7" text-anchor="middle">{row.number}</text>
 					</g>
 					<!-- The spaces are for anything reading this, because lines are only places on a screen. -->
-					<text class="label">
+					<text class="label" style:--words={row.words}>
 						{#each row.lines as line, l (l)}
 							<tspan x={line.x} y={line.y} text-anchor={line.anchor}>{`${line.text} `}</tspan>
 						{/each}
@@ -330,6 +343,7 @@
 				<g
 					class={`chip ${state}`}
 					class:fresh={fresh.has(chip.id) || fresh.has(chip.step)}
+					class:sending={travelling === chip.step}
 					style:opacity={chip.opacity}
 					data-chip={chip.leaving ? undefined : chip.id}
 					data-artifact={chip.artifact}
@@ -352,6 +366,7 @@
 
 <style>
 	.diagram {
+		--send: 350ms;
 		display: flex;
 		flex-direction: column;
 		height: 100%;
@@ -603,6 +618,7 @@
 		stroke-width: 7px;
 		stroke-linejoin: round;
 		fill: var(--muted);
+		opacity: var(--words, 1);
 	}
 
 	/* Only what has happened is spelled out. Ahead there is just the shape of what is to come. */
@@ -619,7 +635,7 @@
 	.row.future:hover .label,
 	.row.future:focus-visible .label,
 	.row.fresh .label {
-		opacity: 1;
+		opacity: var(--words, 1);
 	}
 
 	/* Only the current step is filled in. What has happened stays readable, and quiet. */
@@ -713,12 +729,25 @@
 		stroke-width: 2.6;
 	}
 
+	/* The one thing that moves on Next, and only there. What it carries shows when it gets there. */
 	.packet {
 		fill: var(--row);
 		stroke: var(--accent-soft);
 		stroke-width: 2;
 		opacity: 0;
-		animation: travel 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+		animation: travel var(--send) ease-in-out;
+	}
+
+	.packet.empty {
+		fill: var(--accent-soft);
+		stroke: var(--row);
+		stroke-width: 1.6;
+	}
+
+	.row.sending .label,
+	.chip.sending,
+	.held.landing {
+		animation: lands 150ms var(--send) backwards;
 	}
 
 	@keyframes travel {
@@ -727,18 +756,26 @@
 			opacity: 1;
 		}
 
-		85% {
-			opacity: 1;
-		}
-
 		to {
 			transform: translateX(var(--travel));
+			opacity: 1;
+		}
+	}
+
+	@keyframes lands {
+		from {
 			opacity: 0;
 		}
 	}
 
 	@media (prefers-reduced-motion: reduce) {
 		.packet {
+			display: none;
+		}
+
+		.row.sending .label,
+		.chip.sending,
+		.held.landing {
 			animation: none;
 		}
 	}

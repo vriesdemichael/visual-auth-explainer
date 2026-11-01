@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
-import { diffViews, evaluate, holdingsAt, isEmptyDiff, type DiagramId } from '#lib/flow/model.ts';
+import {
+	arrivalsAt,
+	diffViews,
+	evaluate,
+	holdingsAt,
+	isEmptyDiff,
+	type DiagramId
+} from '#lib/flow/model.ts';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import {
 	allValidSettings,
@@ -10,6 +17,7 @@ import {
 	unavailable,
 	type Settings
 } from '#lib/flow/settings.ts';
+import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 import shippedStepIds from '#lib/flow/shipped-step-ids.json';
 import questions from '../../../static/recordings/authorization-code/questions.json';
 
@@ -31,6 +39,56 @@ describe('every valid combination', () => {
 	});
 
 	describe.each(diagrams)('in %s', (diagram) => {
+		it('lands what a step carries with whoever gets it, and only there', () => {
+			for (const settings of combinations.slice(0, 40)) {
+				const view = evaluate(base.diagrams[diagram], settings);
+				for (const [i, step] of view.steps.entries()) {
+					const before = i ? holdingsAt(view, view.steps[i - 1].id) : null;
+					const after = holdingsAt(view, step.id);
+					for (const arrival of arrivalsAt(view, step.id)) {
+						const [line, artifact] = arrival.split(':') as [string, ArtifactId];
+						expect(after[line]).toContain(artifact);
+						if (before) expect(before[line]).not.toContain(artifact);
+					}
+				}
+			}
+		});
+
+		describe('parts', () => {
+			const flow = base.diagrams[diagram];
+
+			it('start from steps that exist, the first from the first step', () => {
+				const ids = flow.steps.map((step) => step.id);
+				expect(flow.parts.filter((part) => !ids.includes(part.from))).toEqual([]);
+				expect(flow.parts[0].from).toBe(ids[0]);
+			});
+
+			it('are in the order of the steps, with different names', () => {
+				const ids = flow.steps.map((step) => step.id);
+				const starts = flow.parts.map((part) => ids.indexOf(part.from));
+				expect(starts).toEqual([...starts].sort((a, b) => a - b));
+				const labels = flow.parts.map((part) => part.label);
+				expect(new Set(labels).size).toBe(labels.length);
+			});
+
+			it('hold every step exactly once, in order, in every combination', () => {
+				for (const settings of combinations) {
+					const view = evaluate(flow, settings);
+					expect(view.parts.flatMap((part) => part.steps)).toEqual(
+						view.steps.map((step) => step.id)
+					);
+					expect(view.parts.filter((part) => !part.steps.length)).toEqual([]);
+				}
+			});
+
+			it('say why in a sentence short enough to read in passing', () => {
+				for (const part of flow.parts) {
+					expect(part.why.split(' ').length).toBeLessThanOrEqual(18);
+					expect(part.why).toMatch(/\.$/);
+				}
+			});
+		});
+
 		it.each(combinations.map((settings) => [JSON.stringify(settings), settings] as const))(
 			'builds a coherent diagram: %s',
 			(_, settings) => {

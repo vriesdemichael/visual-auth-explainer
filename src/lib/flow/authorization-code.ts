@@ -153,6 +153,53 @@ export const authorizationCode: DiagramDef = {
 		},
 		{ id: 'nonce-retry', plain: 'A fresh proof', label: 'Nonce retry', when: nonce }
 	],
+	parts: [
+		{
+			label: 'Ask',
+			why: 'The app does not handle the password, so it sends the user to whoever does.',
+			from: 'open-app'
+		},
+		{
+			label: 'Log in',
+			why: 'The user proves who they are away from the app, which sees none of it.',
+			from: 'login-page'
+		},
+		{
+			label: 'Stolen',
+			why: 'What someone else can do with the code, if they get hold of it on its way back.',
+			from: 'attacker-steals-code'
+		},
+		{
+			label: 'Trade',
+			why: 'The code went through the browser, so the tokens come by a route that does not.',
+			from: 'callback'
+		},
+		{
+			label: 'Use',
+			why: 'The app puts the token to use, and whatever gets it decides whether it is good.',
+			from: 'userinfo-request'
+		},
+		{
+			label: 'Renew',
+			why: 'An access token does not last, and a refresh token gets another without asking the user again.',
+			from: 'token-runs-out'
+		},
+		{
+			label: 'Second app',
+			why: 'Another app sends the same browser to the same identity provider, which may remember it.',
+			from: 'second-open-app'
+		},
+		{
+			label: 'Log out',
+			why: 'Logging out reaches the app, the session and the tokens, and each ends differently.',
+			from: 'logout-start'
+		},
+		{
+			label: 'Stored token',
+			why: "The app gets the other provider's token from the identity provider, which kept it.",
+			from: 'retrieve-upstream-token'
+		}
+	],
 	steps: [
 		{
 			id: 'open-app',

@@ -21,6 +21,8 @@
 		mode?: Mode;
 		/** Where someone new starts, shown on the first step. */
 		intro?: string | null;
+		/** Why this part of the flow is here, on the step that starts it. */
+		partWhy?: string | null;
 		change?: ViewDiff | null;
 		resets?: readonly Reset[];
 		links?: readonly Link[];
@@ -53,6 +55,7 @@
 		lifelines,
 		mode = 'advanced',
 		intro = null,
+		partWhy = null,
 		change = null,
 		resets = [],
 		links = [],
@@ -74,9 +77,10 @@
 	const simple = $derived(mode === 'simple');
 	// In reading order, so a word is marked where someone first meets it on this step.
 	const worded = $derived(
-		markTerms([intro ?? '', step.concept, step.inPractice ?? '', step.pitfall?.text ?? ''], {
-			serverNamed
-		})
+		markTerms(
+			[intro ?? '', step.concept, step.inPractice ?? '', step.pitfall?.text ?? '', partWhy ?? ''],
+			{ serverNamed }
+		)
 	);
 	// A message from the server is what the header and the raw view already say. What needs saying on
 	// a step is anything else, and to someone new only that nobody recorded it.
@@ -171,6 +175,9 @@
 
 <section data-testid="step-detail">
 	<div aria-live="polite">
+		{#if partWhy}
+			<p class="part-why" data-testid="part-why"><Worded segments={worded[4]} {onterm} /></p>
+		{/if}
 		<p class="route">
 			{#if step.kind === 'time'}
 				Nothing is sent
@@ -410,6 +417,12 @@
 		list-style: none;
 		font-size: 12.5px;
 		font-weight: 600;
+	}
+
+	.part-why {
+		margin: 0 0 10px;
+		color: var(--muted);
+		font-size: 13px;
 	}
 
 	.route {

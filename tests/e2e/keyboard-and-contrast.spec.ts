@@ -33,10 +33,13 @@ test.describe('with forced colours', () => {
 
 	test('progress is still there', async ({ page }) => {
 		await open(page, 'step=token-request');
-		const fill = await background(page.locator('.fill'));
-		const track = page.locator('.track');
-		expect(fill).not.toBe(await background(track));
-		await expect(track).toBeVisible();
+		const timeline = page.getByTestId('timeline');
+		await expect(timeline).toBeVisible();
+		const image = (tick: string) =>
+			timeline
+				.locator(`[data-tick="${tick}"]`)
+				.evaluate((element) => getComputedStyle(element).backgroundImage);
+		expect(await image('open-app')).not.toBe(await image('api-request'));
 	});
 });
 

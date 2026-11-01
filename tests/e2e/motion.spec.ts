@@ -53,6 +53,150 @@ test.describe('stepping', () => {
 	});
 });
 
+test.describe('sending a message', () => {
+	const marker = (page: Page) => page.locator('.packet');
+	const opacity = (locator: ReturnType<Page['locator']>) =>
+		locator.evaluate((element) => Number(getComputedStyle(element).opacity));
+
+	test('Next moves one marker, along the arrow it is on', async ({ page }) => {
+		await open(page, 'step=authorize');
+		await page.getByTestId('next').click();
+		await expect(marker(page)).toHaveCount(1);
+		await expect(page.locator('[data-state="current"] .packet')).toHaveCount(1);
+	});
+
+	test('Back and a jump move nothing', async ({ page }) => {
+		await open(page, 'step=authorize');
+		await page.getByTestId('next').click();
+		await expect(marker(page)).toHaveCount(1);
+		await page.getByTestId('back').click();
+		await expect(page.getByTestId('position')).toContainText('Step 3');
+		await expect(marker(page)).toHaveCount(0);
+		await page.locator('[data-step="token-request"]').click();
+		await expect(page.getByTestId('position')).toContainText('Step 7');
+		await expect(marker(page)).toHaveCount(0);
+		await page.getByTestId('timeline').locator('[data-tick="callback"]').click();
+		await expect(page.getByTestId('position')).toContainText('Step 6');
+		await expect(marker(page)).toHaveCount(0);
+	});
+
+	test('nothing moves on arriving, flipping a setting, or a step that sends nothing', async ({
+		page
+	}) => {
+		await open(page, 'pkce=1&step=open-app');
+		await expect(marker(page)).toHaveCount(0);
+		await page.getByTestId('next').click();
+		await expect(page.locator('[data-state="current"]')).toHaveAttribute(
+			'data-step',
+			'make-verifier'
+		);
+		await expect(marker(page)).toHaveCount(0);
+		await page.getByTestId('next').click();
+		await expect(marker(page)).toHaveCount(1);
+		await page.getByRole('checkbox', { name: /OpenID Connect/ }).click();
+		await expect(marker(page)).toHaveCount(0);
+	});
+
+	test('what it carries shows once it gets there', async ({ page }) => {
+		await open(page, 'step=login-page');
+		await page.getByTestId('next').click();
+		const held = page.locator('[data-held="idp:password"]');
+		await expect(held).toHaveClass(/landing/);
+		const label = page.locator('[data-state="current"] .label');
+		expect(await opacity(label)).toBeLessThan(0.5);
+		await expect.poll(() => opacity(label)).toBe(1);
+		await expect.poll(() => opacity(held)).toBe(1);
+	});
+
+	test('what someone had already seen does not land again', async ({ page }) => {
+		await open(page, 'step=login-page');
+		await page.getByTestId('next').click();
+		await expect(page.locator('.held.landing')).not.toHaveCount(0);
+		await expect(page.locator('[data-held="browser:session"].landing')).toHaveCount(0);
+	});
+
+	test('a refusal travels with nothing in it, and an answer with something', async ({ page }) => {
+		await open(page, 'client=public&attacker=1&pkce=1&step=attacker-token-request');
+		await page.getByTestId('next').click();
+		await expect(page.locator('[data-state="current"]')).toHaveAttribute(
+			'data-step',
+			'attacker-token-response'
+		);
+		await expect(page.locator('.packet.empty')).toHaveCount(1);
+		await expect(page.locator('.held.landing')).toHaveCount(0);
+
+		await open(page, 'client=public&attacker=1&step=attacker-token-request');
+		await page.getByTestId('next').click();
+		await expect(marker(page)).toHaveCount(1);
+		await expect(page.locator('.packet.empty')).toHaveCount(0);
+		await expect(page.locator('[data-held="attacker:access-token"].landing')).toHaveCount(1);
+	});
+
+	test('Execute sends it too', async ({ page }) => {
+		await open(page, 'mode=advanced&step=token-request');
+		await page.getByTestId('execute').click();
+		await expect(page.locator('[data-state="current"]')).toHaveAttribute(
+			'data-step',
+			'token-response'
+		);
+		await expect(page.locator('[data-state="current"] .packet')).toHaveCount(1);
+	});
+});
+
+test.describe('filmed frame by frame', () => {
+	const films: [string, string, RegExp][] = [
+		['OpenID Connect', 'step=token-response', /Know who logged in/],
+		['an external provider', 'step=token-request', /Log in with another provider/],
+		['the attacker', 'step=token-request', /Show someone stealing the code/],
+		['the attacker, early on', 'step=authorize', /Show someone stealing the code/],
+		['PKCE', 'step=token-request', /Protect against a stolen code/]
+	];
+
+	const looks = () => {
+		const scroller = document.querySelector('.scroller')!;
+		const view = scroller.getBoundingClientRect();
+		const shown = (element: Element | null) => {
+			let opacity = 1;
+			for (let at = element; at && at !== scroller; at = at.parentElement) {
+				opacity *= Number(getComputedStyle(at).opacity);
+			}
+			return opacity > 0.15;
+		};
+		const boxes = (selector: string) =>
+			[...scroller.querySelectorAll(selector)]
+				.filter(shown)
+				.map((element) => element.getBoundingClientRect())
+				.filter((box) => box.width && box.bottom > view.top && box.top < view.bottom);
+		const words = boxes('.row .label tspan');
+		const chips = boxes('.chip:not(.future) rect');
+		const crossing = chips.filter((chip) =>
+			words.some(
+				(word) =>
+					Math.min(chip.right, word.right) - Math.max(chip.left, word.left) > 2 &&
+					Math.min(chip.bottom, word.bottom) - Math.max(chip.top, word.top) > 2
+			)
+		).length;
+		const lowest = Math.max(0, ...boxes('.row line, .row polygon').map((box) => box.bottom));
+		return { crossing, lowest: lowest - view.top };
+	};
+
+	for (const [name, query, setting] of films) {
+		test(`no frame is blank and no chip crosses a label, turning on ${name}`, async ({ page }) => {
+			await page.clock.install();
+			await open(page, query);
+			const before = await page.evaluate(looks);
+			await page.getByRole('checkbox', { name: setting }).click();
+			for (let frame = 0; frame < 60; frame++) {
+				const { crossing, lowest } = await page.evaluate(looks);
+				expect.soft(crossing, `frame ${frame}`).toBe(0);
+				expect.soft(lowest, `frame ${frame}`).toBeGreaterThan(before.lowest * 0.5);
+				await page.clock.runFor(16);
+			}
+			await expect(diagram(page)).toHaveAttribute('data-animating', 'false');
+		});
+	}
+});
+
 test.describe('flipping a setting', () => {
 	test('plays the transition', async ({ page }) => {
 		await open(page, '');

@@ -49,6 +49,7 @@ export const secondFlow: BaseFlow = {
 			specs: ['rfc6749'],
 			lifelines,
 			groups: [],
+			parts: [{ label: 'Ask', why: 'An app with no user asks for itself.', from: 'token-request' }],
 			steps: [
 				{
 					id: 'token-request',
@@ -80,6 +81,7 @@ export const secondFlow: BaseFlow = {
 			specs: ['rfc6749'],
 			lifelines,
 			groups: [],
+			parts: [{ label: 'Find', why: 'The app looks up the addresses first.', from: 'discover' }],
 			steps: [
 				{
 					id: 'discover',
