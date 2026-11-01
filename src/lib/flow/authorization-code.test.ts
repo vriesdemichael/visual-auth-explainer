@@ -101,6 +101,42 @@ describe('the plain language', () => {
 	});
 });
 
+describe('what a step means for someone building an app', () => {
+	it('is said wherever their app or API does something', () => {
+		const everything = {
+			...defaultSettings,
+			oidc: true,
+			pkce: true,
+			binding: 'dpop',
+			broker: true,
+			upstreamTokens: 'v1'
+		} as const;
+		const left = evaluate(flow, everything)
+			.steps.filter((step) => step.from === 'app' || step.from === 'api')
+			.filter((step) => !step.inPractice)
+			.map((step) => step.id);
+		expect(left).toEqual([]);
+	});
+
+	it('says what is left to them in setup', () => {
+		const said = evaluate(setup, defaultSettings).steps.filter((step) => step.inPractice);
+		expect(said.map((step) => step.id)).toEqual(
+			expect.arrayContaining(['register-client', 'configure-app'])
+		);
+	});
+
+	it('uses no words from the wire, whichever mode it is read in', () => {
+		const wire = /\b(GET|POST|\d{3}|client_id|redirect_uri|nonce|IdP)\b/;
+		for (const diagram of [flow, setup]) {
+			for (const settings of allValidSettings()) {
+				for (const step of evaluate(diagram, settings).steps) {
+					expect(step.inPractice ?? '', step.id).not.toMatch(wire);
+				}
+			}
+		}
+	});
+});
+
 describe('why a step is here', () => {
 	const causesOf = (id: string, settings: Settings) =>
 		evaluate(flow, settings).steps.find((step) => step.id === id)?.causes;

@@ -162,6 +162,12 @@
 			<p class="plain">{step.plain}</p>
 		{/if}
 		<p>{step.concept}</p>
+		{#if step.inPractice}
+			<p class="practice" data-testid="step-practice">
+				<strong>In practice.</strong>
+				{step.inPractice}
+			</p>
+		{/if}
 		<p class="channel" data-channel={step.channel} data-testid="step-channel">
 			<strong>{channels[step.channel].label}.</strong>
 			{#if step.channel !== previousChannel}
@@ -308,6 +314,14 @@
 		margin: 2px 0 0;
 		color: var(--muted);
 		font-size: 12.5px;
+	}
+
+	.practice {
+		font-size: 13px;
+	}
+
+	.practice strong {
+		font-weight: 600;
 	}
 
 	.pitfall {

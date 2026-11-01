@@ -43,6 +43,7 @@ describe('the protocol layer', () => {
 					step.specOnly ?? '',
 					step.pitfall?.title ?? '',
 					step.pitfall?.text ?? '',
+					step.inPractice ?? '',
 					...step.links.map((link) => link.text),
 					...step.fields.flatMap((field) => [field.name, field.note ?? ''])
 				])
