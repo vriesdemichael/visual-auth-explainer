@@ -1,8 +1,8 @@
-# visual-auth-explainer
+# Authlines
 
-An interactive web application for exploring OAuth, OIDC and authn/authz visually. It starts from the most basic concepts and one flow, then builds up through toggles on the same sequence diagram, with each step showing only what is relevant at that point. Keycloak is the reference that flows are traced against.
+Auth, line by line. An interactive web application for exploring OAuth, OIDC and authn/authz visually. It starts from the most basic concepts and one flow, then builds up through toggles on the same sequence diagram, with each step showing only what is relevant at that point. Keycloak is the reference that flows are traced against.
 
-This is a first version under a working name. Its messages are recorded from a real Keycloak, and the rest of what it says is written by hand and checked against the specs. Open [the application](https://vriesdemichael.github.io/visual-auth-explainer/) or [its Storybook](https://vriesdemichael.github.io/visual-auth-explainer/storybook/). Both update on every merge to `main`, and each pull request gets a preview of both.
+This is a first version. Its messages are recorded from a real Keycloak, and the rest of what it says is written by hand and checked against the specs. Open [the application](https://vriesdemichael.github.io/visual-auth-explainer/) or [its Storybook](https://vriesdemichael.github.io/visual-auth-explainer/storybook/). Both update on every merge to `main`, and each pull request gets a preview of both.
 
 ```bash
 pnpm install

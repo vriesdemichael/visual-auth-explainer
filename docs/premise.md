@@ -34,6 +34,12 @@ In the maintainer's framing, it combines three things that no one site has toget
 
 The spirit is that of the visual guides to transformers, but authn/authz is a much more varied topic, which is why it suits an interactive site over a single article.
 
+### The name
+
+**Decided.** It is called Authlines. It is easy to remember, `auth` covers authn and authz where a name built on identity would be wrong when there is only authz, and lines are what is on screen, which holds for more than sequence diagrams. Hop by Hop and Authwalk were turned down because they sound like detours. The repository and its address on Pages keep the working name for now (section 11).
+
+**Decided.** It stays on GitHub Pages until it has had some success, and only then moves to `authlines.io`. The `.com` is not needed, and someone else registered it in September 2026.
+
 ### It is an application, not an article
 
 **Decided.** The maintainer asked for an interactive site and a web application with CI that clicks through it. People operate it. They do not read it from top to bottom.
@@ -376,9 +382,9 @@ Still to settle:
 
 - **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). Named states have a path of their own so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md), and how presets relate to nodes by section 5.9.
-- **Name and domain:** `visual-auth-explainer` is a working name only. Moving means changing `SITE_URL` in `src/lib/site.ts` and the base path in `scripts/build.mjs` and `playwright.config.ts`, and setting up the redirect.
+- **The address:** the name is settled in section 2, but the repository and its address on Pages still say `visual-auth-explainer`. Moving means changing `SITE_URL` in `src/lib/site.ts` and the base path in `scripts/build.mjs` and `playwright.config.ts`, and setting up the redirect.
 - **Whether to measure use.** Section 12 wants to know whether people come back, and [ADR-010](adr/010-static-files-on-github-pages.md) keeps nothing about a visitor outside their browser. **Proposed:** start without it, and go by GitHub stars and what people say.
-- **When to let search engines in.** Everything is ready: set the repository variable `ALLOW_INDEXING` to `true`, and the next production deploy can be indexed. Better after the name is settled, because the address gets indexed too.
+- **When to let search engines in.** Everything is ready: set the repository variable `ALLOW_INDEXING` to `true`, and the next production deploy can be indexed. The address gets indexed too, and it will change at least once, when the site moves to `authlines.io`.
 
 ## 12. How to know it is working
 

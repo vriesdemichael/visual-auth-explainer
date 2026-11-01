@@ -4,6 +4,7 @@
 	import Diagram from '#lib/components/Diagram.svelte';
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
+	import Mark from '#lib/components/Mark.svelte';
 	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
 	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
 	import OnTheWire from '#lib/components/OnTheWire.svelte';
@@ -56,6 +57,7 @@
 	} from '#lib/recordings/known.ts';
 	import { notesFor } from '#lib/keycloak/notes.ts';
 	import { searchState } from '#lib/search/open.svelte.ts';
+	import { SITE_NAME } from '#lib/site.ts';
 	import { sources } from '#lib/sources/sources.ts';
 
 	interface Props {
@@ -392,7 +394,11 @@
 			Skip to the step controls
 		</button>
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
-		<a class="brand" href={homeHref}>Map</a>
+		<a class="brand" href={homeHref}>
+			<Mark />
+			<span class="name">{SITE_NAME}</span>
+			<span>Map</span>
+		</a>
 		<span class="slash" aria-hidden="true">/</span>
 		<h1 data-testid="title" title={question ?? flow.title}>{question ?? flow.title}</h1>
 		{#if leftQuestion}
@@ -617,6 +623,10 @@
 	}
 
 	.brand {
+		display: inline-flex;
+		flex: none;
+		align-items: baseline;
+		gap: 6px;
 		color: var(--muted);
 		font-weight: 500;
 		text-decoration: none;
@@ -624,6 +634,11 @@
 
 	.brand:hover {
 		color: var(--fg);
+	}
+
+	.name {
+		color: var(--fg);
+		font-weight: 600;
 	}
 
 	.slash {
@@ -847,6 +862,7 @@
 			flex-wrap: wrap;
 		}
 
+		.name,
 		.status,
 		.diagram {
 			display: none;

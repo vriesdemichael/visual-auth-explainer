@@ -21,6 +21,15 @@ const COLOURS: Record<string, string> = {
 	internal: '#555d6c'
 };
 
+// The same drawing as components/Mark.svelte, with the colours written out as the rest of this is.
+const MARK = `<svg width="30" height="30" viewBox="0 0 32 32">
+	<path fill="none" stroke="#8b93a3" stroke-width="1.5" d="M6 4v24M16 4v24M26 4v24"/>
+	<path fill="none" stroke="#141720" stroke-width="2" d="M6 11h7"/>
+	<path fill="#141720" d="M12 7.6 16 11l-4 3.4z"/>
+	<path fill="none" stroke="#3b37d6" stroke-width="2.6" d="M16 21h7"/>
+	<path fill="#3b37d6" d="M22 17.2 26.4 21 22 24.8z"/>
+</svg>`;
+
 const escape = (text: string) =>
 	text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
@@ -50,13 +59,13 @@ const page = (title: string, summary: string, view: DiagramView) => `<!doctype h
 	body { margin: 0; width: 1200px; height: 630px; display: flex; align-items: center; gap: 56px;
 		padding: 56px 64px; background: #fbfbfd; color: #141720; font-family: Plex, sans-serif; }
 	main { flex: 1; }
-	small { display: block; margin-bottom: 26px; color: #555d6c; font-size: 26px; font-weight: 500; }
+	small { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; font-size: 26px; font-weight: 600; }
 	h1 { margin: 0 0 22px; font-size: 56px; font-weight: 600; line-height: 1.12; letter-spacing: -0.01em; }
 	p { margin: 0; color: #555d6c; font-size: 28px; line-height: 1.35; }
 	svg { flex: none; }
 </style>
 <main>
-	<small>Visual auth explainer</small>
+	<small>${MARK}Authlines</small>
 	<h1>${escape(title)}</h1>
 	<p>${escape(summary)}</p>
 </main>

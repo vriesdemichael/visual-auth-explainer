@@ -146,8 +146,19 @@ test.describe('when a link is shared', () => {
 
 	test('the map says what this is', async ({ page }) => {
 		await page.goto('./');
-		expect(await content(page, 'og:title')).toBe('Visual auth explainer');
+		expect(await content(page, 'og:title')).toBe(
+			'Authlines: OAuth and OpenID Connect on one living diagram'
+		);
+		expect(await content(page, 'og:site_name')).toBe('Authlines');
 		expect(await content(page, 'og:image')).toMatch(/\/social\/home\.png$/);
+	});
+
+	test('the tab has the mark', async ({ page, request }) => {
+		await page.goto('./');
+		const icon = (await page.locator('link[rel="icon"]').getAttribute('href')) ?? '';
+		const response = await request.get(new URL(icon, page.url()).href);
+		expect(response.ok()).toBe(true);
+		expect(await response.text()).toContain('<svg');
 	});
 
 	for (const node of mapNodes) {
