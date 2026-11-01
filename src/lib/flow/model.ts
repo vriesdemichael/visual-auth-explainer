@@ -6,6 +6,7 @@ import {
 	type SettingId,
 	type Settings
 } from '#lib/flow/settings.ts';
+import type { ArtifactId, Channel, LifelineIcon } from '#lib/flow/vocabulary.ts';
 
 /** Text that varies with the settings. The first case that holds wins. */
 export type Text = string | readonly { when?: Condition; text: string }[];
@@ -15,6 +16,11 @@ export interface LifelineDef {
 	name: string;
 	role: Text;
 	concept: string;
+	icon: LifelineIcon;
+	/** Messages to or from this lifeline travel through the browser. */
+	front?: boolean;
+	/** What it knows before the diagram starts. */
+	startsWith?: readonly { artifact: ArtifactId; when?: Condition }[];
 	when?: Condition;
 }
 
@@ -30,6 +36,8 @@ export interface FieldDef {
 	name: string;
 	place: 'query' | 'header' | 'body' | 'token' | 'setting' | 'path';
 	note?: string;
+	/** The credential or token this field carries, which the diagram draws on the message. */
+	artifact?: ArtifactId;
 	when?: Condition;
 }
 
@@ -76,6 +84,8 @@ export interface Lifeline {
 	name: string;
 	role: string;
 	concept: string;
+	icon: LifelineIcon;
+	startsWith: ArtifactId[];
 	causes: SettingId[];
 }
 
@@ -83,6 +93,7 @@ export interface Field {
 	name: string;
 	place: FieldDef['place'];
 	note?: string;
+	artifact?: ArtifactId;
 	causes: SettingId[];
 	/** Differs from the base flow, so the diagram shows it on the message itself. */
 	changed: boolean;
@@ -93,6 +104,7 @@ export interface Step {
 	from: string;
 	to: string;
 	kind: StepKind;
+	channel: Channel;
 	label: string;
 	concept: string;
 	group?: string;
@@ -118,6 +130,13 @@ function resolve(text: Text, settings: Settings): string {
 const present = (when: Condition | undefined, settings: Settings) => !when || holds(when, settings);
 const causes = (when: Condition | undefined) => (when ? settingsIn(when) : []);
 
+function channelOf(flow: FlowDef, step: StepDef): Channel {
+	if (step.kind === 'human') return 'people';
+	if (step.kind === 'internal') return 'internal';
+	const front = flow.lifelines.some((l) => l.front && (l.id === step.from || l.id === step.to));
+	return front ? 'front' : 'back';
+}
+
 export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 	const steps: Step[] = flow.steps
 		.filter((step) => present(step.when, settings))
@@ -126,6 +145,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			from: step.from,
 			to: step.to,
 			kind: step.kind,
+			channel: channelOf(flow, step),
 			label: resolve(step.label, settings),
 			concept: resolve(step.concept, settings),
 			group: step.group,
@@ -137,6 +157,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 					name: field.name,
 					place: field.place,
 					note: field.note,
+					artifact: field.artifact,
 					causes: causes(field.when),
 					changed: !present(field.when, defaultSettings)
 				}))
@@ -151,11 +172,32 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 				name: lifeline.name,
 				role: resolve(lifeline.role, settings),
 				concept: lifeline.concept,
+				icon: lifeline.icon,
+				startsWith: (lifeline.startsWith ?? [])
+					.filter((held) => present(held.when, settings))
+					.map((held) => held.artifact),
 				causes: causes(lifeline.when)
 			})),
 		steps,
 		groups: flow.groups.filter((group) => present(group.when, settings))
 	};
+}
+
+/** What each lifeline has seen by the end of a step: what it started with, and what passed through it. */
+export function holdingsAt(view: FlowView, stepId: string): Record<string, ArtifactId[]> {
+	const held = Object.fromEntries(view.lifelines.map((line) => [line.id, [...line.startsWith]]));
+	const see = (line: string, artifact: ArtifactId) => {
+		if (!held[line].includes(artifact)) held[line].push(artifact);
+	};
+	for (const step of view.steps) {
+		for (const { artifact } of step.fields) {
+			if (!artifact) continue;
+			see(step.from, artifact);
+			see(step.to, artifact);
+		}
+		if (step.id === stepId) break;
+	}
+	return held;
 }
 
 export interface ViewDiff {

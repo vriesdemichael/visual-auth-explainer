@@ -22,8 +22,11 @@ export const authorizationCode: FlowDef = {
 	lifelines: [
 		{
 			id: 'browser',
-			name: 'Browser',
-			role: "The user's",
+			name: "User's browser",
+			role: 'Where the user is',
+			icon: 'browser',
+			front: true,
+			startsWith: [{ artifact: 'password' }],
 			concept:
 				'Where the user is. Messages through the browser can be seen and changed by the user or by software in the browser.'
 		},
@@ -31,6 +34,8 @@ export const authorizationCode: FlowDef = {
 			id: 'app',
 			name: 'App',
 			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
+			icon: 'app',
+			startsWith: [{ artifact: 'secret', when: confidential }],
 			concept: "The application the user wants to use. It never sees the user's password."
 		},
 		{
@@ -41,6 +46,8 @@ export const authorizationCode: FlowDef = {
 				{ when: oidc, text: 'OpenID provider' },
 				{ text: 'Authorization server' }
 			],
+			icon: 'idp',
+			startsWith: [{ artifact: 'secret', when: confidential }],
 			concept:
 				'The identity provider. It logs the user in and issues tokens, and the issuer names it.'
 		},
@@ -48,6 +55,7 @@ export const authorizationCode: FlowDef = {
 			id: 'upstream',
 			name: 'Upstream IdP',
 			role: 'External provider',
+			icon: 'upstream',
 			concept: 'Another identity provider, which the IdP trusts to log the user in.',
 			when: broker
 		},
@@ -55,6 +63,7 @@ export const authorizationCode: FlowDef = {
 			id: 'api',
 			name: 'API',
 			role: 'Resource server',
+			icon: 'api',
 			concept: 'What the app wants to call on behalf of the user. It accepts or rejects the token.'
 		}
 	],
@@ -148,7 +157,8 @@ export const authorizationCode: FlowDef = {
 			kind: 'request',
 			label: 'Submit credentials',
 			concept: 'The user signs in at the IdP. The app sees none of this.',
-			when: not(broker)
+			when: not(broker),
+			fields: [{ name: 'username and password', place: 'body', artifact: 'password' }]
 		},
 		{
 			id: 'redirect-to-upstream',
@@ -185,7 +195,8 @@ export const authorizationCode: FlowDef = {
 			label: 'Sign in',
 			concept:
 				'The user signs in at the upstream IdP. Neither the app nor the IdP sees the password.',
-			when: broker
+			when: broker,
+			fields: [{ name: 'username and password', place: 'body', artifact: 'password' }]
 		},
 		{
 			id: 'upstream-redirect-back',
@@ -233,7 +244,7 @@ export const authorizationCode: FlowDef = {
 			concept: 'These tokens belong to the IdP. The app will get tokens the IdP issues itself.',
 			when: broker,
 			fields: [
-				{ name: 'access_token', place: 'body' },
+				{ name: 'access_token', place: 'body', artifact: 'upstream-token' },
 				{ name: 'id_token', place: 'body' }
 			]
 		},
@@ -272,7 +283,7 @@ export const authorizationCode: FlowDef = {
 			concept:
 				'The IdP sends the browser back to the redirect URI with a short-lived, one-time code.',
 			fields: [
-				{ name: 'code', place: 'query' },
+				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query' }
 			]
 		},
@@ -284,7 +295,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Deliver the code',
 			concept: 'The code reaches the app. On its own it is worth little, which is the point.',
 			fields: [
-				{ name: 'code', place: 'query' },
+				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query', note: 'Must match what the app sent' }
 			]
 		},
@@ -297,11 +308,17 @@ export const authorizationCode: FlowDef = {
 			concept: 'The app trades the code for tokens, on a direct connection the browser never sees.',
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
-				{ name: 'code', place: 'body' },
+				{ name: 'code', place: 'body', artifact: 'code' },
 				{ name: 'redirect_uri', place: 'body' },
 				{ name: 'client_id', place: 'body' },
-				{ name: 'client_secret', place: 'body', when: confidential },
-				{ name: 'DPoP', place: 'header', note: 'A proof signed with the key', when: dpop }
+				{ name: 'client_secret', place: 'body', artifact: 'secret', when: confidential },
+				{
+					name: 'DPoP',
+					place: 'header',
+					note: 'A proof signed with the key',
+					artifact: 'proof',
+					when: dpop
+				}
 			]
 		},
 		{
@@ -327,7 +344,7 @@ export const authorizationCode: FlowDef = {
 			label: 'POST /token',
 			concept: 'The same request again, with a new proof that includes the nonce.',
 			when: all(dpop, nonce),
-			fields: [{ name: 'DPoP', place: 'header', note: 'A proof with the nonce' }]
+			fields: [{ name: 'DPoP', place: 'header', note: 'A proof with the nonce', artifact: 'proof' }]
 		},
 		{
 			id: 'token-response',
@@ -343,10 +360,10 @@ export const authorizationCode: FlowDef = {
 				{ text: 'The access token lets the app call the API. It is meant for the API to read.' }
 			],
 			fields: [
-				{ name: 'access_token', place: 'body' },
+				{ name: 'access_token', place: 'body', artifact: 'access-token' },
 				{ name: 'token_type=Bearer', place: 'body', when: bearer },
 				{ name: 'token_type=DPoP', place: 'body', when: dpop },
-				{ name: 'id_token', place: 'body', when: oidc }
+				{ name: 'id_token', place: 'body', artifact: 'id-token', when: oidc }
 			]
 		},
 		{
@@ -374,9 +391,15 @@ export const authorizationCode: FlowDef = {
 			concept: 'The app can ask for more about the user, using the access token.',
 			when: oidc,
 			fields: [
-				{ name: 'Authorization: Bearer', place: 'header', when: bearer },
-				{ name: 'Authorization: DPoP', place: 'header', when: dpop },
-				{ name: 'DPoP', place: 'header', note: 'A proof tied to this access token', when: dpop }
+				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: bearer },
+				{ name: 'Authorization: DPoP', place: 'header', artifact: 'access-token', when: dpop },
+				{
+					name: 'DPoP',
+					place: 'header',
+					note: 'A proof tied to this access token',
+					artifact: 'proof',
+					when: dpop
+				}
 			]
 		},
 		{
@@ -403,9 +426,15 @@ export const authorizationCode: FlowDef = {
 				{ text: 'The app sends the access token. Whoever holds a bearer token can use it.' }
 			],
 			fields: [
-				{ name: 'Authorization: Bearer', place: 'header', when: bearer },
-				{ name: 'Authorization: DPoP', place: 'header', when: dpop },
-				{ name: 'DPoP', place: 'header', note: 'A proof tied to this access token', when: dpop }
+				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: bearer },
+				{ name: 'Authorization: DPoP', place: 'header', artifact: 'access-token', when: dpop },
+				{
+					name: 'DPoP',
+					place: 'header',
+					note: 'A proof tied to this access token',
+					artifact: 'proof',
+					when: dpop
+				}
 			]
 		},
 		{
@@ -455,10 +484,16 @@ export const authorizationCode: FlowDef = {
 			],
 			when: storedTokens,
 			fields: [
-				{ name: 'Authorization: Bearer', place: 'header', when: apiV1 },
+				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: apiV1 },
 				{ name: 'client_id', place: 'body', when: apiV2 },
-				{ name: 'client_secret', place: 'body', when: apiV2 },
-				{ name: 'token', place: 'body', note: "The user's access token", when: apiV2 }
+				{ name: 'client_secret', place: 'body', artifact: 'secret', when: apiV2 },
+				{
+					name: 'token',
+					place: 'body',
+					note: "The user's access token",
+					artifact: 'access-token',
+					when: apiV2
+				}
 			]
 		},
 		{
@@ -469,7 +504,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Upstream access token',
 			concept: 'The token the upstream IdP issued, handed over by the IdP.',
 			when: storedTokens,
-			fields: [{ name: 'access_token', place: 'body' }]
+			fields: [{ name: 'access_token', place: 'body', artifact: 'upstream-token' }]
 		},
 		{
 			id: 'call-upstream',
@@ -479,7 +514,7 @@ export const authorizationCode: FlowDef = {
 			label: "Call the upstream's API",
 			concept: "With that token, the app can call the upstream provider's APIs directly.",
 			when: storedTokens,
-			fields: [{ name: 'Authorization: Bearer', place: 'header' }]
+			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'upstream-token' }]
 		}
 	]
 };

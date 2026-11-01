@@ -28,6 +28,14 @@ describe('components (ADR-007, ADR-012)', () => {
 	});
 });
 
+describe('the screenshot baselines (ADR-006)', () => {
+	it('come from the image for the version of Playwright in use', () => {
+		const image = readFileSync('.github/workflows/ci.yml', 'utf8').match(/playwright:v([\d.]+)/);
+		const lock = readFileSync('pnpm-lock.yaml', 'utf8').match(/'@playwright\/test@([\d.]+)'/);
+		expect(image?.[1]).toBe(lock?.[1]);
+	});
+});
+
 describe('decision records (ADR-002)', () => {
 	const folder = 'docs/adr';
 	const index = readFileSync(join(folder, 'index.md'), 'utf8');

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
-import { diffViews, evaluate, isEmptyDiff, type DiagramId } from '#lib/flow/model.ts';
+import { diffViews, evaluate, holdingsAt, isEmptyDiff, type DiagramId } from '#lib/flow/model.ts';
 import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
 import { allValidSettings, defaultSettings, type Settings } from '#lib/flow/settings.ts';
 import shippedStepIds from '#lib/flow/shipped-step-ids.json';
@@ -64,6 +64,101 @@ describe('step IDs', () => {
 		const ids = [...flow.steps, ...setup.steps].map((step) => step.id);
 		expect(new Set(ids).size).toBe(ids.length);
 		expect(ids.sort()).toEqual([...shippedStepIds].sort());
+	});
+});
+
+describe('how a message travels', () => {
+	const channelOf = (id: string) => view().steps.find((step) => step.id === id)?.channel;
+
+	it('is through the browser whenever the browser is on either end', () => {
+		for (const settings of allValidSettings()) {
+			for (const step of evaluate(flow, settings).steps) {
+				const browser = step.from === 'browser' || step.to === 'browser';
+				if (browser) expect(step.channel, step.id).toBe('front');
+				else expect(step.channel, step.id).not.toBe('front');
+			}
+		}
+	});
+
+	it('tells the code in the redirect from the tokens on the direct call', () => {
+		expect(channelOf('redirect-with-code')).toBe('front');
+		expect(channelOf('token-request')).toBe('back');
+		expect(channelOf('token-response')).toBe('back');
+		expect(channelOf('api-check-token')).toBe('internal');
+	});
+
+	it('is people in setup, until the app itself calls', () => {
+		const channel = (id: string) => setupView().steps.find((step) => step.id === id)?.channel;
+		expect(channel('register-client')).toBe('people');
+		expect(channel('discover')).toBe('back');
+	});
+});
+
+// This is what the application teaches at every step, so it must hold everywhere it can be seen.
+describe('who has seen what', () => {
+	const lastStep = (settings: Settings) => evaluate(flow, settings).steps.at(-1)!.id;
+	const heldAtEnd = (settings: Settings) =>
+		holdingsAt(evaluate(flow, settings), lastStep(settings));
+
+	it('keeps the password from the app, whatever the settings', () => {
+		for (const settings of allValidSettings()) {
+			expect(heldAtEnd(settings).app).not.toContain('password');
+			expect(heldAtEnd(settings).api).not.toContain('password');
+		}
+	});
+
+	it('keeps tokens from the browser, because they never go through it', () => {
+		for (const settings of allValidSettings()) {
+			const browser = heldAtEnd(settings).browser;
+			expect(browser).not.toContain('access-token');
+			expect(browser).not.toContain('id-token');
+			expect(browser).not.toContain('secret');
+		}
+	});
+
+	it('does show the code to the browser, which is why a code is worth little alone', () => {
+		expect(heldAtEnd(defaultSettings).browser).toContain('code');
+	});
+
+	it('never shows the API the ID token, which is not for it', () => {
+		for (const settings of allValidSettings()) {
+			expect(heldAtEnd(settings).api).not.toContain('id-token');
+		}
+	});
+
+	it('lets the API see the access token only when the app calls it', () => {
+		const flowView = view();
+		expect(holdingsAt(flowView, 'token-response').api).toEqual([]);
+		expect(holdingsAt(flowView, 'api-request').api).toEqual(['access-token']);
+	});
+
+	it('builds up step by step', () => {
+		const flowView = view();
+		expect(holdingsAt(flowView, 'open-app').app).toEqual(['secret']);
+		expect(holdingsAt(flowView, 'callback').app).toEqual(['secret', 'code']);
+		expect(holdingsAt(flowView, 'token-response').app).toEqual(['secret', 'code', 'access-token']);
+	});
+
+	it('hands the password to the upstream IdP instead when another IdP does the login', () => {
+		const brokered = { ...defaultSettings, broker: true };
+		expect(heldAtEnd(brokered).upstream).toContain('password');
+		expect(heldAtEnd(brokered).idp).not.toContain('password');
+		expect(heldAtEnd(defaultSettings).idp).toContain('password');
+	});
+
+	it('gives a public client no secret to start with', () => {
+		const held = heldAtEnd({ ...defaultSettings, clientType: 'public' });
+		expect(held.app).not.toContain('secret');
+	});
+
+	it('moves the secret from the admin to the team to the app in setup', () => {
+		const setupFlow = setupView();
+		expect(holdingsAt(setupFlow, 'register-client')['idp-admin']).toEqual([]);
+		expect(holdingsAt(setupFlow, 'create-client')['idp-admin']).toEqual(['secret']);
+		expect(holdingsAt(setupFlow, 'create-client')['app-team']).toEqual([]);
+		expect(holdingsAt(setupFlow, 'hand-over-credentials')['app-team']).toEqual(['secret']);
+		expect(holdingsAt(setupFlow, 'hand-over-credentials').app).toEqual([]);
+		expect(holdingsAt(setupFlow, 'configure-app').app).toEqual(['secret']);
 	});
 });
 

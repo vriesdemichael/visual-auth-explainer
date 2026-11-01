@@ -123,6 +123,8 @@ Three things follow:
 
 **Decided as the quality to keep.** Each step shows only what is relevant at that point, in detail. This is what the maintainer liked about IdentiFlows.
 
+**Proposed: how the diagram does it** ([ADR-014](adr/014-a-colour-means-one-thing-and-ahead-is-only-a-shape.md)). Only messages up to the current step have labels, and what is ahead is a numbered faint arrow, so a setting can still be seen changing it. Colour separates what goes through the browser from what goes direct. Under each lifeline is what it has seen so far, so at any step you can see that the browser saw the code but never the tokens, and that the app never saw the password. No tool found shows this.
+
 ### 5.5 Simple mode and advanced mode
 
 **Decided:** the application has a simple mode and an advanced mode. In the maintainer's words, the advanced mode is there "to toggle more settings", at "the advanced level as in authplayground". So this is an application-wide mode that changes which settings are on offer and how much each step shows.
@@ -327,7 +329,7 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 | Flow model | Every valid combination builds, invalid ones are rejected, step IDs stay stable |
 | Component states (Storybook) | Each component renders in each of its states in isolation, such as step, field and mode |
 | Click-through (Playwright) | For each named state: walk every step, flip toggles, switch mode, assert the visible steps match the model, use keyboard control, and open a fixed list of URLs that must keep showing the same state |
-| Visual regression | Screenshots of key states, with animation frozen through reduced motion. Added once the visual language has settled |
+| Visual regression | Screenshots of key states in both themes, with animation frozen through reduced motion, and an automated accessibility check on each screen |
 | Keycloak recordings | Regenerate on demand against a pinned Keycloak, 26.8.1 for now, and check weekly against new releases to detect drift. Not on every pull request |
 
 **Decided: the stack.** SvelteKit for the view, with its static adapter, and plain TypeScript for the flow model and engine ([ADR-012](adr/012-sveltekit-for-the-view-and-plain-typescript-for-the-engine.md)). The maintainer first doubted that SvelteKit hosts easily as static files, and chose it after a test on a Pages-style server, in [research/followup-checks.md](research/followup-checks.md).

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
+	import ChannelLegend from '#lib/components/ChannelLegend.svelte';
 	import Diagram from '#lib/components/Diagram.svelte';
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import SettingsPanel from '#lib/components/SettingsPanel.svelte';
@@ -11,6 +12,7 @@
 	import {
 		diffViews,
 		evaluate,
+		holdingsAt,
 		isEmptyDiff,
 		type BaseFlow,
 		type DiagramId,
@@ -55,6 +57,8 @@
 	const layout = $derived(layoutDiagram(view));
 	const position = $derived(steps.findIndex((step) => step.id === appState.step));
 	const current = $derived(steps[position]);
+	const holdings = $derived(holdingsAt(view, appState.step));
+	const channelsHere = $derived([...new Set(steps.map((step) => step.channel))]);
 
 	// What the last change of settings did. Stays until the visitor moves on, so it can be read.
 	let change = $state<ViewDiff | null>(null);
@@ -170,14 +174,13 @@
 <div class="workspace" data-ready={animate} data-diagram={appState.diagram}>
 	<header>
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
-		<a href={homeHref}>Start</a>
+		<a class="brand" href={homeHref}>Visual auth explainer</a>
+		<span class="slash" aria-hidden="true">/</span>
 		<h1>{flow.title}</h1>
-		<p class="status">
-			Step 0 prototype. Most message shapes are not yet checked on a real server.
-		</p>
+		<p class="status">Prototype. Most messages are not yet checked on a real server.</p>
 	</header>
 
-	<aside class="settings">
+	<aside class="settings" aria-label="Settings">
 		<SettingsPanel
 			settings={appState.settings}
 			onchange={setSetting}
@@ -194,14 +197,16 @@
 					{layout}
 					{animate}
 					{fresh}
+					{holdings}
 					currentStep={appState.step}
 					onselect={(step) => onnavigate({ ...appState, step }, 'replace')}
 				/>
 			{/key}
 		</div>
+		<ChannelLegend present={channelsHere} />
 	</main>
 
-	<aside class="detail">
+	<aside class="detail" aria-label="The current step">
 		<StepDetail step={current} lifelines={view.lifelines} {change} {resets} {links} {elsewhere} />
 	</aside>
 
@@ -238,7 +243,7 @@
 			'header header header' auto
 			'settings diagram detail' minmax(0, 1fr)
 			'settings controls detail' auto
-			/ 250px minmax(0, 1fr) 330px;
+			/ 256px minmax(0, 1fr) 340px;
 		height: 100dvh;
 	}
 
@@ -246,9 +251,23 @@
 		grid-area: header;
 		display: flex;
 		align-items: baseline;
-		gap: 16px;
+		gap: 10px;
 		padding: 10px 16px;
 		border-bottom: 1px solid var(--line);
+	}
+
+	.brand {
+		color: var(--muted);
+		font-weight: 500;
+		text-decoration: none;
+	}
+
+	.brand:hover {
+		color: var(--fg);
+	}
+
+	.slash {
+		color: var(--strong-line);
 	}
 
 	h1 {
@@ -302,7 +321,7 @@
 		grid-column: 2 / 4;
 		justify-self: end;
 		z-index: 2;
-		width: 330px;
+		width: 340px;
 		overflow-y: auto;
 		background: var(--bg);
 		border-left: 1px solid var(--line);

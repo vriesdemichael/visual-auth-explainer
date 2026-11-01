@@ -1,0 +1,136 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test } from '@playwright/test';
+import { open } from './helpers.ts';
+
+const row = (page: import('@playwright/test').Page, id: string) =>
+	page.locator(`[data-step="${id}"]`);
+
+test.describe('each step shows what is relevant at that point', () => {
+	test('what has happened is spelled out, and what is ahead is only a shape', async ({ page }) => {
+		await open(page, 'step=authorize');
+		await expect(row(page, 'open-app').locator('.label')).toHaveCSS('opacity', '1');
+		await expect(row(page, 'authorize').locator('.label')).toHaveCSS('opacity', '1');
+		await expect(row(page, 'token-request').locator('.label')).toHaveCSS('opacity', '0');
+		await expect(page.locator('[data-chip="token-response:access_token"]')).toHaveCSS(
+			'opacity',
+			'0'
+		);
+	});
+
+	test('a message ahead can still be read by pointing at it', async ({ page }) => {
+		await open(page);
+		await row(page, 'token-request').hover();
+		await expect(row(page, 'token-request').locator('.label')).toHaveCSS('opacity', '1');
+	});
+
+	test('a change a setting makes ahead is shown, even though it is ahead', async ({ page }) => {
+		await open(page);
+		await page.locator('[data-setting="oidc"] input').check();
+		await expect(row(page, 'userinfo-request').locator('.label')).toHaveCSS('opacity', '1');
+		await expect(page.locator('[data-chip="token-response:id_token"]')).not.toHaveCSS(
+			'opacity',
+			'0'
+		);
+	});
+
+	test('every message has its number', async ({ page }) => {
+		await open(page);
+		await expect(row(page, 'authorize').locator('.number')).toHaveText('3');
+		await expect(row(page, 'authorize')).toHaveAccessibleName(/3.*GET \/authorize/);
+		await expect(row(page, 'authorize')).toHaveAccessibleDescription("User's browser to IdP");
+	});
+
+	test('the two sides of the current message stand out', async ({ page }) => {
+		await open(page, 'step=token-request');
+		await expect(page.locator('[data-lifeline="app"]')).toHaveClass(/active/);
+		await expect(page.locator('[data-lifeline="idp"]')).toHaveClass(/active/);
+		await expect(page.locator('[data-lifeline="browser"]')).not.toHaveClass(/active/);
+	});
+});
+
+test.describe('how a message travels', () => {
+	test('shows on the diagram and in the detail', async ({ page }) => {
+		await open(page, 'step=redirect-with-code');
+		await expect(row(page, 'redirect-with-code')).toHaveAttribute('data-channel', 'front');
+		await expect(row(page, 'token-request')).toHaveAttribute('data-channel', 'back');
+		await expect(page.getByTestId('step-channel')).toContainText('Through the browser');
+		await page.getByTestId('next').click();
+		await page.getByTestId('next').click();
+		await expect(page.getByTestId('step-channel')).toContainText('Direct');
+	});
+
+	test('is explained in the legend, which follows the diagram', async ({ page }) => {
+		await open(page);
+		const legend = page.getByTestId('channel-legend');
+		await expect(legend).toContainText('Through the browser');
+		await expect(legend).toContainText('Direct');
+		await expect(legend).not.toContainText('People');
+		await open(page, '', 'setup');
+		await expect(legend).toContainText('People');
+		await expect(legend).not.toContainText('Through the browser');
+	});
+});
+
+test.describe('what each has seen', () => {
+	const held = (page: import('@playwright/test').Page, lane: string, artifact: string) =>
+		page.locator(`[data-held="${lane}:${artifact}"]`);
+
+	test('builds up as the flow goes on', async ({ page }) => {
+		await open(page);
+		await expect(held(page, 'browser', 'password')).toBeVisible();
+		await expect(held(page, 'app', 'secret')).toBeVisible();
+		await expect(held(page, 'browser', 'code')).toHaveCount(0);
+
+		await page.locator('[data-step="redirect-with-code"]').click();
+		await expect(held(page, 'browser', 'code')).toBeVisible();
+		await expect(held(page, 'app', 'code')).toHaveCount(0);
+
+		await page.locator('[data-step="token-response"]').click();
+		await expect(held(page, 'app', 'access-token')).toBeVisible();
+		await expect(held(page, 'browser', 'access-token')).toHaveCount(0);
+
+		await page.locator('[data-step="api-request"]').click();
+		await expect(held(page, 'api', 'access-token')).toBeVisible();
+	});
+
+	test('goes back when you do', async ({ page }) => {
+		await open(page, 'step=token-response');
+		await expect(held(page, 'app', 'access-token')).toBeVisible();
+		await page.getByTestId('back').click();
+		await expect(held(page, 'app', 'access-token')).toHaveCount(0);
+	});
+
+	test('is there for a screen reader too', async ({ page }) => {
+		await open(page, 'step=token-response');
+		await expect(page.getByTestId('diagram-heads')).toHaveAttribute(
+			'aria-label',
+			/App: client secret, code, access token\./
+		);
+	});
+});
+
+test.describe('nothing an automated check can find', () => {
+	const screens: readonly [string, string][] = [
+		['the start page', './'],
+		['the user flow', 'authorization-code/?oidc=1&step=token-response'],
+		['setup', 'authorization-code/setup/?broker=1'],
+		['an open source', 'authorization-code/?source=rfc6749&for=client&section=2.1']
+	];
+
+	for (const scheme of ['light', 'dark'] as const) {
+		test.describe(scheme, () => {
+			test.use({ colorScheme: scheme });
+
+			for (const [name, path] of screens) {
+				test(`on ${name}`, async ({ page }) => {
+					await page.goto(path);
+					await page.waitForLoadState('networkidle');
+					const { violations } = await new AxeBuilder({ page }).analyze();
+					expect(
+						violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)
+					).toEqual([]);
+				});
+			}
+		});
+	}
+});

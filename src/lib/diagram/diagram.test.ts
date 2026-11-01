@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { layoutDiagram, WIDTH } from '#lib/diagram/layout.ts';
+import { HEAD_HEIGHT, layHeld, layoutDiagram, WIDTH } from '#lib/diagram/layout.ts';
 import { interpolate, toFrame, type Frame } from '#lib/diagram/motion.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
-import { evaluate } from '#lib/flow/model.ts';
+import { evaluate, holdingsAt } from '#lib/flow/model.ts';
 import { allValidSettings, defaultSettings, type Settings } from '#lib/flow/settings.ts';
 
 const layout = (settings: Partial<Settings> = {}) =>
@@ -43,12 +43,57 @@ describe('layout', () => {
 		expect(app(after)).toBeLessThan(app(before) ?? 0);
 	});
 
-	it('puts only what differs from the base flow on the message', () => {
-		expect(layout().chips).toEqual([]);
-		const chips = layout({ oidc: true }).chips.map((chip) => chip.id);
-		expect(chips).toContain('authorize:scope=openid');
-		expect(chips).toContain('token-response:id_token');
-		expect(chips).not.toContain('authorize:client_id');
+	it('puts what a setting changed, and credentials and tokens, on the message', () => {
+		const base = layout().chips;
+		expect(base.every((chip) => chip.artifact)).toBe(true);
+		expect(base.map((chip) => chip.id)).toContain('token-response:access_token');
+
+		const chips = layout({ oidc: true }).chips;
+		const ids = chips.map((chip) => chip.id);
+		expect(ids).toContain('authorize:scope=openid');
+		expect(ids).toContain('token-response:id_token');
+		expect(ids).not.toContain('authorize:client_id');
+		expect(chips.find((chip) => chip.id === 'token-response:id_token')?.text).toBe('ID token');
+		expect(chips.find((chip) => chip.id === 'authorize:scope=openid')?.text).toBe('scope=openid');
+	});
+
+	it('numbers every message, and says in words what the arrow shows', () => {
+		const { rows } = layout();
+		expect(rows.map((row) => row.number)).toEqual(rows.map((_, i) => i + 1));
+		expect(rows[2].route).toBe("User's browser to IdP");
+	});
+
+	it('leaves room on a row for its chips, and keeps them clear of the next row', () => {
+		const { rows, chips } = layout({ oidc: true, binding: 'dpop' });
+		for (const chip of chips) {
+			const row = rows.find((candidate) => candidate.id === chip.step)!;
+			const next = rows[rows.indexOf(row) + 1];
+			expect(chip.y + 18).toBeLessThanOrEqual(row.y - 26 + row.band + 2);
+			if (next) expect(chip.y + 18).toBeLessThan(next.y - 8);
+			expect(chip.x).toBeGreaterThanOrEqual(0);
+			expect(chip.x + chip.width).toBeLessThanOrEqual(WIDTH);
+		}
+	});
+
+	it('fits what a lifeline can have seen in the room under its name', () => {
+		const everything = holdingsAt(
+			evaluate(flow, {
+				...defaultSettings,
+				oidc: true,
+				binding: 'dpop',
+				dpopNonce: true,
+				broker: true,
+				upstreamTokens: 'v2'
+			}),
+			'call-upstream'
+		);
+		for (const held of Object.values(everything)) {
+			for (const chip of layHeld(held)) {
+				expect(chip.y + 16).toBeLessThanOrEqual(HEAD_HEIGHT);
+				expect(Math.abs(chip.x)).toBeLessThanOrEqual(87);
+				expect(chip.x + chip.width).toBeLessThanOrEqual(87);
+			}
+		}
 	});
 
 	it('frames a group around exactly its rows', () => {

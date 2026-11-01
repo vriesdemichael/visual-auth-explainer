@@ -1,9 +1,17 @@
 import type { FlowView, StepKind } from '#lib/flow/model.ts';
+import {
+	artifacts,
+	type ArtifactId,
+	type Channel,
+	type LifelineIcon
+} from '#lib/flow/vocabulary.ts';
 
 export const WIDTH = 880;
 const LANE_MARGIN = 90;
 const FIRST_ROW_Y = 36;
 const ROW_HEIGHT = 46;
+const ROW_TOP = 26;
+const ROW_BAND = 38;
 const CHIP_LINE_HEIGHT = 22;
 const GROUP_TOP = 36;
 const GROUP_BOTTOM = 10;
@@ -14,23 +22,43 @@ const CHIP_GAP = 6;
 const SELF_LOOP_WIDTH = 34;
 const SELF_LABEL_ROOM = 240;
 
+const HELD_TOP = 58;
+const HELD_LINE_HEIGHT = 19;
+const HELD_CHAR_WIDTH = 5.6;
+const HELD_PADDING = 12;
+const HELD_GAP = 4;
+const HELD_LINE_WIDTH = 150;
+const HELD_LINES = 2;
+
+/** Height of the heads, which always keep room for what the lifelines have seen. */
+export const HEAD_HEIGHT = HELD_TOP + HELD_LINES * HELD_LINE_HEIGHT + 2;
+
 export interface LaneLayout {
 	id: string;
 	x: number;
 	name: string;
 	role: string;
+	icon: LifelineIcon;
 }
 
 export interface RowLayout {
 	id: string;
+	number: number;
+	from: string;
+	to: string;
 	y: number;
+	/** Height of the highlight and of the area to click, which includes the chips. */
+	band: number;
 	x1: number;
 	x2: number;
 	self: boolean;
 	/** Which way a message to itself loops, so its label stays inside the diagram. */
 	selfSide: 1 | -1;
 	kind: StepKind;
+	channel: Channel;
 	label: string;
+	/** For a screen reader, which cannot follow an arrow. */
+	route: string;
 }
 
 export interface ChipLayout {
@@ -40,6 +68,7 @@ export interface ChipLayout {
 	y: number;
 	width: number;
 	text: string;
+	artifact?: ArtifactId;
 }
 
 export interface GroupLayout {
@@ -60,14 +89,38 @@ export interface DiagramLayout {
 	groups: GroupLayout[];
 }
 
+export interface HeldChip {
+	artifact: ArtifactId;
+	x: number;
+	y: number;
+	width: number;
+	text: string;
+}
+
 const clamp = (value: number, low: number, high: number) => Math.max(low, Math.min(high, value));
 
-function layChips(id: string, names: string[], center: number, y: number): ChipLayout[] {
-	const widths = names.map((name) => name.length * CHIP_CHAR_WIDTH + CHIP_PADDING);
+function layChips(
+	id: string,
+	fields: readonly { name: string; artifact?: ArtifactId }[],
+	center: number,
+	y: number
+): ChipLayout[] {
+	const texts = fields.map((field) =>
+		field.artifact ? artifacts[field.artifact].label : field.name
+	);
+	const widths = texts.map((text) => text.length * CHIP_CHAR_WIDTH + CHIP_PADDING);
 	const total = widths.reduce((sum, width) => sum + width + CHIP_GAP, -CHIP_GAP);
 	let x = clamp(center - total / 2, 6, Math.max(6, WIDTH - total - 6));
-	return names.map((name, i) => {
-		const chip = { id: `${id}:${name}`, step: id, x, y, width: widths[i], text: name };
+	return fields.map((field, i) => {
+		const chip = {
+			id: `${id}:${field.name}`,
+			step: id,
+			x,
+			y,
+			width: widths[i],
+			text: texts[i],
+			artifact: field.artifact
+		};
 		x += widths[i] + CHIP_GAP;
 		return chip;
 	});
@@ -80,9 +133,11 @@ export function layoutDiagram(view: FlowView): DiagramLayout {
 		id: line.id,
 		x: LANE_MARGIN + i * spacing,
 		name: line.name,
-		role: line.role
+		role: line.role,
+		icon: line.icon
 	}));
 	const laneX = new Map(lanes.map((lane) => [lane.id, lane.x]));
+	const nameOf = (id: string) => lanes.find((lane) => lane.id === id)?.name ?? id;
 
 	let cursor = FIRST_ROW_Y;
 	const rows: RowLayout[] = [];
@@ -101,12 +156,31 @@ export function layoutDiagram(view: FlowView): DiagramLayout {
 
 		if (step.group && previous?.group !== step.group) cursor += GROUP_TOP;
 		const y = cursor;
-		rows.push({ id: step.id, y, x1, x2, self, selfSide, kind: step.kind, label: step.label });
+		// A setting's change and a credential or token go on the message. The rest is in the detail.
+		const onMessage = step.fields.filter((field) => field.changed || field.artifact);
+		const chipLines = onMessage.length ? CHIP_LINE_HEIGHT : 0;
+		rows.push({
+			id: step.id,
+			number: i + 1,
+			from: step.from,
+			to: step.to,
+			y,
+			band: ROW_BAND + chipLines + (self ? 4 : 0),
+			x1,
+			x2,
+			self,
+			selfSide,
+			kind: step.kind,
+			channel: step.channel,
+			label: step.label,
+			route: self
+				? `${nameOf(step.from)}, internally`
+				: `${nameOf(step.from)} to ${nameOf(step.to)}`
+		});
 
-		const changed = step.fields.filter((field) => field.changed).map((field) => field.name);
 		const center = self ? x1 + selfSide * (SELF_LOOP_WIDTH + 90) : (x1 + x2) / 2;
-		chips.push(...layChips(step.id, changed, center, y + (self ? 22 : 8)));
-		cursor += ROW_HEIGHT + (changed.length ? CHIP_LINE_HEIGHT : 0);
+		chips.push(...layChips(step.id, onMessage, center, y + (self ? 22 : 8)));
+		cursor += ROW_HEIGHT + chipLines;
 
 		if (step.group && next?.group !== step.group) {
 			const members = rows.filter(
@@ -129,4 +203,30 @@ export function layoutDiagram(view: FlowView): DiagramLayout {
 	return { width: WIDTH, height: cursor, lanes, rows, chips, groups };
 }
 
+/** What a lifeline has seen, as chips under its name, relative to the middle of the lane. */
+export function layHeld(held: readonly ArtifactId[]): HeldChip[] {
+	const lines: { artifact: ArtifactId; width: number; text: string }[][] = [[]];
+	let used = 0;
+	for (const artifact of held) {
+		const text = artifacts[artifact].short;
+		const width = text.length * HELD_CHAR_WIDTH + HELD_PADDING;
+		if (used && used + HELD_GAP + width > HELD_LINE_WIDTH) {
+			lines.push([]);
+			used = 0;
+		}
+		lines[lines.length - 1].push({ artifact, width, text });
+		used += (used ? HELD_GAP : 0) + width;
+	}
+	return lines.flatMap((line, row) => {
+		const total = line.reduce((sum, chip) => sum + chip.width + HELD_GAP, -HELD_GAP);
+		let x = -total / 2;
+		return line.map((chip) => {
+			const placed = { ...chip, x, y: HELD_TOP + row * HELD_LINE_HEIGHT };
+			x += chip.width + HELD_GAP;
+			return placed;
+		});
+	});
+}
+
 export const SELF_LOOP = { width: SELF_LOOP_WIDTH, height: 18 };
+export const ROW_OFFSET = ROW_TOP;

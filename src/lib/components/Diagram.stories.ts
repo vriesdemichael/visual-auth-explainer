@@ -4,7 +4,7 @@ import { freshIds } from '#lib/diagram/fresh.ts';
 import { layoutDiagram } from '#lib/diagram/layout.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
-import { diffViews, evaluate } from '#lib/flow/model.ts';
+import { diffViews, evaluate, holdingsAt } from '#lib/flow/model.ts';
 import { defaultSettings, type Settings } from '#lib/flow/settings.ts';
 
 const layoutFor = (settings: Partial<Settings> = {}) =>
@@ -24,7 +24,11 @@ type Story = StoryObj<typeof meta>;
 export const OAuth: Story = {};
 
 export const OpenIdConnect: Story = {
-	args: { layout: layoutFor({ oidc: true }), currentStep: 'token-response' }
+	args: {
+		layout: layoutFor({ oidc: true }),
+		currentStep: 'token-response',
+		holdings: holdingsAt(evaluate(flow, { ...defaultSettings, oidc: true }), 'token-response')
+	}
 };
 
 export const OpenIdConnectJustChanged: Story = {

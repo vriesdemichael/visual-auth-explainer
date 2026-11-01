@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
+	import { channels } from '#lib/flow/vocabulary.ts';
 
 	/** A link the route has already resolved. */
 	interface Link {
@@ -85,10 +86,13 @@
 		{:else}
 			{nameOf(step.from)} to {nameOf(step.to)}
 		{/if}
-		{#if step.kind === 'human'}<span class="human">People, not HTTP</span>{/if}
 	</p>
 	<h2 class="title">{step.label}</h2>
 	<p>{step.concept}</p>
+	<p class="channel" data-channel={step.channel} data-testid="step-channel">
+		<strong>{channels[step.channel].label}.</strong>
+		{channels[step.channel].explains}
+	</p>
 	{#if step.causes.length}
 		<p class="cause">Here because of: {step.causes.map(labelOf).join(', ')}</p>
 	{/if}
@@ -147,14 +151,37 @@
 		font-size: 12px;
 	}
 
-	.human {
-		margin-left: 6px;
-		color: var(--human);
+	.title {
+		margin: 2px 0 8px;
+		font-size: 18px;
+		font-weight: 600;
+		line-height: 1.3;
 	}
 
-	.title {
-		margin: 2px 0 6px;
-		font-size: 16px;
+	.channel {
+		padding: 6px 10px;
+		border-left: 3px solid var(--tone);
+		background: var(--panel);
+		color: var(--muted);
+		font-size: 12.5px;
+		--tone: var(--muted);
+	}
+
+	.channel strong {
+		color: var(--fg);
+		font-weight: 600;
+	}
+
+	.channel[data-channel='front'] {
+		--tone: var(--front);
+	}
+
+	.channel[data-channel='back'] {
+		--tone: var(--back);
+	}
+
+	.channel[data-channel='people'] {
+		--tone: var(--people);
 	}
 
 	p {

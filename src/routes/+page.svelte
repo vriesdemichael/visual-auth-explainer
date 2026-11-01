@@ -16,7 +16,10 @@
 
 <main>
 	<h1>Visual auth explainer</h1>
-	<p>Step 0 prototype. The map comes later, so for now these are the states to open.</p>
+	<p class="lead">
+		OAuth and OpenID Connect on one living diagram. A prototype: the map comes later, so for now
+		these are the states to open.
+	</p>
 	<ul>
 		{#each presets as preset (preset.id)}
 			<li>
@@ -31,8 +34,44 @@
 
 <style>
 	main {
-		max-width: 640px;
-		margin: 48px auto;
+		max-width: 720px;
+		margin: 72px auto;
 		padding: 0 16px;
+	}
+
+	h1 {
+		margin: 0 0 8px;
+		font-size: 34px;
+		font-weight: 600;
+		letter-spacing: -0.01em;
+	}
+
+	.lead {
+		margin: 0 0 28px;
+		color: var(--muted);
+		font-size: 16px;
+	}
+
+	ul {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+		gap: 10px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	a {
+		display: block;
+		padding: 12px 14px;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		background: var(--raised);
+		font-weight: 500;
+		text-decoration: none;
+	}
+
+	a:hover {
+		border-color: var(--accent);
 	}
 </style>
