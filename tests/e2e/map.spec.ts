@@ -46,7 +46,8 @@ test.describe('the map', () => {
 	test('works from the keyboard', async ({ page }) => {
 		await page.goto('./');
 		await page.keyboard.press('Tab');
-		await expect(nodeLink(page, mapNodes[0].id)).toBeFocused();
+		await expect(page.getByTestId('map-jump').getByRole('link').first()).toBeFocused();
+		await nodeLink(page, mapNodes[0].id).focus();
 		await page.keyboard.press('Enter');
 		await expect(page).toHaveURL(new RegExp(`${mapNodes[0].id}/$`));
 		await page.locator('.workspace[data-ready="true"]').waitFor();

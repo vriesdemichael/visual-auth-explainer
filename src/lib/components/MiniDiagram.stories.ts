@@ -32,3 +32,14 @@ export const WithEverythingOn: Story = {
 		})
 	}
 };
+
+export const WhatASettingAdds: Story = {
+	args: {
+		view: evaluate(flow, { ...defaultSettings, oidc: true }),
+		base: evaluate(flow, defaultSettings)
+	}
+};
+
+export const AboutOneMessage: Story = {
+	args: { about: 'token-request', base: evaluate(flow, defaultSettings) }
+};

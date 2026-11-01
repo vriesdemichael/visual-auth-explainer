@@ -34,6 +34,12 @@
 		serverNamed?: boolean;
 		/** How we know this message looks the way it does. */
 		known?: Known | null;
+		/** How the step before this one travelled, because the channel is only news when it changes. */
+		previousChannel?: Step['channel'] | null;
+		/** This is the last step, so say where to go from here. */
+		atEnd?: boolean;
+		onward?: { title: string; summary: string; href: string } | null;
+		mapHref?: string | null;
 	}
 
 	let {
@@ -50,13 +56,23 @@
 		wire,
 		notes = [],
 		serverNamed = true,
-		known = null
+		known = null,
+		previousChannel = null,
+		atEnd = false,
+		onward = null,
+		mapHref = null
 	}: Props = $props();
 
 	const simple = $derived(mode === 'simple');
-	// Where a message was recorded means nothing yet to someone new, but a message nobody recorded
-	// must not look like one that was.
-	const showKnown = $derived(known && (!simple || known.kind === 'spec'));
+	// A message from the server is what the header and the raw view already say. What needs saying on
+	// a step is anything else, and to someone new only that nobody recorded it.
+	const showKnown = $derived(
+		known &&
+			!(known.kind === 'recorded' && known.by === 'server') &&
+			(!simple || known.kind === 'spec')
+	);
+	const wordsOf = (text: string) => text.toLowerCase().replace(/\b(an|a|the)\b|\s+/g, '');
+	const sayPlainly = $derived(!simple && wordsOf(step.plain) !== wordsOf(step.label));
 	const server = $derived(serverNamed ? 'Keycloak' : 'the server');
 	const nameOf = (id: string) => {
 		const line = lifelines.find((candidate) => candidate.id === id);
@@ -142,19 +158,19 @@
 			{/if}
 		</p>
 		<h2 class="title">{simple ? step.plain : step.label}</h2>
-		{#if !simple && step.plain !== step.label}
+		{#if sayPlainly}
 			<p class="plain">{step.plain}</p>
 		{/if}
 		<p>{step.concept}</p>
 		<p class="channel" data-channel={step.channel} data-testid="step-channel">
 			<strong>{channels[step.channel].label}.</strong>
-			{channels[step.channel].explains}
+			{#if step.channel !== previousChannel}
+				<span data-testid="channel-why">{channels[step.channel].explains}</span>
+			{/if}
 		</p>
 		{#if known && showKnown}
 			<p class="known" data-known={known.kind} data-testid="step-known">
-				{#if known.kind === 'recorded' && known.by === 'server'}
-					Recorded from {serverNamed ? `Keycloak ${known.keycloak}` : 'a real server'} on {known.date}.
-				{:else if known.kind === 'recorded'}
+				{#if known.kind === 'recorded'}
 					Recorded on {known.date} from the demo app and API the recording uses, so this one says nothing
 					about {server}.
 				{:else if known.kind === 'copied'}
@@ -210,6 +226,20 @@
 		</ul>
 	{/if}
 
+	{#if atEnd}
+		{#if onward}
+			<section class="onward" data-testid="onward">
+				<h3>Next question</h3>
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+				<a href={onward.href}><strong>{onward.title}</strong></a>
+				<p>{onward.summary}</p>
+			</section>
+		{:else if mapHref}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+			<p class="onward"><a href={mapHref} data-testid="onward-map">Pick another question</a></p>
+		{/if}
+	{/if}
+
 	{#if !simple && step.fields.length}
 		<h3>What it carries</h3>
 		<ul class="fields">
@@ -260,6 +290,22 @@
 
 	.plain {
 		margin: -4px 0 8px;
+		color: var(--muted);
+		font-size: 12.5px;
+	}
+
+	.onward {
+		margin-top: 14px;
+		padding-top: 10px;
+		border-top: 1px solid var(--line);
+	}
+
+	.onward h3 {
+		margin: 0 0 4px;
+	}
+
+	.onward p {
+		margin: 2px 0 0;
 		color: var(--muted);
 		font-size: 12.5px;
 	}

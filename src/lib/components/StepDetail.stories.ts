@@ -136,3 +136,23 @@ export const AfterAChangeThatResetAnother: Story = {
 		]
 	}
 };
+
+export const TheChannelIsNoNews: Story = {
+	args: { step: stepIn('login-page'), previousChannel: 'front' }
+};
+
+export const AtTheEndWithAQuestionToGoOnTo: Story = {
+	args: {
+		step: stepIn('api-response'),
+		atEnd: true,
+		onward: {
+			title: 'How does an app know who logged in?',
+			summary: 'Access is not identity, which is what OpenID Connect adds.',
+			href: '#next'
+		}
+	}
+};
+
+export const AtTheEndWithNowhereToGo: Story = {
+	args: { step: stepIn('api-response'), atEnd: true, mapHref: '#map' }
+};

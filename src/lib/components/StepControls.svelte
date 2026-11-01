@@ -10,6 +10,8 @@
 		/** The step's answer, when running this step adds something. */
 		answerAt?: number | null;
 		onexecute?: () => void;
+		/** Where to go at the end, so the last step is not a dead end. */
+		onwardHref?: string | null;
 	}
 
 	let {
@@ -19,21 +21,27 @@
 		onback,
 		onnext,
 		answerAt = null,
-		onexecute = () => {}
+		onexecute = () => {},
+		onwardHref = null
 	}: Props = $props();
 </script>
 
 <div class="controls">
 	<button data-testid="back" disabled={!canGoBack} onclick={onback}>Back</button>
-	<button
-		class="next"
-		class:invite={position === 1}
-		data-testid="next"
-		disabled={position >= total}
-		onclick={onnext}
-	>
-		Next
-	</button>
+	{#if position >= total && onwardHref}
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+		<a class="next onward" href={onwardHref} data-testid="next-question">Next question</a>
+	{:else}
+		<button
+			class="next"
+			class:invite={position === 1}
+			data-testid="next"
+			disabled={position >= total}
+			onclick={onnext}
+		>
+			Next
+		</button>
+	{/if}
 	<span class="position" data-testid="position">Step {position} of {total}</span>
 	<div class="track" aria-hidden="true">
 		<div class="fill" style:width={`${(position / total) * 100}%`}></div>
@@ -57,6 +65,14 @@
 		border-color: var(--accent);
 		color: var(--on-tone);
 		font-weight: 600;
+	}
+
+	.onward {
+		padding: 6px 12px;
+		border: 1px solid var(--accent);
+		border-radius: 6px;
+		white-space: nowrap;
+		text-decoration: none;
 	}
 
 	/* On the first step, the one thing to do next should be obvious. */

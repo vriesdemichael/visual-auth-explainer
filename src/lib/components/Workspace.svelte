@@ -62,6 +62,10 @@
 		base: BaseFlow;
 		state: AppState;
 		animate?: boolean;
+		/** What someone came to find out, when this came from the map. */
+		question?: string | null;
+		/** The question to go on to, once this flow is done. */
+		onward?: { title: string; summary: string; href: string } | null;
 		homeHref: string;
 		hrefFor: (state: AppState) => string;
 		loadText: (file: string) => Promise<string>;
@@ -73,6 +77,8 @@
 		base,
 		state: appState,
 		animate = true,
+		question = null,
+		onward = null,
 		homeHref,
 		hrefFor,
 		loadText,
@@ -344,17 +350,26 @@
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
 		<a class="brand" href={homeHref}>Map</a>
 		<span class="slash" aria-hidden="true">/</span>
-		<h1>{flow.title}</h1>
+		<h1 data-testid="title">{question ?? flow.title}</h1>
 		<ModeSwitch
 			mode={appState.mode}
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
 		/>
 		<p class="status" data-testid="provenance">
-			Prototype. Based on {origin.specs.join(', ')}.
+			Prototype.
+			{#if appState.mode === 'advanced'}
+				{#if question}{flow.title}.{/if} Based on {origin.specs.join(', ')}.
+			{/if}
 			{#if origin.recorded}
 				Recorded from
-				{appState.serverNotes ? `Keycloak ${origin.keycloak}` : 'a real server'} on
-				{origin.date}.
+				{#if !appState.serverNotes}
+					a real server
+				{:else if appState.mode === 'simple'}
+					a real server, Keycloak {origin.keycloak},
+				{:else}
+					Keycloak {origin.keycloak}
+				{/if}
+				on {origin.date}.
 			{:else}
 				These settings together were not recorded.
 			{/if}
@@ -416,6 +431,10 @@
 			lifelines={view.lifelines}
 			mode={appState.mode}
 			{intro}
+			previousChannel={steps[position - 1]?.channel ?? null}
+			atEnd={position === steps.length - 1}
+			{onward}
+			mapHref={homeHref}
 			{change}
 			{resets}
 			{links}
@@ -437,6 +456,7 @@
 						{numberOf}
 						onstep={goToStep}
 						serverNamed={appState.serverNotes}
+						notes={appState.serverNotes ? notesFor(current.id, appState.settings) : []}
 					/>
 				{/if}
 			{/snippet}
@@ -452,6 +472,7 @@
 			onnext={forward}
 			answerAt={answer ? numberOf(answer) : null}
 			onexecute={execute}
+			onwardHref={onward?.href ?? null}
 		/>
 	</footer>
 
@@ -512,7 +533,9 @@
 	}
 
 	.status {
-		margin: 0 0 0 auto;
+		flex: 1;
+		min-width: 0;
+		margin: 0;
 		text-align: right;
 		color: var(--muted);
 		font-size: 12px;

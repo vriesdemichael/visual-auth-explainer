@@ -1,0 +1,162 @@
+import { expect, test, type Page } from '@playwright/test';
+import { mapNodes, nextQuestion, nodeView } from '../../src/lib/map/nodes.ts';
+import { open } from './helpers.ts';
+
+const node = (id: string) => mapNodes.find((candidate) => candidate.id === id)!;
+const title = (page: Page) => page.getByTestId('title');
+
+async function openNode(page: Page, id: string, search = '') {
+	await page.goto(`authorization-code/${id}/${search}`);
+	await page.locator('.workspace[data-ready="true"]').waitFor();
+}
+
+test.describe('the question someone came with', () => {
+	test('stays on screen', async ({ page }) => {
+		await openNode(page, 'how-access-works');
+		await expect(title(page)).toHaveText('How does an app get access?');
+		await page.getByTestId('next').click();
+		await expect(title(page)).toHaveText('How does an app get access?');
+	});
+
+	test('stays when moving on, and is not taken for another with the same settings', async ({
+		page
+	}) => {
+		await openNode(page, 'what-is-in-my-token');
+		await page.getByTestId('next').click();
+		await expect(title(page)).toHaveText('Why does my access token say that?');
+	});
+
+	test('stays when switching mode, because the flow on screen is the same', async ({ page }) => {
+		await openNode(page, 'how-access-works');
+		await page.locator('[data-mode="advanced"]').click();
+		await expect(title(page)).toHaveText('How does an app get access?');
+	});
+
+	test('goes when a setting means it is no longer what is on screen', async ({ page }) => {
+		await openNode(page, 'how-access-works');
+		await page.locator('[data-setting="oidc"] input').check();
+		await expect(title(page)).toHaveText('Authorization code flow');
+	});
+
+	test('is marked on the map on the way back', async ({ page }) => {
+		await openNode(page, 'what-is-in-my-token');
+		await page.getByTestId('next').click();
+		await page.getByRole('link', { name: 'Map', exact: true }).click();
+		await expect(page.getByTestId('node-what-is-in-my-token')).toHaveAttribute(
+			'aria-current',
+			'location'
+		);
+	});
+
+	test('is not made up for a link that did not come from the map', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await expect(title(page)).toHaveText('Authorization code flow');
+	});
+});
+
+test.describe('the end of a flow', () => {
+	test('says where to go next, and goes there', async ({ page }) => {
+		await openNode(page, 'how-access-works');
+		const next = nextQuestion(node('how-access-works'))!;
+		await page.keyboard.press('End');
+		await expect(page.getByTestId('onward')).toContainText(next.title);
+		await page.getByTestId('next-question').click();
+		await expect(title(page)).toHaveText(next.title);
+		await expect(page).toHaveURL(new RegExp(`${next.id}/$`));
+		await expect(page.locator('[data-step]')).toHaveCount(nodeView(next).steps.length);
+	});
+
+	test('does not get in the way before the end', async ({ page }) => {
+		await openNode(page, 'how-access-works');
+		await expect(page.getByTestId('onward')).toHaveCount(0);
+		await expect(page.getByTestId('next-question')).toHaveCount(0);
+		await expect(page.getByTestId('next')).toBeEnabled();
+	});
+
+	test('points back to the map when there is no next question', async ({ page }) => {
+		await open(page, 'mode=simple&step=api-response');
+		await expect(page.getByTestId('onward')).toHaveCount(0);
+		await expect(page.getByTestId('next')).toBeDisabled();
+		await page.getByTestId('onward-map').click();
+		await expect(page.getByTestId('map')).toBeVisible();
+	});
+});
+
+test.describe('what is on every step', () => {
+	test('says how a message travels when that changes, and not on every step', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await expect(page.getByTestId('channel-why')).toBeVisible();
+		await page.keyboard.press('ArrowRight');
+		await expect(page.getByTestId('step-channel')).toContainText('Through the browser');
+		await expect(page.getByTestId('channel-why')).toHaveCount(0);
+		await open(page, 'mode=simple&step=token-request');
+		await expect(page.getByTestId('step-channel')).toContainText('Direct');
+		await expect(page.getByTestId('channel-why')).toBeVisible();
+	});
+
+	test('does not repeat itself under the title', async ({ page }) => {
+		await open(page, 'oidc=1&step=token-response');
+		await expect(page.getByTestId('step-detail').locator('.plain')).toHaveCount(0);
+		await open(page, 'step=token-request');
+		await expect(page.getByTestId('step-detail').locator('.plain')).toHaveText(
+			'The app trades the code for tokens'
+		);
+	});
+
+	test('does not name specs to someone new', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await expect(page.getByTestId('provenance')).not.toContainText('RFC');
+		await expect(page.getByTestId('provenance')).toContainText('a real server, Keycloak');
+	});
+});
+
+test.describe('a token', () => {
+	test('says which setting put what in it', async ({ page }) => {
+		await openNode(page, 'what-is-in-my-token');
+		await page.getByTestId('jwt').first().locator('summary').click();
+		const settings = page.getByTestId('token-settings');
+		await expect(settings).toContainText('aud');
+		await expect(settings).toContainText('Audience mapper');
+		await expect(settings).toContainText('Client scopes');
+		await expect(settings).toContainText('Access Token Lifespan');
+	});
+
+	test('opens the note about one of them', async ({ page }) => {
+		await openNode(page, 'what-is-in-my-token');
+		await page.getByTestId('jwt').first().locator('summary').click();
+		const note = page.locator('[data-note="audience"]');
+		await expect(note).not.toHaveAttribute('open');
+		await page.locator('[data-open-note="audience"]').click();
+		await expect(note).toHaveAttribute('open');
+		await expect(note).toContainText('accept account');
+	});
+
+	test('says nothing about one server when server notes are off', async ({ page }) => {
+		await open(page, 'keycloak=off&step=token-response');
+		await page.getByTestId('jwt').first().locator('summary').click();
+		await expect(page.getByTestId('token-settings')).toHaveCount(0);
+	});
+});
+
+test.describe('the map', () => {
+	test('can jump to a part of it', async ({ page }) => {
+		await page.goto('./');
+		await page.getByTestId('map-jump').getByRole('link', { name: 'Under the hood' }).click();
+		await expect(page.getByTestId('node-redirect-uri-error')).toBeInViewport();
+	});
+
+	test('says which questions open in advanced mode, in those words', async ({ page }) => {
+		await page.goto('./');
+		await expect(page.getByTestId('node-redirect-uri-error')).toContainText('Advanced');
+		await expect(page.getByTestId('node-how-access-works')).not.toContainText('Advanced');
+	});
+
+	test('draws what a question adds to the flow, so they do not all look the same', async ({
+		page
+	}) => {
+		await page.goto('./');
+		await expect(page.getByTestId('node-how-access-works').locator('.added')).toHaveCount(0);
+		await expect(page.getByTestId('node-stolen-code').locator('.added').first()).toBeAttached();
+		await expect(page.getByTestId('node-stolen-code').locator('[data-about]')).toHaveCount(1);
+	});
+});

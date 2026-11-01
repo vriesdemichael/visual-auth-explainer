@@ -6,7 +6,13 @@
 	import Workspace from '#lib/components/Workspace.svelte';
 	import { flows } from '#lib/flow/index.ts';
 	import { parseState, serializeState, type AppState } from '#lib/flow/state.ts';
-	import { nodeMatching, nodeSearch } from '#lib/map/nodes.ts';
+	import {
+		nextQuestion,
+		nodeMatching,
+		nodeSearch,
+		stillAnswers,
+		type MapNode
+	} from '#lib/map/nodes.ts';
 	import { sharingTags } from '#lib/site.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import { loadsOnce } from '#lib/recordings/load.ts';
@@ -36,7 +42,29 @@
 	const flow = $derived(base.diagrams[appState.diagram]);
 
 	const here = $derived(nodeMatching(appState));
-	const title = $derived(data.node?.title ?? flow.title);
+
+	// The question someone came with stays until the settings no longer answer it, though the address
+	// moves on from the node's own after the first step.
+	let asked = $state.raw<MapNode | null>(null);
+	$effect.pre(() => {
+		if (data.node) asked = data.node;
+	});
+	const question = $derived.by(() => {
+		const candidate = data.node ?? asked;
+		return candidate && stillAnswers(candidate, appState) ? candidate : null;
+	});
+	const onward = $derived.by(() => {
+		const next = question && nextQuestion(question);
+		return next
+			? {
+					title: next.title,
+					summary: next.summary,
+					href: resolve('/[flow]/[[view]]', { flow: next.flow, view: next.id })
+				}
+			: null;
+	});
+
+	const title = $derived(question?.title ?? flow.title);
 	const description = $derived(data.node?.summary ?? flow.summary);
 	const sharing = $derived(
 		sharingTags({
@@ -93,7 +121,9 @@
 	{base}
 	state={appState}
 	animate={settled}
-	homeHref={resolve('/') + (here ? `?at=${here.id}` : '')}
+	question={question?.title ?? null}
+	{onward}
+	homeHref={resolve('/') + ((question ?? here) ? `?at=${(question ?? here)?.id}` : '')}
 	{hrefFor}
 	{loadText}
 	{loadRecording}

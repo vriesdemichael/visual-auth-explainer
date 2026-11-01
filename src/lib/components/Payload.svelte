@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Step } from '#lib/flow/model.ts';
+	import type { Note } from '#lib/keycloak/notes.ts';
 	import type { RecordedMessage } from '#lib/recordings/format.ts';
 	import {
 		artifactOf,
@@ -16,15 +17,35 @@
 		trace: readonly RunValue[];
 		numberOf: (step: string) => number | null;
 		onstep?: (step: string) => void;
+		/** Notes on this step, for what in the access token each one is about. */
+		notes?: readonly Note[];
 	}
 
-	let { step, message, trace, numberOf, onstep }: Props = $props();
+	let { step, message, trace, numberOf, onstep, notes = [] }: Props = $props();
 
 	const LONG = 40;
 	const lines = $derived(rawLines(message));
 	const jwts = $derived(jwtsIn(lines));
 	const origin = (line: Line) => originOf(line, step.id, trace);
 	let opened = $state<Record<string, boolean>>({});
+
+	/** Which setting put what in this token: the part of it that surprises people. */
+	function settingsBehind(jwt: { name: string; claims: unknown }) {
+		if (jwt.name !== 'access_token') return [];
+		const inToken = Object.keys(jwt.claims as object);
+		return notes.flatMap((note) => {
+			const claims = note.claims.filter((claim) => inToken.includes(claim));
+			return claims.length ? [{ note, claims }] : [];
+		});
+	}
+
+	function openNote(id: string) {
+		const note = document.querySelector<HTMLDetailsElement>(`[data-note="${id}"]`);
+		if (!note) return;
+		note.open = true;
+		note.scrollIntoView({ block: 'nearest' });
+		note.querySelector('summary')?.focus();
+	}
 </script>
 
 <div class="raw" data-testid="payload" tabindex="-1">
@@ -64,6 +85,23 @@
 		<summary>Inside <code>{jwt.name}</code></summary>
 		<pre>{JSON.stringify(jwt.header, null, 2)}</pre>
 		<pre>{JSON.stringify(jwt.claims, null, 2)}</pre>
+		{#if settingsBehind(jwt).length}
+			<ul class="behind" data-testid="token-settings">
+				{#each settingsBehind(jwt) as { note, claims } (note.id)}
+					<li>
+						<code>{claims.join(', ')}</code> comes from
+						<button
+							type="button"
+							class="from"
+							data-open-note={note.id}
+							onclick={() => openNote(note.id)}
+						>
+							{note.title}
+						</button>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</details>
 {/each}
 
@@ -139,6 +177,29 @@
 
 	.jwt summary {
 		cursor: pointer;
+	}
+
+	.behind {
+		margin: 6px 0 0;
+		padding: 0;
+		list-style: none;
+		font-size: 12px;
+	}
+
+	.behind li {
+		padding: 2px 0;
+	}
+
+	.behind code {
+		overflow-wrap: anywhere;
+	}
+
+	.behind .from {
+		padding: 0;
+		border: 0;
+		background: none;
+		font: inherit;
+		text-align: left;
 	}
 
 	.jwt pre {
