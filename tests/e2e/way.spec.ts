@@ -227,13 +227,4 @@ test.describe('the map', () => {
 		await expect(page.getByTestId('node-redirect-uri-error')).toContainText('Advanced');
 		await expect(page.getByTestId('node-how-access-works')).not.toContainText('Advanced');
 	});
-
-	test('draws what a question adds to the flow, so they do not all look the same', async ({
-		page
-	}) => {
-		await page.goto('./');
-		await expect(page.getByTestId('node-how-access-works').locator('.added')).toHaveCount(0);
-		await expect(page.getByTestId('node-stolen-code').locator('.added').first()).toBeAttached();
-		await expect(page.getByTestId('node-stolen-code').locator('[data-about]')).toHaveCount(1);
-	});
 });

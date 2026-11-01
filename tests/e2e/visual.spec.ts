@@ -36,6 +36,8 @@ for (const scheme of ['light', 'dark'] as const) {
 
 		test('the map', async ({ page }) => {
 			await page.goto('./');
+			// It loads after the page, and the picture without it is not the home screen.
+			await expect(page.getByTestId('living')).toBeVisible();
 			await page.mouse.move(0, 0);
 			await expect(page).toHaveScreenshot(`map-${scheme}.png`, {
 				fullPage: true,

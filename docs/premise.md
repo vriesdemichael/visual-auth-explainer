@@ -197,7 +197,7 @@ Three things follow:
 - Nodes and presets are different things. A preset is a set of settings that gets a recording, and a node is a question, a mode and a step on top of one, so several questions can share a recording. A test keeps every recording reachable from the map.
 - People can also search with the words they have, from anywhere, including a pasted error that goes to the step where a real server said it. It loads on first use, and nothing leaves the browser.
 - Planned nodes do not show. Everything on the map opens, because a greyed-out node says nothing a visitor can use.
-- Each card draws its real diagram small, from the same model, so you can see how far each question goes.
+- Beside the map is one living diagram. Pointing at a question moves it to that question's state with the real transition, and it moves once by itself soon after the page opens, and then never again. So the home screen shows the idea within seconds, and each question no longer needs a small drawing of its own, which made 40 things look alike ([#64](https://github.com/vriesdemichael/visual-auth-explainer/issues/64)).
 - The way back to the map stays one click away, and the node matching the current state is marked.
 - A state reached by flipping settings by hand still has a URL, with or without a node.
 
