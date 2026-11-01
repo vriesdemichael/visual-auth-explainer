@@ -229,8 +229,16 @@ const list: readonly Term[] = [
 		id: 'session',
 		name: 'Session',
 		words: ['session', 'sessions'],
+		alsoCalled: ['cookie, which is usually how a browser holds on to one'],
 		explains:
 			'What a server keeps to remember that someone has logged in, usually with a cookie in their browser. An app and an identity provider each have their own.'
+	},
+	{
+		id: 'logout',
+		name: 'Logging out',
+		words: ['log out', 'logout', 'logging out', 'logs out'],
+		explains:
+			'Ending a session. An app’s own session and the identity provider’s are separate, so ending one does not by itself end the other, and tokens already handed out can still work until they expire.'
 	},
 	{
 		id: 'library',

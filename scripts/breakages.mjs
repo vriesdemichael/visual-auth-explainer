@@ -230,6 +230,26 @@ export const breakages = [
 		to: "at: flowAt('consent-page')\n\t},\n\t{\n\t\tid: 'consent',"
 	},
 
+	// Search.
+	{
+		name: 'search: an error stops being found in a pasted line',
+		file: 'src/lib/search/search.ts',
+		from: 'const pasted = errors.filter((error) => phrase.includes(lower(error.title)));',
+		to: 'const pasted = errors.filter((error) => phrase === lower(error.title));'
+	},
+	{
+		name: 'search: something not here yet is guessed around',
+		file: 'src/lib/search/search.ts',
+		from: 'if (missing && !pasted.length) return { results: [], notHereYet: missing };',
+		to: ''
+	},
+	{
+		name: 'search: an error opens the wrong step',
+		file: 'src/lib/search/errors.ts',
+		from: "means: 'A code works once, and this one has been used already.',\n\t\tstep: 'real-app-refused',",
+		to: "means: 'A code works once, and this one has been used already.',\n\t\tstep: 'open-app',"
+	},
+
 	// Answers.
 	{
 		name: 'map: a question opens away from its answer, with no reason',

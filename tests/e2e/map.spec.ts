@@ -46,6 +46,8 @@ test.describe('the map', () => {
 	test('works from the keyboard', async ({ page }) => {
 		await page.goto('./');
 		await page.keyboard.press('Tab');
+		await expect(page.getByTestId('open-search')).toBeFocused();
+		await page.keyboard.press('Tab');
 		await expect(page.getByTestId('map-jump').getByRole('link').first()).toBeFocused();
 		await nodeLink(page, mapNodes[0].id).focus();
 		await page.keyboard.press('Enter');

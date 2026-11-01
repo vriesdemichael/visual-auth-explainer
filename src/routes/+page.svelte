@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import LearningMap from '#lib/components/LearningMap.svelte';
 	import { mapTracks, type MapNode } from '#lib/map/nodes.ts';
+	import { searchState } from '#lib/search/open.svelte.ts';
 	import { sharingTags } from '#lib/site.ts';
 
 	// The query string does not exist while prerendering, so where someone came from is marked after.
@@ -46,6 +47,15 @@
 		codes, token formats, defaults and the stored-token API are Keycloak's own. Pick a question and
 		follow it, one message at a time. New to this? Start with the first one.
 	</p>
+	<button
+		type="button"
+		class="search"
+		data-testid="open-search"
+		onclick={() => (searchState.open = true)}
+	>
+		Search for a word, a question, or an error on your screen
+		<kbd>/</kbd>
+	</button>
 	<LearningMap tracks={mapTracks} {hrefOf} {current} />
 </main>
 
@@ -63,9 +73,30 @@
 		letter-spacing: -0.01em;
 	}
 
+	.search {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		box-sizing: border-box;
+		width: min(680px, 100%);
+		margin: 0 0 28px;
+		padding: 8px 12px;
+		color: var(--muted);
+		text-align: left;
+	}
+
+	kbd {
+		padding: 0 6px;
+		border: 1px solid var(--line);
+		border-radius: 4px;
+		font: inherit;
+		font-size: 12px;
+	}
+
 	.lead {
 		max-width: 680px;
-		margin: 0 0 32px;
+		margin: 0 0 20px;
 		color: var(--muted);
 		font-size: 16px;
 	}

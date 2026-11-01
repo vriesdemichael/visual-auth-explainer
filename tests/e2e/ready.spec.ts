@@ -28,8 +28,8 @@ test.describe('by keyboard alone', () => {
 	test('the whole flow can be walked, from the map to the last step', async ({ page }) => {
 		const { steps } = evaluate(base.diagrams.flow, defaultSettings);
 		await page.goto('./');
-		// Past the links that jump to each part of the map, to the first question.
-		for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
+		// Past search and the links that jump to each part of the map, to the first question.
+		for (let i = 0; i < 7; i++) await page.keyboard.press('Tab');
 		await page.keyboard.press('Enter');
 		await ready(page);
 

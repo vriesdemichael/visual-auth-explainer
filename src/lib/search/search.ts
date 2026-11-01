@@ -1,0 +1,255 @@
+import { terms } from '#lib/flow/glossary.ts';
+import { authorizationCodeBase as base } from '#lib/flow/index.ts';
+import { evaluate, type DiagramId } from '#lib/flow/model.ts';
+import {
+	defaultSettings,
+	normalize,
+	settingDefs,
+	settingIds,
+	type Settings
+} from '#lib/flow/settings.ts';
+import { serializeState, type AppState } from '#lib/flow/state.ts';
+import { notesFor } from '#lib/keycloak/notes.ts';
+import { mapNodes } from '#lib/map/nodes.ts';
+import { settingsOf } from '#lib/recordings/known.ts';
+import { knownErrors, notHereYet } from '#lib/search/errors.ts';
+
+export type ResultKind = 'error' | 'question' | 'word' | 'setting' | 'step' | 'note';
+
+/** A state on the one application screen, which is all a result ever is (ADR-003). */
+export interface Result {
+	kind: ResultKind;
+	title: string;
+	/** Why it matched, or what it means, in a line. */
+	says: string;
+	flow: string;
+	/** A question's own address, or setup's, or nothing for the user flow. */
+	view?: string;
+	query: string;
+}
+
+export interface Found {
+	results: Result[];
+	/** Asked about something this application does not cover yet. */
+	notHereYet: string | null;
+}
+
+interface Entry {
+	result: Result;
+	/** What counts most towards a match. */
+	title: string;
+	text: string;
+	/** Exactly this is what it is, so it goes first. */
+	exactly?: readonly string[];
+}
+
+const lower = (text: string) => text.toLowerCase();
+
+function stateAt(
+	diagram: DiagramId,
+	settings: Partial<Settings>,
+	step: string | null,
+	mode: AppState['mode'],
+	explained: AppState['explained'] = null
+): AppState {
+	return {
+		flow: base.id,
+		diagram,
+		mode,
+		settings: normalize({ ...defaultSettings, ...settings }).settings,
+		step: step ?? base.diagrams[diagram].steps[0].id,
+		source: null,
+		explained,
+		serverNotes: true,
+		settingsHidden: false
+	};
+}
+
+function resultAt(kind: ResultKind, title: string, says: string, state: AppState): Result {
+	return {
+		kind,
+		title,
+		says,
+		flow: base.id,
+		view: state.diagram === 'setup' ? 'setup' : undefined,
+		query: serializeState(base, state)
+	};
+}
+
+/** The settings that show a step, going by the named states, so that a recording usually has it. */
+function settingsShowing(diagram: DiagramId, step: string): Settings | null {
+	const candidates = [defaultSettings, ...base.presets.map(settingsOf)];
+	return (
+		candidates.find((settings) =>
+			evaluate(base.diagrams[diagram], settings).steps.some((s) => s.id === step)
+		) ?? null
+	);
+}
+
+function allEntries(): Entry[] {
+	const entries: Entry[] = [];
+
+	for (const node of mapNodes) {
+		entries.push({
+			result: {
+				kind: 'question',
+				title: node.title,
+				says: node.answer,
+				flow: node.flow,
+				view: node.id,
+				query: ''
+			},
+			title: node.title,
+			text: `${node.summary} ${node.answer}`
+		});
+	}
+
+	for (const term of Object.values(terms)) {
+		if (term.part) continue;
+		const explained = { kind: 'term', id: term.id } as const;
+		const place = term.at;
+		const state = stateAt(
+			place?.diagram ?? 'flow',
+			place?.settings ?? {},
+			place?.step ?? null,
+			'simple',
+			explained
+		);
+		const text = [...term.words, ...(term.alsoCalled ?? [])].join(' ');
+		entries.push({
+			result: resultAt('word', term.name, term.explains || 'What this word means.', state),
+			title: `${term.name} ${text}`,
+			text: term.explains,
+			exactly: [term.name, ...term.words, ...(term.alsoCalled ?? [])].map(lower)
+		});
+	}
+
+	for (const id of settingIds) {
+		const def = settingDefs[id];
+		const state = stateAt('flow', {}, null, def.simple ? 'simple' : 'advanced', {
+			kind: 'setting',
+			id
+		});
+		entries.push({
+			result: resultAt('setting', def.simple?.label ?? def.label, def.summary, state),
+			title: `${def.label} ${def.simple?.label ?? ''}`,
+			text: `${def.summary} ${def.why}`
+		});
+	}
+
+	for (const diagram of ['flow', 'setup'] as const) {
+		for (const step of base.diagrams[diagram].steps) {
+			const settings = settingsShowing(diagram, step.id);
+			if (!settings) continue;
+			const shown = evaluate(base.diagrams[diagram], settings).steps.find((s) => s.id === step.id);
+			if (!shown) continue;
+			const fields = shown.fields.map((field) => `${field.name} ${field.note ?? ''}`).join(' ');
+			const state = stateAt(diagram, settings, step.id, 'advanced');
+			const pitfall = shown.pitfall ? `${shown.pitfall.title} ${shown.pitfall.text}` : '';
+			entries.push({
+				result: resultAt('step', shown.plain, shown.label, state),
+				title: `${shown.plain} ${shown.label}`,
+				text: `${shown.concept} ${shown.inPractice ?? ''} ${pitfall} ${fields}`
+			});
+			for (const note of notesFor(base.id, step.id, settings)) {
+				entries.push({
+					result: resultAt('note', note.title, shown.plain, state),
+					title: note.title,
+					text: note.text
+				});
+			}
+		}
+	}
+
+	return entries;
+}
+
+let cached: { entries: Entry[]; errors: Result[] } | null = null;
+function index() {
+	cached ??= {
+		entries: allEntries(),
+		errors: knownErrors.map((known) =>
+			resultAt(
+				'error',
+				known.text,
+				known.means,
+				stateAt('flow', known.settings, known.step, 'advanced')
+			)
+		)
+	};
+	return cached;
+}
+
+const LITTLE_WORDS = new Set(
+	'a an and are at be can do does for from get how i if in is it my of on or that the this to what when why with you your'.split(
+		' '
+	)
+);
+
+/** Words worth looking for. A pasted line also has timestamps, IDs and addresses around the error. */
+function wordsOf(query: string): string[] {
+	return lower(query)
+		.split(/[\s,;:()[\]{}"'=/\\|<>]+/)
+		.filter((word) => word && !LITTLE_WORDS.has(word))
+		.filter((word) => !/^[\d.:tz-]+$/.test(word) || /^[1-5]\d\d$/.test(word))
+		.filter((word) => word.length < 40);
+}
+
+const scoreOf = (entry: Entry, phrase: string, words: readonly string[]) => {
+	const title = lower(entry.title);
+	const text = lower(entry.text);
+	const inTitle = words.filter((word) => title.includes(word)).length;
+	const inText = words.filter((word) => text.includes(word)).length;
+	const matched = words.filter((word) => title.includes(word) || text.includes(word)).length;
+	if (matched < words.length) return 0;
+	return (
+		(entry.exactly?.includes(phrase) ? 100 : 0) +
+		(title.includes(phrase) ? 40 : 0) +
+		(text.includes(phrase) ? 20 : 0) +
+		inTitle * 5 +
+		inText
+	);
+};
+
+const ORDER: readonly ResultKind[] = ['question', 'word', 'setting', 'step', 'note'];
+const LIMIT = 8;
+
+/** The states that answer what someone typed, with an exact error first. */
+export function search(query: string): Found {
+	const phrase = lower(query.trim());
+	if (phrase.length < 2) return { results: [], notHereYet: null };
+	const { entries, errors } = index();
+
+	const pasted = errors.filter((error) => phrase.includes(lower(error.title)));
+	const longestFirst = [...pasted].sort((a, b) => b.title.length - a.title.length);
+	const partOfAnError = errors.filter(
+		(error) => phrase.length >= 4 && lower(error.title).includes(phrase) && !pasted.includes(error)
+	);
+
+	const missing = notHereYet.find((topic) => phrase.includes(topic)) ?? null;
+	if (missing && !pasted.length) return { results: [], notHereYet: missing };
+
+	// A pasted line says plenty besides the error, which should not get in the way of it.
+	const words = wordsOf(query);
+	const others =
+		pasted.length || !words.length
+			? []
+			: entries
+					.map((entry) => ({ entry, score: scoreOf(entry, phrase, words) }))
+					.filter(({ score }) => score > 0)
+					.sort(
+						(a, b) =>
+							b.score - a.score ||
+							ORDER.indexOf(a.entry.result.kind) - ORDER.indexOf(b.entry.result.kind)
+					)
+					.map(({ entry }) => entry.result);
+
+	const seen = new Set<string>();
+	const results = [...longestFirst, ...partOfAnError, ...others].filter((result) => {
+		const key = `${result.kind}:${result.title}:${result.query}`;
+		if (seen.has(key)) return false;
+		seen.add(key);
+		return true;
+	});
+	return { results: results.slice(0, LIMIT), notHereYet: null };
+}
