@@ -141,6 +141,12 @@ test.describe('nothing an automated check can find', () => {
 		['the start page', './'],
 		['the user flow', 'authorization-code/?oidc=1&step=token-response'],
 		['advanced mode', 'authorization-code/?mode=advanced&oidc=1&step=token-response'],
+		['a request with Execute', 'authorization-code/?mode=advanced&step=token-request'],
+		[
+			'a state with no recording',
+			'authorization-code/?mode=advanced&oidc=1&binding=dpop&step=token-request'
+		],
+		['a request carrying values', 'authorization-code/?mode=advanced&step=callback'],
 		['an explanation', 'authorization-code/?step=authorize&explain=lifeline.idp'],
 		['setup', 'authorization-code/setup/?broker=1'],
 		['an open source', 'authorization-code/?source=rfc6749&for=client&section=2.1']

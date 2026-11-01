@@ -278,17 +278,17 @@
 				"claims_parameter_supported": true,
 				"scopes_supported": [
 					"openid",
-					"web-origins",
-					"microprofile-jwt",
-					"organization",
-					"profile",
-					"phone",
 					"email",
+					"microprofile-jwt",
 					"offline_access",
+					"profile",
 					"service_account",
+					"basic",
+					"organization",
 					"address",
 					"roles",
-					"basic",
+					"web-origins",
+					"phone",
 					"acr"
 				],
 				"request_parameter_supported": true,
@@ -381,14 +381,14 @@
 			"direction": "response",
 			"status": 302,
 			"headers": {
-				"location": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=obv7JpQsh8UVgtzTYSPXAg&code_challenge=y1p1IYaewoOlFvRECp07uCimNrW0kyaRyQy_tiXYt5A&code_challenge_method=S256"
+				"location": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=NO40vItS6Ti5o6Rhto3cRw&code_challenge=U_hCqiptaFFr8Kh-0O1lRSPIBXsG2fM_JRJqVX5yROs&code_challenge_method=S256"
 			}
 		},
 		{
 			"step": "authorize",
 			"direction": "request",
 			"method": "GET",
-			"url": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=obv7JpQsh8UVgtzTYSPXAg&code_challenge=y1p1IYaewoOlFvRECp07uCimNrW0kyaRyQy_tiXYt5A&code_challenge_method=S256",
+			"url": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=NO40vItS6Ti5o6Rhto3cRw&code_challenge=U_hCqiptaFFr8Kh-0O1lRSPIBXsG2fM_JRJqVX5yROs&code_challenge_method=S256",
 			"headers": {}
 		},
 		{
@@ -397,13 +397,14 @@
 			"status": 200,
 			"headers": {
 				"content-type": "text/html;charset=utf-8"
-			}
+			},
+			"bodyNote": "An HTML page"
 		},
 		{
 			"step": "submit-credentials",
 			"direction": "request",
 			"method": "POST",
-			"url": "http://localhost:18080/realms/demo/login-actions/authenticate?session_code=jq3aW8E4Iwo4gv1dcZiqW4-88HgUA0v8DQJDhL5FRSg&execution=b2d35399-436d-4c57-ae1e-5d6c8a84ac6d&client_id=demo-app&tab_id=99gti6x_j54&client_data=eyJydSI6Imh0dHA6Ly9sb2NhbGhvc3Q6OTEwMC9jYWxsYmFjayIsInJ0IjoiY29kZSIsInN0Ijoib2J2N0pwUXNoOFVWZ3R6VFlTUFhBZyJ9",
+			"url": "http://localhost:18080/realms/demo/login-actions/authenticate?session_code=MbOxS0R04f_2GUdpW2POhizUFCb1agaaBk-4o5Q97fg&execution=11906719-0562-451e-9e76-f9a5563eb86d&client_id=demo-app&tab_id=9xHlzAf_HQk&client_data=eyJydSI6Imh0dHA6Ly9sb2NhbGhvc3Q6OTEwMC9jYWxsYmFjayIsInJ0IjoiY29kZSIsInN0IjoiTk80MHZJdFM2VGk1bzZSaHRvM2NSdyJ9",
 			"headers": {
 				"content-type": "application/x-www-form-urlencoded"
 			},
@@ -418,17 +419,15 @@
 			"direction": "response",
 			"status": 302,
 			"headers": {
-				"location": "http://localhost:9100/callback?state=obv7JpQsh8UVgtzTYSPXAg&session_state=YKtArY0jK5GZS7cZ0xYwlx28&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=f63ce883-d2f7-dcb9-0dda-9be05ebf119e.YKtArY0jK5GZS7cZ0xYwlx28.228f23cd-7622-4aa8-82c0-9a1920d65741"
+				"location": "http://localhost:9100/callback?state=NO40vItS6Ti5o6Rhto3cRw&session_state=hL-ReTLMFzonYeJbKW5WJq9P&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=69f044b6-904f-1fd9-597a-9e307d9fdd33.hL-ReTLMFzonYeJbKW5WJq9P.d0180c60-b63c-4d0e-91de-e01197dae85d"
 			}
 		},
 		{
 			"step": "callback",
 			"direction": "request",
 			"method": "GET",
-			"url": "http://localhost:9100/callback?state=obv7JpQsh8UVgtzTYSPXAg&session_state=YKtArY0jK5GZS7cZ0xYwlx28&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=f63ce883-d2f7-dcb9-0dda-9be05ebf119e.YKtArY0jK5GZS7cZ0xYwlx28.228f23cd-7622-4aa8-82c0-9a1920d65741",
-			"headers": {
-				"content-type": "application/x-www-form-urlencoded"
-			}
+			"url": "http://localhost:9100/callback?state=NO40vItS6Ti5o6Rhto3cRw&session_state=hL-ReTLMFzonYeJbKW5WJq9P&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=69f044b6-904f-1fd9-597a-9e307d9fdd33.hL-ReTLMFzonYeJbKW5WJq9P.d0180c60-b63c-4d0e-91de-e01197dae85d",
+			"headers": {}
 		},
 		{
 			"step": "token-request",
@@ -440,11 +439,11 @@
 			},
 			"body": {
 				"grant_type": "authorization_code",
-				"code": "f63ce883-d2f7-dcb9-0dda-9be05ebf119e.YKtArY0jK5GZS7cZ0xYwlx28.228f23cd-7622-4aa8-82c0-9a1920d65741",
+				"code": "69f044b6-904f-1fd9-597a-9e307d9fdd33.hL-ReTLMFzonYeJbKW5WJq9P.d0180c60-b63c-4d0e-91de-e01197dae85d",
 				"redirect_uri": "http://localhost:9100/callback",
 				"client_id": "demo-app",
 				"client_secret": "throwaway-client-secret",
-				"code_verifier": "S8WF82VKFs8YnHmn5cBcjAdbYk_kg11NPSV5r3xQuo-g"
+				"code_verifier": "yp9q79GFvYSK6oiLUe5kpgcLLa9Rb92mAdWeHwrhNVig"
 			}
 		},
 		{
@@ -455,13 +454,13 @@
 				"content-type": "application/json"
 			},
 			"body": {
-				"access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJQeEk5a2tvOUtCMEdlRTVNZEdUTk9KdnRkdXpSMjR6WU5YOGQtaXNhVzNNIn0.eyJleHAiOjE3OTM0OTAxMDcsImlhdCI6MTc5MzQ4OTgwNywiYXV0aF90aW1lIjoxNzkzNDg5ODA3LCJqdGkiOiJvbnJ0YWM6YzAzMjA3MWQtNzNiMS1lZjFlLWU1OTQtZDhlYjNkYTJjNDYwIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI4MzA4OTJmNS0zZjhhLTQwNjYtOTllOS1jMjUwNDE1NGI3NDAiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6IllLdEFyWTBqSzVHWlM3Y1oweFl3bHgyOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1kZW1vIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.nBqyes5ltdB3mgmZ1odq4bVtGo52xX-ICHa3IXFAbrvyVVrccU3BfvHwzmwgSiZzKzNtU9XHSeDuv3tj5BiapNc4yFx9zCGaXgjCzno0qrjSDB3LStNpkCtxD_Qj03DrQWhkv5_Z1OfEj_5siOqbe2Eir3bkRLyu7i-A3_mMV4saKg02KG1R9bdpdWRJd9l5D2ZzOzEhci5tDTvkRz1KyiZD5B--I29PLLL72XsJV34XQW36LGQdGC-0etyTPMjf3bm9N8X8jU7nsG_wi6ip9RUkPzN5BlJnZFeCEzyO_QeP3q30zqxoCQjYb27ZgVKVjv5JnvOF-7I17pWUmtxltQ",
+				"access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJKdWFxdVNDUEwyRG9IUC1mVEZsT0ZJZFNvTXFjcmpGdVlrYnBoWW9XSEJjIn0.eyJleHAiOjE3OTM0OTE0MjcsImlhdCI6MTc5MzQ5MTEyNywiYXV0aF90aW1lIjoxNzkzNDkxMTI2LCJqdGkiOiJvbnJ0YWM6ZDEyZGNjNGItZmI1Zi0zNTEzLWNkMDMtMWY2Y2QwOTgxMmEwIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJlNTI4NmQ2OS1lMmE3LTRmMzUtOTVlZi02ZmI3MDU4YTUyMWQiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6ImhMLVJlVExNRnpvblllSmJLVzVXSnE5UCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1kZW1vIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.RNRozwwWQ3aUbPhCi5IcutmXfBu1Pr6L51mgcjKTNIQISmRZIk-PKe9XS5fVDDZtQbUWf9RVM5S40m0ikl9UxRq7CZ-EJ7kg31zzl8eGi8uyhtb3fyh2Xq-RrKwnHwKbMUWc2CPsValLVLJJ68Qr1NALxMVdR7VxFBF9OhzXMr1cg0Md0p_tuuvS5Bf_sIgXtBBixY-Hb2RrC95D4PbkWBQ-qPawue7_cfIpABQyI-vpUJjU0TNmBRrxjlPeWYX72BSI1XoVR6mTO8-4EXWlz6ZN1c3KVgUHZA5mwiyl6yznbaSlOmAu1h2noL4UsBot8Vj8wy6r9ru2EkYoj5hxWw",
 				"expires_in": 300,
 				"refresh_expires_in": 1800,
-				"refresh_token": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJjMWQyYjczMC04YTRhLTQ5MjUtYTJjOS0yZDA2YTU4MjdiY2YifQ.eyJleHAiOjE3OTM0OTE2MDcsImlhdCI6MTc5MzQ4OTgwNywianRpIjoiMGQwODc3NGUtYWVjZC1hZWViLWMyMmQtYjQxYjBiOGMwNDBhIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6MTgwODAvcmVhbG1zL2RlbW8iLCJzdWIiOiI4MzA4OTJmNS0zZjhhLTQwNjYtOTllOS1jMjUwNDE1NGI3NDAiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiZGVtby1hcHAiLCJzaWQiOiJZS3RBclkwaks1R1pTN2NaMHhZd2x4MjgiLCJzY29wZSI6ImVtYWlsIHdlYi1vcmlnaW5zIHJvbGVzIGJhc2ljIHByb2ZpbGUgYWNyIiwiYXVkX3giOiJhY2NvdW50IiwicHJvdiI6ImRlZmF1bHQifQ.Tiy_1TdoTj23Krs_jYR2K46k2FzcKONVaEVvNMkNmvEr7fZA3bDSGIA_Pat27j_f0MLiJ51vapRin7ndg7Bakg",
+				"refresh_token": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIyNDIzNDA3ZS1mNjkzLTRjNWItOTc0Yy1jYjQxNDY5YWFmMmYifQ.eyJleHAiOjE3OTM0OTI5MjcsImlhdCI6MTc5MzQ5MTEyNywianRpIjoiODMzOWNhODItYTI1My03N2Y0LWNjYWQtZGE3OTBiMjk0NmM0IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6MTgwODAvcmVhbG1zL2RlbW8iLCJzdWIiOiJlNTI4NmQ2OS1lMmE3LTRmMzUtOTVlZi02ZmI3MDU4YTUyMWQiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiZGVtby1hcHAiLCJzaWQiOiJoTC1SZVRMTUZ6b25ZZUpiS1c1V0pxOVAiLCJzY29wZSI6ImVtYWlsIHByb2ZpbGUgYmFzaWMgYWNyIHdlYi1vcmlnaW5zIHJvbGVzIiwiYXVkX3giOiJhY2NvdW50IiwicHJvdiI6ImRlZmF1bHQifQ.ICp6LKIePai_6xBgKs6_6fKi1iXj_aZws-UGM0qyqe9qJRmce7GE_xl3OdFG6bk4hzkWyYoCHGob-nWNOGiK7g",
 				"token_type": "Bearer",
 				"not-before-policy": 0,
-				"session_state": "YKtArY0jK5GZS7cZ0xYwlx28",
+				"session_state": "hL-ReTLMFzonYeJbKW5WJq9P",
 				"scope": "email profile"
 			}
 		},
@@ -471,7 +470,7 @@
 			"method": "GET",
 			"url": "http://localhost:9101/resource",
 			"headers": {
-				"authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJQeEk5a2tvOUtCMEdlRTVNZEdUTk9KdnRkdXpSMjR6WU5YOGQtaXNhVzNNIn0.eyJleHAiOjE3OTM0OTAxMDcsImlhdCI6MTc5MzQ4OTgwNywiYXV0aF90aW1lIjoxNzkzNDg5ODA3LCJqdGkiOiJvbnJ0YWM6YzAzMjA3MWQtNzNiMS1lZjFlLWU1OTQtZDhlYjNkYTJjNDYwIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI4MzA4OTJmNS0zZjhhLTQwNjYtOTllOS1jMjUwNDE1NGI3NDAiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6IllLdEFyWTBqSzVHWlM3Y1oweFl3bHgyOCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1kZW1vIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.nBqyes5ltdB3mgmZ1odq4bVtGo52xX-ICHa3IXFAbrvyVVrccU3BfvHwzmwgSiZzKzNtU9XHSeDuv3tj5BiapNc4yFx9zCGaXgjCzno0qrjSDB3LStNpkCtxD_Qj03DrQWhkv5_Z1OfEj_5siOqbe2Eir3bkRLyu7i-A3_mMV4saKg02KG1R9bdpdWRJd9l5D2ZzOzEhci5tDTvkRz1KyiZD5B--I29PLLL72XsJV34XQW36LGQdGC-0etyTPMjf3bm9N8X8jU7nsG_wi6ip9RUkPzN5BlJnZFeCEzyO_QeP3q30zqxoCQjYb27ZgVKVjv5JnvOF-7I17pWUmtxltQ"
+				"authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJKdWFxdVNDUEwyRG9IUC1mVEZsT0ZJZFNvTXFjcmpGdVlrYnBoWW9XSEJjIn0.eyJleHAiOjE3OTM0OTE0MjcsImlhdCI6MTc5MzQ5MTEyNywiYXV0aF90aW1lIjoxNzkzNDkxMTI2LCJqdGkiOiJvbnJ0YWM6ZDEyZGNjNGItZmI1Zi0zNTEzLWNkMDMtMWY2Y2QwOTgxMmEwIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJlNTI4NmQ2OS1lMmE3LTRmMzUtOTVlZi02ZmI3MDU4YTUyMWQiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6ImhMLVJlVExNRnpvblllSmJLVzVXSnE5UCIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1kZW1vIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.RNRozwwWQ3aUbPhCi5IcutmXfBu1Pr6L51mgcjKTNIQISmRZIk-PKe9XS5fVDDZtQbUWf9RVM5S40m0ikl9UxRq7CZ-EJ7kg31zzl8eGi8uyhtb3fyh2Xq-RrKwnHwKbMUWc2CPsValLVLJJ68Qr1NALxMVdR7VxFBF9OhzXMr1cg0Md0p_tuuvS5Bf_sIgXtBBixY-Hb2RrC95D4PbkWBQ-qPawue7_cfIpABQyI-vpUJjU0TNmBRrxjlPeWYX72BSI1XoVR6mTO8-4EXWlz6ZN1c3KVgUHZA5mwiyl6yznbaSlOmAu1h2noL4UsBot8Vj8wy6r9ru2EkYoj5hxWw"
 			}
 		},
 		{
@@ -491,7 +490,8 @@
 			"status": 200,
 			"headers": {
 				"content-type": "text/html"
-			}
+			},
+			"bodyNote": "An HTML page"
 		}
 	]
 }

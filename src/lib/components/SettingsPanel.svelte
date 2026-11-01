@@ -11,6 +11,7 @@
 		type Settings
 	} from '#lib/flow/settings.ts';
 	import type { Mode } from '#lib/flow/vocabulary.ts';
+	import { flagStatus } from '#lib/recordings/known.ts';
 	import { refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	interface Props {
@@ -76,6 +77,11 @@
 						/>
 						{option.label}
 						{#if blocked}<small>{blocked}</small>{/if}
+						{#if !simple && option.flag}
+							<small class="flag" data-flag={option.flag.name}>
+								Keycloak flag <code>{option.flag.name}</code>: {flagStatus(option.flag)}
+							</small>
+						{/if}
 					</label>
 				{/each}
 			</fieldset>
@@ -227,6 +233,11 @@
 		display: block;
 		margin-left: 22px;
 		font-size: 11.5px;
+	}
+
+	.flag {
+		color: var(--muted);
+		overflow-wrap: anywhere;
 	}
 
 	p {

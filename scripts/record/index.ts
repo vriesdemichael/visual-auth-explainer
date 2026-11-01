@@ -6,8 +6,8 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium, type Browser, type Request, type Response } from '@playwright/test';
 import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
-import { defaultSettings, normalize, type Settings } from '#lib/flow/settings.ts';
-import type { Recording, RecordingIndex } from '#lib/recordings/format.ts';
+import { defaultSettings, flagsInSettings, normalize, type Settings } from '#lib/flow/settings.ts';
+import type { FlagStatus, Recording, RecordingIndex } from '#lib/recordings/format.ts';
 import { shapeDifferences, shapeOf } from '#lib/recordings/shape.ts';
 import { Demo, requestMessage, responseMessage, type Run } from './demo.ts';
 import {
@@ -151,7 +151,28 @@ async function record(
 	return run;
 }
 
-function indexOf(recordings: Recording[], keycloak: string, recordedAt: string): RecordingIndex {
+interface ServerFeature extends FlagStatus {
+	name: string;
+}
+
+/** The flags the settings name, in what a server on its defaults says about them. */
+function flagsFrom(features: readonly ServerFeature[]): Record<string, FlagStatus> {
+	return Object.fromEntries(
+		flagsInSettings().map(({ name }) => {
+			const onServer = name.toUpperCase().replaceAll(/[-:]/g, '_');
+			const found = features.find((feature) => feature.name === onServer);
+			if (!found) throw new Error(`The server has no feature ${onServer}`);
+			return [name, { type: found.type, enabled: found.enabled }];
+		})
+	);
+}
+
+function indexOf(
+	recordings: Recording[],
+	keycloak: string,
+	recordedAt: string,
+	flags: Record<string, FlagStatus>
+): RecordingIndex {
 	const known = new Set(
 		[...base.diagrams.flow.steps, ...base.diagrams.setup.steps].map((step) => step.id)
 	);
@@ -163,7 +184,8 @@ function indexOf(recordings: Recording[], keycloak: string, recordedAt: string):
 		keycloak,
 		recordedAt,
 		presets: presets.map((preset) => preset.id),
-		steps: [...steps].sort()
+		steps: [...steps].sort(),
+		flags
 	};
 }
 
@@ -176,6 +198,7 @@ async function main() {
 	const recordedAt = new Date().toISOString().slice(0, 10);
 	const recordings: Recording[] = [];
 	const answers: Record<string, unknown> = {};
+	let flags: Record<string, FlagStatus> = {};
 	let keycloak = version;
 	let failed = false;
 
@@ -202,6 +225,10 @@ async function main() {
 				});
 			}
 			Object.assign(answers, await questions(browser, demo, admin));
+			if (!features.length) {
+				const info = await admin.call<{ features: ServerFeature[] }>('GET', '/serverinfo');
+				flags = flagsFrom(info.features);
+			}
 			stopKeycloak();
 		}
 		console.log(JSON.stringify(answers, null, '\t'));
@@ -216,6 +243,11 @@ async function main() {
 					console.log(`\n${recording.preset} changed:\n${differences.join('\n')}`);
 				}
 			}
+			const committed = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
+			if (JSON.stringify(committed.flags) !== JSON.stringify(flags)) {
+				failed = true;
+				console.log(`\nFeature flags changed:\n${JSON.stringify(flags, null, '\t')}`);
+			}
 			console.log(failed ? '\nThe shape has changed.' : '\nThe shape has not changed.');
 		} else {
 			mkdirSync(FOLDER, { recursive: true });
@@ -223,7 +255,7 @@ async function main() {
 				writeFileSync(path, `${JSON.stringify(value, null, '\t')}\n`);
 			for (const recording of recordings) write(`${FOLDER}/${recording.preset}.json`, recording);
 			write(`${FOLDER}/questions.json`, { keycloak, recordedAt, answers });
-			write(INDEX, indexOf(recordings, keycloak, recordedAt));
+			write(INDEX, indexOf(recordings, keycloak, recordedAt, flags));
 		}
 	} finally {
 		await browser.close();

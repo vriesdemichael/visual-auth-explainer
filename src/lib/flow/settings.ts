@@ -62,10 +62,18 @@ export interface ToggleDef extends SettingBase {
 	default: boolean;
 }
 
+/** A Keycloak feature flag behind an option. Its status comes from a real server (recorded.json). */
+export interface KeycloakFlag {
+	name: string;
+	/** What Keycloak's docs add, where the server itself does not say. */
+	docs?: string;
+}
+
 export interface OptionDef<V extends string = string> {
 	value: V;
 	label: string;
 	requires?: Requirement;
+	flag?: KeycloakFlag;
 }
 
 export interface ChoiceDef<V extends string = string> extends SettingBase {
@@ -159,7 +167,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		],
 		options: [
 			{ value: 'bearer', label: 'Bearer' },
-			{ value: 'dpop', label: 'DPoP' }
+			{ value: 'dpop', label: 'DPoP', flag: { name: 'dpop' } }
 		]
 	},
 	dpopNonce: {
@@ -215,10 +223,15 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		},
 		options: [
 			{ value: 'off', label: 'Off' },
-			{ value: 'v1', label: 'API V1' },
+			{
+				value: 'v1',
+				label: 'API V1',
+				flag: { name: 'identity-brokering-api:v1', docs: 'Deprecated in its docs.' }
+			},
 			{
 				value: 'v2',
 				label: 'API V2',
+				flag: { name: 'identity-brokering-api:v2' },
 				requires: {
 					when: all(is('clientType', 'confidential'), is('binding', 'bearer')),
 					because: 'API V2 only works with a confidential client and a Bearer token.'
@@ -240,6 +253,14 @@ export const defaultSettings = Object.fromEntries(
 function optionOf(id: SettingId, value: unknown): OptionDef | undefined {
 	const def: SettingDef = settingDefs[id];
 	return def.kind === 'choice' ? def.options.find((option) => option.value === value) : undefined;
+}
+
+/** Every Keycloak flag the settings name, which is what the recorder asks a real server about. */
+export function flagsInSettings(): KeycloakFlag[] {
+	return settingIds.flatMap((id) => {
+		const def: SettingDef = settingDefs[id];
+		return def.kind === 'choice' ? def.options.flatMap((option) => option.flag ?? []) : [];
+	});
 }
 
 /** Why this setting could not take this value right now, or null when it can. */

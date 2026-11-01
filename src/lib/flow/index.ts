@@ -35,6 +35,18 @@ export const presets: readonly Preset[] = [
 		flow: authorizationCode.id,
 		settings: { clientType: 'public', pkce: true }
 	},
+	{
+		id: 'oidc-pkce',
+		title: 'OpenID Connect with PKCE',
+		flow: authorizationCode.id,
+		settings: { oidc: true, pkce: true }
+	},
+	{
+		id: 'browser-app',
+		title: 'An app in the browser',
+		flow: authorizationCode.id,
+		settings: { oidc: true, clientType: 'public', pkce: true }
+	},
 	{ id: 'dpop', title: 'DPoP', flow: authorizationCode.id, settings: { binding: 'dpop' } },
 	{
 		id: 'dpop-nonce',

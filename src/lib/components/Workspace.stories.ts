@@ -2,6 +2,8 @@ import type { Meta, StoryObj } from '@storybook/sveltekit';
 import Workspace from '#lib/components/Workspace.svelte';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import { parseState } from '#lib/flow/state.ts';
+import type { Recording } from '#lib/recordings/format.ts';
+import oidc from '../../../static/recordings/authorization-code/oidc.json';
 
 const meta = {
 	title: 'Workspace',
@@ -14,6 +16,7 @@ const meta = {
 		homeHref: '#',
 		hrefFor: () => '#',
 		loadText: () => Promise.resolve('1.  Introduction\n\n   A stand-in for the text of an RFC.\n'),
+		loadRecording: () => Promise.resolve(oidc as Recording),
 		onnavigate: () => {}
 	}
 } satisfies Meta<typeof Workspace>;

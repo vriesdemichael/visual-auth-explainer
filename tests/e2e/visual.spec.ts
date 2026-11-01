@@ -18,6 +18,8 @@ const states: readonly [string, string, 'flow' | 'setup'][] = [
 	['token-response', 'step=token-response', 'flow'],
 	['openid-connect', 'oidc=1&step=token-response', 'flow'],
 	['pkce', 'pkce=1&step=token-request', 'flow'],
+	['on-the-wire', 'step=callback', 'flow'],
+	['no-recording', 'oidc=1&binding=dpop&step=callback', 'flow'],
 	['dpop-with-nonce', 'binding=dpop&nonce=1&step=nonce-challenge', 'flow'],
 	['external-idp', 'broker=1&step=upstream-authorize', 'flow'],
 	['everything', 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1&step=token-request', 'flow'],
@@ -32,6 +34,7 @@ for (const scheme of ['light', 'dark'] as const) {
 		for (const [name, search, diagram] of states) {
 			test(name, async ({ page }) => {
 				await open(page, search, diagram);
+				await expect(page.getByTestId('recording-loading')).toHaveCount(0);
 				await page.mouse.move(0, 0);
 				await expect(page).toHaveScreenshot(`${name}-${scheme}.png`, { maxDiffPixelRatio: 0.002 });
 			});

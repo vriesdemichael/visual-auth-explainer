@@ -121,6 +121,7 @@ Recorded on 2026-10-31 with `pnpm record`, against `quay.io/keycloak/keycloak:26
 | Is PKCE tied to the client type? | No. Keycloak applies it to any client that sends a challenge, and insists on it only when **Require PKCE** is on for the client, which is `pkce.code.challenge.method` in the admin API. So the two settings are independent |
 | What can someone do with a code they intercepted? | On a public client without PKCE, get the tokens, and the real app then gets 400 `Code not valid`. With PKCE, nothing: no verifier gets 400 `PKCE code verifier not specified`, and a wrong one 400 `PKCE verification failed: Code mismatch`, with or without the secret. On a confidential client without PKCE, no secret gets 401 `unauthorized_client` |
 | Does a refused try use up the code? | It depends where it was refused. When the PKCE check fails the code is gone, and the real app gets `Code not valid`, so someone with only the code can still spoil a login that PKCE protects. When client authentication fails the code survives, and the real app still got its tokens |
+| What does a server say about the feature flags the settings name? | `dpop` and `identity-brokering-api:v1` are `DEFAULT` and on, and `identity-brokering-api:v2` is `DISABLED_BY_DEFAULT` and off, from `/admin/serverinfo`. The server does not call V1 deprecated, and the 26.8.1 docs do, so a badge says which is which. `pnpm record --check` fails when these change |
 | What does a wrong redirect URI do? | 400 with `Invalid parameter: redirect_uri`, and no redirect |
 
 What else the recordings changed or showed:
@@ -134,7 +135,7 @@ What else the recordings changed or showed:
 
 ## What the content has and has not been checked against
 
-- **Recorded on Keycloak 26.8.1:** every message on the wire, in all eleven named states, apart from the nonce retry.
+- **Recorded on Keycloak 26.8.1:** every message on the wire, in all thirteen named states, apart from the nonce retry.
 - **Read in RFC 9449, not seen on Keycloak:** the nonce retry with `use_dpop_nonce` and `DPoP-Nonce`. The nonce is the server's choice, so it is a setting and not part of DPoP itself, and the application marks these messages.
 - **Not on the wire, so not recorded:** what people do in setup, which the recorder does through the admin API instead.
 - **From general knowledge, not checked:** the concept texts.

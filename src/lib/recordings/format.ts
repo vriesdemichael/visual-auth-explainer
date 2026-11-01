@@ -23,10 +23,17 @@ export interface Recording {
 	messages: RecordedMessage[];
 }
 
+/** What a real server says about one of its feature flags, on its defaults. */
+export interface FlagStatus {
+	type: string;
+	enabled: boolean;
+}
+
 /** The small part the application needs up front. The recordings themselves load when asked for. */
 export interface RecordingIndex {
 	keycloak: string;
 	recordedAt: string;
 	presets: string[];
 	steps: string[];
+	flags: Record<string, FlagStatus>;
 }

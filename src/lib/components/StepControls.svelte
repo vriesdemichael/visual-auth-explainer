@@ -1,13 +1,26 @@
 <script lang="ts">
+	import Execute from '#lib/components/Execute.svelte';
+
 	interface Props {
 		position: number;
 		total: number;
 		canGoBack: boolean;
 		onback: () => void;
 		onnext: () => void;
+		/** The step's answer, when running this step adds something. */
+		answerAt?: number | null;
+		onexecute?: () => void;
 	}
 
-	let { position, total, canGoBack, onback, onnext }: Props = $props();
+	let {
+		position,
+		total,
+		canGoBack,
+		onback,
+		onnext,
+		answerAt = null,
+		onexecute = () => {}
+	}: Props = $props();
 </script>
 
 <div class="controls">
@@ -25,7 +38,11 @@
 	<div class="track" aria-hidden="true">
 		<div class="fill" style:width={`${(position / total) * 100}%`}></div>
 	</div>
-	<span class="hint">Arrow keys work too</span>
+	{#if answerAt !== null}
+		<Execute {answerAt} {onexecute} />
+	{:else}
+		<span class="hint">Arrow keys work too</span>
+	{/if}
 </div>
 
 <style>

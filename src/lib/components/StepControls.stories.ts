@@ -16,6 +16,10 @@ export const AtTheVeryStart: Story = {
 	args: { position: 1, canGoBack: false }
 };
 
+export const WhereExecuteAddsSomething: Story = {
+	args: { position: 8, answerAt: 9 }
+};
+
 export const AtTheEnd: Story = {
 	args: { position: 12 }
 };

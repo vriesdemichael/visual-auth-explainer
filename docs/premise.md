@@ -135,7 +135,7 @@ Three things follow:
 |---|---|---|
 | Settings on offer | A few, in plain language | All of them, with Keycloak feature flags as badges |
 | Each step shows | The concept and why it happens | Parameters and raw request and response |
-| `Execute` | Only where it adds something (section 5.6) | Only where it adds something (section 5.6) |
+| `Execute` | Not offered, because it shows values and simple mode shows none | Only where it adds something (section 5.6) |
 
 - Default to simple. A meta-analysis of 60 experiments found novices gain from high assistance (d = 0.505) and experts from low (d = −0.428), with help for novices the stronger effect. It did not test this kind of mode, so this is reasoning from adjacent evidence.
 - A step can also expand for more detail within a mode. That supplements the modes and does not replace them. A pitfall works this way: at the redirect URI check, "What if the address does not match?" opens to say what happens, with Keycloak's real error.
@@ -147,11 +147,14 @@ Three things follow:
 
 **Decided as desirable:** the maintainer liked AuthPlayground's fake execution. **Decided:** it appears only on steps where it adds something, and it is honest: a combination with no recording says so and shows no payload ([ADR-005](adr/005-payloads-are-recorded-never-invented.md)).
 
-**Proposed:**
+**Proposed, and now built:**
 
 - It is application behaviour, not a code sample. Executing a step produces values that later steps use, so the code returned in one step is the code sent in the next, and that state carries through the flow.
 - It replays traffic recorded from a real Keycloak. That gives the same feel with real payloads and no backend to host, secure or have abused. Re-recording on each Keycloak release also catches drift. Illustrated TLS is the precedent for reproducibility, and it uses real captures.
 - A recording is one real run, so values carry across steps without simulation. Earlier steps always count as executed, so a link only needs the step.
+- It is on steps that send something, where what comes back is used by a later step: the sign-in, the token request and the retrieval of a stored token. Running one moves the diagram to the step with the answer, so the diagram follows execution, which is what AuthPlayground's does not do.
+- Next gets to the same place. Execute says what is about to happen, marks the answer as the answer, and puts the reader on it.
+- Each value in the raw view says where it came from, and every signed token can be opened.
 
 ### 5.7 Keycloak as the reference
 

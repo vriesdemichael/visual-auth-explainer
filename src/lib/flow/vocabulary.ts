@@ -69,6 +69,54 @@ export const artifacts: Readonly<
 	}
 };
 
+/** Why a parameter is there, for the ones that mean the same wherever they appear. */
+const parameterWhy: Readonly<Record<string, string>> = {
+	response_type: 'Asks for a code, which is what makes this the code flow.',
+	client_id: 'Says which app this is, as registered in setup.',
+	redirect_uri: 'Has to be the address the code was sent to.',
+	state:
+		'A random value the app checks when the user comes back, so nobody can slip in an answer it did not ask for.',
+	'scope=openid': 'Asks for OpenID Connect on top of OAuth.',
+	scope: 'What the access covers, which can be less than what was asked for.',
+	nonce:
+		'A random value that comes back inside the ID token, so the app can tell the token is from this login.',
+	code: 'The one-time code, which the app trades for tokens.',
+	iss: 'Who issued the token. It has to be the issuer the app was set up with.',
+	aud: 'Who the token is for.',
+	exp: 'When the token stops being valid.',
+	sub: 'Identifies the user at this identity provider, and stays the same.',
+	grant_type: 'Says what the app is trading in for tokens.',
+	client_secret: 'Shows this really is the registered app.',
+	access_token: 'What the app shows an API to be let in.',
+	token_type: 'Says how to use the token: whether holding it is enough, or it takes a proof too.',
+	id_token: 'Tells the app who logged in.',
+	refresh_token: 'Gets a new access token later, without the user having to log in again.',
+	code_challenge: 'The fingerprint of the verifier, which is safe to send through the browser.',
+	expires_in: 'How many seconds the access token lasts.',
+	'username and password': 'Only whoever does the login sees these.',
+	'Authorization: Bearer': 'The access token. Holding it is enough.',
+	'Authorization: DPoP': 'The access token, which only works together with the proof.',
+	'DPoP-Nonce': 'The value to put in the next proof.',
+	error: 'Says the proof has to include a nonce from the server.',
+	issued_token_type: 'Says what kind of token this is.',
+	'client type': 'Whether the app can keep a secret.',
+	'Store Tokens': 'Makes the identity provider keep what the other provider issued.',
+	'read-token role': "Lets the user's access token read those stored tokens.",
+	'Allow retrieve external tokens': 'Lets this client ask for those stored tokens.',
+	issuer: 'The address that names the identity provider. Everything else starts from it.',
+	'/.well-known/openid-configuration': 'Where an OpenID provider says where everything is.',
+	'/.well-known/oauth-authorization-server': 'Where an OAuth server says where everything is.',
+	authorization_endpoint: 'Where to send the browser to log in.',
+	token_endpoint: 'Where the app trades a code for tokens.',
+	jwks_uri: 'Where to get the keys that verify its tokens.',
+	userinfo_endpoint: 'Where to ask for details about the user.'
+};
+
+/** Why a field is there: what the step says about it, or else what it always means. */
+export function whyOf(field: { name: string; note?: string }): string | undefined {
+	return field.note ?? parameterWhy[field.name] ?? parameterWhy[field.name.split('=')[0]];
+}
+
 /** How much the application exposes. A mode never changes the flow (ADR-004). */
 export type Mode = 'simple' | 'advanced';
 

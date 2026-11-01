@@ -5,6 +5,7 @@
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
 	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
+	import OnTheWire from '#lib/components/OnTheWire.svelte';
 	import SettingsPanel from '#lib/components/SettingsPanel.svelte';
 	import SourcePanel from '#lib/components/SourcePanel.svelte';
 	import StepControls from '#lib/components/StepControls.svelte';
@@ -24,6 +25,7 @@
 	import {
 		nextStep,
 		previousStep,
+		resolveStep,
 		withDiagram,
 		withExplained,
 		withMode,
@@ -35,7 +37,13 @@
 		type Explained
 	} from '#lib/flow/state.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
-	import { provenance } from '#lib/recordings/known.ts';
+	import type { Recording } from '#lib/recordings/format.ts';
+	import {
+		nearestRecordings,
+		provenance,
+		recordingFor,
+		settingsOf
+	} from '#lib/recordings/known.ts';
 	import { sources } from '#lib/sources/sources.ts';
 
 	interface Props {
@@ -45,6 +53,7 @@
 		homeHref: string;
 		hrefFor: (state: AppState) => string;
 		loadText: (file: string) => Promise<string>;
+		loadRecording: (preset: string) => Promise<Recording>;
 		onnavigate: (next: AppState, history: 'push' | 'replace') => void;
 	}
 
@@ -55,6 +64,7 @@
 		homeHref,
 		hrefFor,
 		loadText,
+		loadRecording,
 		onnavigate
 	}: Props = $props();
 
@@ -183,6 +193,70 @@
 	);
 	const intro = $derived(position === 0 ? flow.intro : null);
 
+	// Raw traffic is only for advanced mode, and only what is on the wire has any.
+	const onWire = $derived(
+		appState.mode === 'advanced' && (current.channel === 'front' || current.channel === 'back')
+	);
+	// Loaded when it is first asked for, so simple mode downloads none of it.
+	const wantedPreset = $derived(onWire ? (recordingFor(appState.settings)?.id ?? null) : null);
+	let loaded = $state.raw<Recording | null>(null);
+	let failedPreset = $state<string | null>(null);
+	$effect(() => {
+		const preset = wantedPreset;
+		if (!preset || untrack(() => loaded?.preset) === preset) return;
+		let stale = false;
+		loadRecording(preset).then(
+			(recording) => {
+				if (!stale) loaded = recording;
+			},
+			() => {
+				if (!stale) failedPreset = preset;
+			}
+		);
+		return () => {
+			stale = true;
+		};
+	});
+	const recording = $derived(loaded?.preset === wantedPreset ? loaded : null);
+	const wireStatus = $derived.by(() => {
+		if (!recordingFor(appState.settings)) return 'none';
+		if (recording) return 'loaded';
+		return failedPreset === wantedPreset ? 'failed' : 'loading';
+	});
+	const nearest = $derived(
+		wireStatus === 'none'
+			? nearestRecordings(appState.settings).map((preset) => {
+					const settings = settingsOf(preset);
+					const step = resolveStep(flow, evaluate(flow, settings), appState.step);
+					return { text: preset.title, href: hrefFor({ ...appState, settings, step }) };
+				})
+			: []
+	);
+	// Only what can really be replayed: with no recording, or nothing recorded here, it would be a lie.
+	const answer = $derived(
+		recording?.messages.some((message) => message.step === current.id) ? current.execute : undefined
+	);
+	const numberOf = (id: string) => {
+		const at = steps.findIndex((step) => step.id === id);
+		return at < 0 ? null : at + 1;
+	};
+	const goToStep = (step: string) => {
+		if (numberOf(step) !== null) onnavigate({ ...appState, step }, 'replace');
+	};
+
+	// The answer stays marked until someone moves on. A link to the step just shows the step.
+	let executed = $state<{ from: string; to: string } | null>(null);
+	const answerTo = $derived(executed?.to === appState.step ? executed.from : null);
+	function execute() {
+		if (!answer) return;
+		executed = { from: appState.step, to: answer };
+		goToStep(answer);
+		// The button is gone now, and what came back is what to read next.
+		tick().then(() =>
+			window.document.querySelector<HTMLElement>('[data-testid="payload"]')?.focus()
+		);
+	}
+
 	const openSource = $derived(appState.source);
 	const openWhy = $derived(
 		openSource
@@ -296,7 +370,21 @@
 			{elsewhere}
 			changed={changedSetting}
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
-		/>
+		>
+			{#snippet wire()}
+				{#if onWire}
+					<OnTheWire
+						step={current}
+						{recording}
+						status={wireStatus}
+						{nearest}
+						{answerTo}
+						{numberOf}
+						onstep={goToStep}
+					/>
+				{/if}
+			{/snippet}
+		</StepDetail>
 	</aside>
 
 	<footer>
@@ -306,6 +394,8 @@
 			canGoBack={previousStep(base, appState) !== null}
 			onback={back}
 			onnext={forward}
+			answerAt={answer ? numberOf(answer) : null}
+			onexecute={execute}
 		/>
 	</footer>
 

@@ -232,6 +232,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Submit credentials',
 			concept: 'The user signs in at the identity provider. The app sees none of this.',
 			when: not(broker),
+			execute: { answer: 'redirect-with-code' },
 			fields: [{ name: 'username and password', place: 'body', artifact: 'password' }]
 		},
 		{
@@ -281,6 +282,7 @@ export const authorizationCode: FlowDef = {
 			concept:
 				'The user signs in at the other provider. Neither the app nor the identity provider sees the password.',
 			when: broker,
+			execute: { answer: 'upstream-redirect-back' },
 			fields: [{ name: 'username and password', place: 'body', artifact: 'password' }]
 		},
 		{
@@ -327,6 +329,7 @@ export const authorizationCode: FlowDef = {
 			concept:
 				'The identity provider trades the code for tokens, on a connection the browser never sees.',
 			when: broker,
+			execute: { answer: 'upstream-token-response', when: storedTokens },
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
 				{ name: 'code', place: 'body' },
@@ -428,6 +431,7 @@ export const authorizationCode: FlowDef = {
 			kind: 'request',
 			plain: 'The app trades the code for tokens',
 			label: 'POST /token',
+			execute: { answer: 'token-response' },
 			concept: [
 				{
 					when: all(confidential, pkce),
@@ -690,6 +694,7 @@ export const authorizationCode: FlowDef = {
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
+			execute: { answer: 'upstream-token' },
 			plain: "The app asks for the other provider's token",
 			label: [
 				{ when: apiV2, text: 'POST /broker/{alias}/token' },
