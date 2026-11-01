@@ -479,10 +479,10 @@ export const authorizationCode: FlowDef = {
 					},
 					{
 						when: confidential,
-						text: "Without the secret, Keycloak answers 401 unauthorized_client. It only insists on PKCE when the client's PKCE Method is set."
+						text: 'Without the secret, Keycloak answers 401 unauthorized_client. It only insists on PKCE when Require PKCE is on for the client.'
 					},
 					{
-						text: "Keycloak allows this by default, and the real app then finds the code already used. Setting the client's PKCE Method to S256 makes Keycloak refuse a login without PKCE."
+						text: 'Keycloak allows this by default, and the real app then finds the code already used. Turning on Require PKCE for the client makes Keycloak refuse a login without it.'
 					}
 				]
 			},
