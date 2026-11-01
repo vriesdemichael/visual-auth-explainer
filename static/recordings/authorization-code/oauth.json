@@ -6,6 +6,7 @@
 		"oidc": false,
 		"clientType": "confidential",
 		"pkce": false,
+		"attacker": false,
 		"binding": "bearer",
 		"dpopNonce": false,
 		"broker": false,
@@ -278,18 +279,18 @@
 				"claims_parameter_supported": true,
 				"scopes_supported": [
 					"openid",
-					"profile",
 					"address",
-					"organization",
-					"microprofile-jwt",
-					"service_account",
+					"web-origins",
 					"acr",
 					"basic",
-					"offline_access",
-					"web-origins",
-					"phone",
+					"email",
 					"roles",
-					"email"
+					"phone",
+					"microprofile-jwt",
+					"organization",
+					"offline_access",
+					"service_account",
+					"profile"
 				],
 				"request_parameter_supported": true,
 				"request_uri_parameter_supported": true,
@@ -381,14 +382,14 @@
 			"direction": "response",
 			"status": 302,
 			"headers": {
-				"location": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=FyH56-VM7PoEUrMfUpjNkg"
+				"location": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=sW4HqW-WR4Ezi7mnHi0GHQ"
 			}
 		},
 		{
 			"step": "authorize",
 			"direction": "request",
 			"method": "GET",
-			"url": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=FyH56-VM7PoEUrMfUpjNkg",
+			"url": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-app&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=sW4HqW-WR4Ezi7mnHi0GHQ",
 			"headers": {}
 		},
 		{
@@ -404,7 +405,7 @@
 			"step": "submit-credentials",
 			"direction": "request",
 			"method": "POST",
-			"url": "http://localhost:18080/realms/demo/login-actions/authenticate?session_code=_EHnn-oMgLWjxwrpQK5rKKQ6QYeCyoTWAmzM3AGAp8I&execution=8432f811-67af-46d5-a265-3101a68f0e78&client_id=demo-app&tab_id=TsncpS36BZI&client_data=eyJydSI6Imh0dHA6Ly9sb2NhbGhvc3Q6OTEwMC9jYWxsYmFjayIsInJ0IjoiY29kZSIsInN0IjoiRnlINTYtVk03UG9FVXJNZlVwak5rZyJ9",
+			"url": "http://localhost:18080/realms/demo/login-actions/authenticate?session_code=_qU719E7n47z2BCyK0m4unMzDg-ENvYmzZCQUFBiTSs&execution=48b050ea-36e8-4e55-8783-d636a952d7d8&client_id=demo-app&tab_id=TWo0RV67-BY&client_data=eyJydSI6Imh0dHA6Ly9sb2NhbGhvc3Q6OTEwMC9jYWxsYmFjayIsInJ0IjoiY29kZSIsInN0Ijoic1c0SHFXLVdSNEV6aTdtbkhpMEdIUSJ9",
 			"headers": {
 				"content-type": "application/x-www-form-urlencoded"
 			},
@@ -419,14 +420,14 @@
 			"direction": "response",
 			"status": 302,
 			"headers": {
-				"location": "http://localhost:9100/callback?state=FyH56-VM7PoEUrMfUpjNkg&session_state=WR9EpMjxz-A_WvwmU2dkyC67&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=701edd5d-833e-6f5e-192d-7a853e5e6bbe.WR9EpMjxz-A_WvwmU2dkyC67.67f13788-09eb-43f9-8703-81dd69fef2e3"
+				"location": "http://localhost:9100/callback?state=sW4HqW-WR4Ezi7mnHi0GHQ&session_state=PLLB2RjKbUm8lQdbz8yfLCke&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=b78f3d49-da7e-dad2-a7ed-992ee2ec5231.PLLB2RjKbUm8lQdbz8yfLCke.bfa8101d-cb1c-4b9f-bb73-ae7c8377e540"
 			}
 		},
 		{
 			"step": "callback",
 			"direction": "request",
 			"method": "GET",
-			"url": "http://localhost:9100/callback?state=FyH56-VM7PoEUrMfUpjNkg&session_state=WR9EpMjxz-A_WvwmU2dkyC67&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=701edd5d-833e-6f5e-192d-7a853e5e6bbe.WR9EpMjxz-A_WvwmU2dkyC67.67f13788-09eb-43f9-8703-81dd69fef2e3",
+			"url": "http://localhost:9100/callback?state=sW4HqW-WR4Ezi7mnHi0GHQ&session_state=PLLB2RjKbUm8lQdbz8yfLCke&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=b78f3d49-da7e-dad2-a7ed-992ee2ec5231.PLLB2RjKbUm8lQdbz8yfLCke.bfa8101d-cb1c-4b9f-bb73-ae7c8377e540",
 			"headers": {}
 		},
 		{
@@ -439,7 +440,7 @@
 			},
 			"body": {
 				"grant_type": "authorization_code",
-				"code": "701edd5d-833e-6f5e-192d-7a853e5e6bbe.WR9EpMjxz-A_WvwmU2dkyC67.67f13788-09eb-43f9-8703-81dd69fef2e3",
+				"code": "b78f3d49-da7e-dad2-a7ed-992ee2ec5231.PLLB2RjKbUm8lQdbz8yfLCke.bfa8101d-cb1c-4b9f-bb73-ae7c8377e540",
 				"redirect_uri": "http://localhost:9100/callback",
 				"client_id": "demo-app",
 				"client_secret": "throwaway-client-secret"
@@ -453,14 +454,14 @@
 				"content-type": "application/json"
 			},
 			"body": {
-				"access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIxUV9GZ3N1REIzYXhNdFN6RWJuLXpROV82Nl9RQzhwSGdVVmk5N1FQN09FIn0.eyJleHAiOjE3OTM0OTI4NTgsImlhdCI6MTc5MzQ5MjU1OCwiYXV0aF90aW1lIjoxNzkzNDkyNTU4LCJqdGkiOiJvbnJ0YWM6ZTgyM2JmYTUtYThmNi1mZWJkLTJlMWUtNzZiNmE2ZDNkODllIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJiN2UyMmIxNi0wN2JmLTQ5YzMtYWIyZi02ZmM1NGY4MTVlMGQiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6IldSOUVwTWp4ei1BX1d2d21VMmRreUM2NyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsImRlZmF1bHQtcm9sZXMtZGVtbyIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJwcm9maWxlIGVtYWlsIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.fo5VvnJYrcVkvIaFNDOw8gCxHDbSkEwbqiYhztmAcSvF3zG3mZc8alj0hop6D-jZLzwTtHBqlqXCgLY4Dg8aI_Shmiqef66-9slG1COkeZhgifGRkagVTdHa-VOi74_WzxiBDe2xC_1xDF2nzWOpQImfNq6zLfIZ1xiQsUmhdndUEx5C9nK-aUBBrBK4qbnwRjnp30FG2A3yVem-MvWrD3O37sBNQjGNJB9zaaONRhy5vV0mIUSjRB9KA5oAAHr9DBaTFFJD5BwuotDb-0XjdHAoV68xi6bmjWJMfXzYpiH3NxcD1jhrTx4zG-RYUG_gUF8R4oV842tKZtf015FWkg",
+				"access_token": "eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRdlIydzZRVWpIQnVIZGd6ZVVYTFFBTWo3cWtMYkRDazZ2R3dvc2IxLXVvIn0.eyJleHAiOjE3OTM0OTUwOTcsImlhdCI6MTc5MzQ5NDc5NywiYXV0aF90aW1lIjoxNzkzNDk0Nzk3LCJqdGkiOiJvbnJ0YWM6YjRlMDgxYjItODI5YS1mYTA5LTZiZjgtMGQ2M2JhYmJkZGE2IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI1ZTU5OWIxZC0wYTljLTQ5ZjYtYWU0NC1iNDRhZWFjYzdhOWMiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6IlBMTEIyUmpLYlVtOGxRZGJ6OHlmTENrZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1kZW1vIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.lyYnuzYWKNS1pZqG3zsAkpHqi1S-MI8EtCx1Ck83hyIUsXuBMTQgI9cY_Q6T9R3yNojTWhOynYRE4fqbqk3Vrgj5fp2J_EWIMxjERk8SsCgjfV5XHBYXpYaXdGJlfGu6Ox295PjyKNum0naXnCZtU2jmgEJW5h-RIWqHoqT7K7HDgQwOb1RAXAQFMyiuh7mjffDqs3KI1_n2wzxP9CeRF_QfpzYtokTYFOezZNjGPi5tZo3S41aZM83YergzTT3EOJWsDyzKytr3gT9QBpcuG4a7b0QLk0EmJpkseOcjac1-I1Gjs-cOxqclJYJwxRfRUBdog2PQzRga5uLB3ZiePg",
 				"expires_in": 300,
 				"refresh_expires_in": 1800,
-				"refresh_token": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI0ZDA4YTAwMS00MzVjLTQ3YjAtYmFhNC1jOTc1YWE5NTMzMDgifQ.eyJleHAiOjE3OTM0OTQzNTgsImlhdCI6MTc5MzQ5MjU1OCwianRpIjoiMzJjOWE2YWYtMjBjNy00M2ZiLTkxNmUtM2NjMjk5NzRjMDFkIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6MTgwODAvcmVhbG1zL2RlbW8iLCJzdWIiOiJiN2UyMmIxNi0wN2JmLTQ5YzMtYWIyZi02ZmM1NGY4MTVlMGQiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiZGVtby1hcHAiLCJzaWQiOiJXUjlFcE1qeHotQV9XdndtVTJka3lDNjciLCJzY29wZSI6InByb2ZpbGUgd2ViLW9yaWdpbnMgYWNyIHJvbGVzIGJhc2ljIGVtYWlsIiwiYXVkX3giOiJhY2NvdW50IiwicHJvdiI6ImRlZmF1bHQifQ.SHNlzW1g2t49UyWSylzE_WEhQCkXFfHHmCRdQoDIfXxYZef_enbPw2rAPI0WNPPupM-xd5LsZSv4t4wDynMzSQ",
+				"refresh_token": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI2OTNhMjU1MC03YzUzLTQ2Y2MtOTAzZC1mN2IzNjE5ODc4MjkifQ.eyJleHAiOjE3OTM0OTY1OTcsImlhdCI6MTc5MzQ5NDc5NywianRpIjoiZjdmNDg5NTAtMDM0MC1iZDA3LTcwNTgtYWRmNzdhODc2YThmIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6Imh0dHA6Ly9sb2NhbGhvc3Q6MTgwODAvcmVhbG1zL2RlbW8iLCJzdWIiOiI1ZTU5OWIxZC0wYTljLTQ5ZjYtYWU0NC1iNDRhZWFjYzdhOWMiLCJ0eXAiOiJSZWZyZXNoIiwiYXpwIjoiZGVtby1hcHAiLCJzaWQiOiJQTExCMlJqS2JVbThsUWRiejh5ZkxDa2UiLCJzY29wZSI6ImJhc2ljIGVtYWlsIHJvbGVzIHdlYi1vcmlnaW5zIGFjciBwcm9maWxlIiwiYXVkX3giOiJhY2NvdW50IiwicHJvdiI6ImRlZmF1bHQifQ.cPa-brcVrea4Rv6nCQub096SZOhT5I1fXoXSs8ZNlcoYxL_cxrvWYqB1Y-Mxpayqr9FBGTAIEYyrUMCEF1Nd1Q",
 				"token_type": "Bearer",
 				"not-before-policy": 0,
-				"session_state": "WR9EpMjxz-A_WvwmU2dkyC67",
-				"scope": "profile email"
+				"session_state": "PLLB2RjKbUm8lQdbz8yfLCke",
+				"scope": "email profile"
 			}
 		},
 		{
@@ -469,7 +470,7 @@
 			"method": "GET",
 			"url": "http://localhost:9101/resource",
 			"headers": {
-				"authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIxUV9GZ3N1REIzYXhNdFN6RWJuLXpROV82Nl9RQzhwSGdVVmk5N1FQN09FIn0.eyJleHAiOjE3OTM0OTI4NTgsImlhdCI6MTc5MzQ5MjU1OCwiYXV0aF90aW1lIjoxNzkzNDkyNTU4LCJqdGkiOiJvbnJ0YWM6ZTgyM2JmYTUtYThmNi1mZWJkLTJlMWUtNzZiNmE2ZDNkODllIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiJiN2UyMmIxNi0wN2JmLTQ5YzMtYWIyZi02ZmM1NGY4MTVlMGQiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6IldSOUVwTWp4ei1BX1d2d21VMmRreUM2NyIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsImRlZmF1bHQtcm9sZXMtZGVtbyIsInVtYV9hdXRob3JpemF0aW9uIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJwcm9maWxlIGVtYWlsIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.fo5VvnJYrcVkvIaFNDOw8gCxHDbSkEwbqiYhztmAcSvF3zG3mZc8alj0hop6D-jZLzwTtHBqlqXCgLY4Dg8aI_Shmiqef66-9slG1COkeZhgifGRkagVTdHa-VOi74_WzxiBDe2xC_1xDF2nzWOpQImfNq6zLfIZ1xiQsUmhdndUEx5C9nK-aUBBrBK4qbnwRjnp30FG2A3yVem-MvWrD3O37sBNQjGNJB9zaaONRhy5vV0mIUSjRB9KA5oAAHr9DBaTFFJD5BwuotDb-0XjdHAoV68xi6bmjWJMfXzYpiH3NxcD1jhrTx4zG-RYUG_gUF8R4oV842tKZtf015FWkg"
+				"authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJRdlIydzZRVWpIQnVIZGd6ZVVYTFFBTWo3cWtMYkRDazZ2R3dvc2IxLXVvIn0.eyJleHAiOjE3OTM0OTUwOTcsImlhdCI6MTc5MzQ5NDc5NywiYXV0aF90aW1lIjoxNzkzNDk0Nzk3LCJqdGkiOiJvbnJ0YWM6YjRlMDgxYjItODI5YS1mYTA5LTZiZjgtMGQ2M2JhYmJkZGE2IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDoxODA4MC9yZWFsbXMvZGVtbyIsImF1ZCI6ImFjY291bnQiLCJzdWIiOiI1ZTU5OWIxZC0wYTljLTQ5ZjYtYWU0NC1iNDRhZWFjYzdhOWMiLCJ0eXAiOiJCZWFyZXIiLCJhenAiOiJkZW1vLWFwcCIsInNpZCI6IlBMTEIyUmpLYlVtOGxRZGJ6OHlmTENrZSIsImFjciI6IjEiLCJhbGxvd2VkLW9yaWdpbnMiOlsiaHR0cDovL2xvY2FsaG9zdDo5MTAwIl0sInJlYWxtX2FjY2VzcyI6eyJyb2xlcyI6WyJvZmZsaW5lX2FjY2VzcyIsInVtYV9hdXRob3JpemF0aW9uIiwiZGVmYXVsdC1yb2xlcy1kZW1vIl19LCJyZXNvdXJjZV9hY2Nlc3MiOnsiYWNjb3VudCI6eyJyb2xlcyI6WyJtYW5hZ2UtYWNjb3VudCIsIm1hbmFnZS1hY2NvdW50LWxpbmtzIiwidmlldy1wcm9maWxlIl19fSwic2NvcGUiOiJlbWFpbCBwcm9maWxlIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsIm5hbWUiOiJBbGljZSBFeGFtcGxlIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiYWxpY2UiLCJnaXZlbl9uYW1lIjoiQWxpY2UiLCJmYW1pbHlfbmFtZSI6IkV4YW1wbGUiLCJlbWFpbCI6ImFsaWNlQGV4YW1wbGUudGVzdCJ9.lyYnuzYWKNS1pZqG3zsAkpHqi1S-MI8EtCx1Ck83hyIUsXuBMTQgI9cY_Q6T9R3yNojTWhOynYRE4fqbqk3Vrgj5fp2J_EWIMxjERk8SsCgjfV5XHBYXpYaXdGJlfGu6Ox295PjyKNum0naXnCZtU2jmgEJW5h-RIWqHoqT7K7HDgQwOb1RAXAQFMyiuh7mjffDqs3KI1_n2wzxP9CeRF_QfpzYtokTYFOezZNjGPi5tZo3S41aZM83YergzTT3EOJWsDyzKytr3gT9QBpcuG4a7b0QLk0EmJpkseOcjac1-I1Gjs-cOxqclJYJwxRfRUBdog2PQzRga5uLB3ZiePg"
 			}
 		},
 		{

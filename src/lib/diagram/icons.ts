@@ -10,6 +10,8 @@ export const ICONS: Readonly<Record<LifelineIcon, string>> = {
 	idp: `${SHIELD}M9 12l2 2 4-4`,
 	upstream: `${SHIELD}M12 16V9M9 12l3-3 3 3`,
 	api: 'M4 4h16v6H4zM4 14h16v6H4zM8 7h.01M8 17h.01',
+	attacker:
+		'M12 3a8 8 0 0 0-8 8c0 2.800 1.500 4.800 4 6v3h8v-3c2.500-1.200 4-3.200 4-6a8 8 0 0 0-8-8zM9 11h.01M15 11h.01M10 20v-2M14 20v-2',
 	people:
 		'M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 20c0-3 2.500-5 6-5s6 2 6 5M16 5a3 3 0 0 1 0 6M18 15c2 .6 3 2.400 3 5'
 };

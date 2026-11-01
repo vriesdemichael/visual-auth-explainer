@@ -222,11 +222,52 @@ export class Demo {
 		return call(run, steps, 'POST', url, headers, body);
 	}
 
+	/** What someone else can do with the same code, in the moment it goes by. Each answer is real. */
+	async #attack(code: string, stolenFrom: RecordedMessage) {
+		const run = this.#run;
+		const own: Run = { ...run, messages: [] };
+		own.messages.push({ ...stolenFrom, step: 'attacker-steals-code' });
+		const url = this.#endpoint('token');
+		const result = await call(
+			own,
+			['attacker-token-request', 'attacker-token-response'],
+			'POST',
+			url,
+			{},
+			{
+				grant_type: 'authorization_code',
+				code,
+				redirect_uri: REDIRECT_URI,
+				client_id: run.clientId
+			}
+		);
+		const stolen = jsonOf<Tokens>(result.text).access_token;
+		if (stolen) {
+			const resource = `${API}/resource`;
+			await call(own, ['attacker-api-request', 'attacker-api-response'], 'GET', resource, {
+				authorization: `Bearer ${stolen}`
+			});
+		}
+		// It happens as the code goes by, so it comes before the app gets to do anything with it.
+		const callback = run.messages.lastIndexOf(stolenFrom);
+		run.messages.splice(callback, 0, ...own.messages);
+	}
+
 	async #afterLogin(code: string) {
 		const run = this.#run;
 		const { settings } = run;
 
+		if (settings.attacker) {
+			const callback = run.messages.findLast((message) => message.step === 'callback');
+			if (!callback) throw new Error('The callback was not recorded');
+			await this.#attack(code, callback);
+		}
+
 		let result = await this.#tokenRequest(code);
+		if (settings.attacker && result.status === 400) {
+			run.messages[run.messages.length - 1].step = 'real-app-refused';
+			return 'Refused';
+		}
 		// A server that wants a nonce says so here. If it ever does, this records the retry as well.
 		const challenge = result.headers.get('dpop-nonce');
 		if (result.status === 400 && challenge) {
@@ -258,6 +299,7 @@ export class Demo {
 		);
 
 		if (settings.upstreamTokens !== 'off') await this.#storedToken(tokens.access_token);
+		return 'Logged in';
 	}
 
 	async #storedToken(accessToken: string) {
@@ -326,9 +368,9 @@ export class Demo {
 				}
 				try {
 					await settle();
-					await this.#afterLogin(url.searchParams.get('code') ?? '');
+					const outcome = await this.#afterLogin(url.searchParams.get('code') ?? '');
 					response.writeHead(200, { 'content-type': 'text/html' });
-					response.end('<h1>Logged in</h1>');
+					response.end(`<h1>${outcome}</h1>`);
 				} catch (error) {
 					response.writeHead(500, { 'content-type': 'text/html' });
 					response.end(`<h1>Failed</h1><pre>${String(error)}</pre>`);

@@ -134,7 +134,7 @@ export const noteDefs: readonly NoteDef[] = [
 	},
 	{
 		id: 'intercepted-code',
-		steps: ['token-request'],
+		steps: ['token-request', 'attacker-token-response'],
 		title: 'Require PKCE',
 		text: [
 			{

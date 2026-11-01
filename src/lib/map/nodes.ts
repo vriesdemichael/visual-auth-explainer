@@ -73,19 +73,42 @@ export const mapTracks: readonly MapTrack[] = [
 		chains: [
 			[
 				node({
-					id: 'stolen-code',
-					title: 'What if someone steals the code?',
-					summary: 'An app with no secret, and a code that crosses the browser.',
+					id: 'no-secret',
+					title: 'What is different about an app with no secret?',
+					summary: 'An app in a browser or on a phone cannot keep one, so what proves who it is?',
 					preset: 'public',
 					step: 'token-request'
 				}),
 				node({
+					id: 'stolen-code',
+					title: 'What if someone steals the code?',
+					summary: 'Watch them take it as it crosses the browser, and get the tokens.',
+					preset: 'attack-public',
+					step: 'attacker-steals-code'
+				}),
+				node({
 					id: 'pkce',
-					title: 'How does PKCE stop a stolen code?',
+					title: 'How does PKCE work?',
 					summary:
 						'The app proves it started this login, with a value that never crossed the browser.',
 					preset: 'public-pkce',
 					step: 'make-verifier'
+				}),
+				node({
+					id: 'pkce-stops-it',
+					title: 'What does PKCE do to the attacker?',
+					summary: 'The same attempt, a different answer, and a cost that remains.',
+					preset: 'attack-public-pkce',
+					step: 'attacker-token-response'
+				})
+			],
+			[
+				node({
+					id: 'stolen-from-a-secret',
+					title: 'Can a code be stolen from an app with a secret?',
+					summary: 'They get the code, but cannot trade it. That is not the end of it.',
+					preset: 'attack-confidential',
+					step: 'attacker-token-response'
 				}),
 				node({
 					id: 'pkce-with-a-secret',
@@ -93,6 +116,13 @@ export const mapTracks: readonly MapTrack[] = [
 					summary: 'Why current advice says yes, even when a stolen code is not enough alone.',
 					preset: 'pkce',
 					step: 'token-request'
+				}),
+				node({
+					id: 'both-protections',
+					title: 'What does an attacker get against both?',
+					summary: 'A secret and PKCE together, against the same attempt.',
+					preset: 'attack-confidential-pkce',
+					step: 'attacker-token-response'
 				})
 			],
 			[

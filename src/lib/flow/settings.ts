@@ -4,6 +4,7 @@ export interface Settings {
 	oidc: boolean;
 	clientType: 'public' | 'confidential';
 	pkce: boolean;
+	attacker: boolean;
 	binding: 'bearer' | 'dpop';
 	dpopNonce: boolean;
 	broker: boolean;
@@ -150,6 +151,36 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 				why: 'Section 2.1.1 is the current advice: public clients must use PKCE, and it is recommended for all others.'
 			}
 		]
+	},
+	attacker: {
+		kind: 'toggle',
+		label: 'Show an attacker',
+		param: 'attacker',
+		default: false,
+		summary:
+			'Someone copies the code as it crosses the browser and tries to use it. Flip PKCE or the client type to see what changes.',
+		why: 'A protection is hard to believe in until you see what it stops. This changes nothing about what the app does. It shows what someone else could do with the same code, and the answers on screen are what a real server gave.',
+		simple: {
+			label: 'Show someone stealing the code',
+			summary:
+				'Someone copies the code as it crosses the browser, and tries to use it. See what they get.'
+		},
+		sources: [
+			{
+				source: 'rfc7636',
+				section: '1',
+				why: 'Section 1 describes this attack, with a figure, on an app with no secret.'
+			},
+			{
+				source: 'rfc9700',
+				section: '4.5',
+				why: 'Section 4.5 is what someone can do with a stolen code, including on an app that has a secret.'
+			}
+		],
+		requires: {
+			when: all(is('binding', 'bearer'), is('broker', false)),
+			because: 'The attacker only shows the plain case, with a Bearer token and no other provider.'
+		}
 	},
 	binding: {
 		kind: 'choice',

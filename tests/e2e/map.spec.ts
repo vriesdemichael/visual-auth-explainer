@@ -17,7 +17,7 @@ const STABLE_NODES = [
 	{ id: 'how-access-works', step: 'open-app', stepCount: 12, mode: 'simple' },
 	{ id: 'who-logged-in', step: 'open-app', stepCount: 15, mode: 'simple' },
 	{ id: 'getting-to-know-each-other', step: 'register-client', stepCount: 6, mode: 'simple' },
-	{ id: 'stolen-code', step: 'token-request', stepCount: 12, mode: 'simple' },
+	{ id: 'stolen-code', step: 'attacker-steals-code', stepCount: 14, mode: 'simple' },
 	{ id: 'pkce', step: 'make-verifier', stepCount: 14, mode: 'simple' },
 	{ id: 'redirect-uri-error', step: 'authorize', stepCount: 12, mode: 'advanced' }
 ];
@@ -130,12 +130,14 @@ test.describe('leaving a node', () => {
 		await page.goto(pathOf('stolen-code'));
 		await page.locator('.workspace[data-ready="true"]').waitFor();
 		await page.getByTestId('next').click();
-		await expect(page).toHaveURL(/authorization-code\/\?client=public&step=token-response/);
+		await expect(page).toHaveURL(
+			/authorization-code\/\?client=public&attacker=1&step=attacker-token-request/
+		);
 		await page.reload();
 		await page.locator('.workspace[data-ready="true"]').waitFor();
 		await expect(page.locator('[data-state="current"]')).toHaveAttribute(
 			'data-step',
-			'token-response'
+			'attacker-token-request'
 		);
 	});
 

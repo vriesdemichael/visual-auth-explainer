@@ -111,10 +111,10 @@ async function login(browser: Browser, run: Run) {
 	await page.fill('#username', USERNAME);
 	await page.fill('#password', PASSWORD);
 	await page.click('#kc-login');
-	await page.getByRole('heading', { name: /Logged in|Failed/ }).waitFor();
+	await page.getByRole('heading', { name: /Logged in|Refused|Failed/ }).waitFor();
 	const outcome = await page.locator('body').innerText();
 	await context.close();
-	if (!outcome.includes('Logged in')) throw new Error(`Login failed: ${outcome}`);
+	if (outcome.includes('Failed')) throw new Error(`Login failed: ${outcome}`);
 }
 
 function runFor(settings: Settings): Run {
