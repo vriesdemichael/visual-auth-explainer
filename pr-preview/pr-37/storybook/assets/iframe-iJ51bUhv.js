@@ -1,1 +1,0 @@
-import{t as e}from"./iframe-gPhIRE36.js";e();
