@@ -27,6 +27,17 @@
 				}
 			}
 		},
+		"implicitFlow": {
+			"serverLists": true,
+			"before": {
+				"status": 302,
+				"allowed": false
+			},
+			"after": {
+				"status": 200,
+				"allowed": true
+			}
+		},
 		"webOrigins": {
 			"before": {
 				"blocked": true,
@@ -386,6 +397,13 @@
 				"found": [
 					"Capability config",
 					"Client authentication"
+				],
+				"missing": []
+			},
+			"implicit-flow": {
+				"found": [
+					"Capability config",
+					"Implicit flow"
 				],
 				"missing": []
 			},

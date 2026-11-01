@@ -156,6 +156,17 @@ export const noteDefs: readonly NoteDef[] = [
 		}
 	},
 	{
+		id: 'implicit-flow',
+		steps: ['redirect-with-code'],
+		title: 'Implicit flow',
+		text: 'Off on a new client, though the server lists it as something it supports. Asking for it then gets an error, and turning this on lets the token go through the browser. Current advice is to leave it off.',
+		place: clientSettings('Capability config', 'Implicit flow'),
+		backedBy: {
+			question: 'implicitFlow',
+			shows: { serverLists: true, before: { allowed: false }, after: { allowed: true } }
+		}
+	},
+	{
 		id: 'web-origins',
 		steps: ['token-request'],
 		title: 'Web origins',

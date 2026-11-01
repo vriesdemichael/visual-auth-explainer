@@ -51,6 +51,13 @@ export const mapTracks: readonly MapTrack[] = [
 					preset: 'oauth'
 				}),
 				node({
+					id: 'why-a-code',
+					title: 'Why not just send the token back through the browser?',
+					summary: 'Why the browser only gets a code, and what happened to the way that did not.',
+					preset: 'oauth',
+					step: 'redirect-with-code'
+				}),
+				node({
 					id: 'who-logged-in',
 					title: 'How does an app know who logged in?',
 					summary: 'Access is not identity, which is what OpenID Connect adds.',
@@ -281,7 +288,8 @@ export function nodeState(of: MapNode): AppState {
 		step: resolveStep(flow, evaluate(flow, settings), of.step ?? null),
 		source: null,
 		explained: null,
-		serverNotes: true
+		serverNotes: true,
+		settingsHidden: false
 	};
 }
 

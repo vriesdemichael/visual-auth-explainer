@@ -318,6 +318,16 @@ export function isEmptyDiff(diff: ViewDiff): boolean {
 	return Object.values(diff).every((part) => part.length === 0);
 }
 
+/** Every setting this diagram does anything with, wherever in it that is. */
+export function settingsUsedBy(diagram: DiagramDef): Set<string> {
+	const used = new Set<string>();
+	JSON.stringify(diagram, (key, value) => {
+		if (key === 'setting') used.add(value);
+		return value;
+	});
+	return used;
+}
+
 /** What simple mode shows of a diagram: who is on it, what is said, and what gets passed around. */
 const plainShape = (view: DiagramView) =>
 	JSON.stringify([

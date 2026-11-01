@@ -1,5 +1,6 @@
 {
 	"how-access-works": "How does an app get access?|An app acts for a user, without ever seeing their password.|12|4",
+	"why-a-code": "Why not just send the token back through the browser?|Why the browser only gets a code, and what happened to the way that did not.|12|4",
 	"who-logged-in": "How does an app know who logged in?|Access is not identity, which is what OpenID Connect adds.|15|4",
 	"when-do-i-get-asked": "When does the user get asked?|What a scope is, and why you may never have seen the question.|14|4",
 	"getting-to-know-each-other": "How do an app and a provider get to know each other?|What people have to do before anyone can log in.|6|4",

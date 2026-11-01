@@ -16,6 +16,7 @@
 		diffViews,
 		changesInPlainWords,
 		evaluate,
+		settingsUsedBy,
 		holdingsAt,
 		isEmptyDiff,
 		type BaseFlow,
@@ -36,6 +37,7 @@
 		previousStep,
 		resolveStep,
 		withDiagram,
+		withSettingsHidden,
 		withExplained,
 		withMode,
 		withServerNotes,
@@ -131,9 +133,14 @@
 	const fresh = $derived(last.diff ? freshIds(last.diff) : new Set<string>());
 
 	const otherDiagram = $derived<DiagramId>(appState.diagram === 'flow' ? 'setup' : 'flow');
+	// Going to look at the other diagram and coming back should not lose your place.
+	let stepIn = $state<Record<DiagramId, string | null>>({ flow: null, setup: null });
+	$effect(() => {
+		stepIn[appState.diagram] = appState.step;
+	});
 	const hrefs = $derived({
-		flow: hrefFor(withDiagram(base, appState, 'flow')),
-		setup: hrefFor(withDiagram(base, appState, 'setup'))
+		flow: hrefFor(withDiagram(base, appState, 'flow', stepIn.flow)),
+		setup: hrefFor(withDiagram(base, appState, 'setup', stepIn.setup))
 	});
 	const links = $derived(
 		current.links.map((link) => ({
@@ -157,8 +164,9 @@
 			? simpleSettingIds.filter((id) => {
 					if (appState.settings[id] !== defaultSettings[id]) return false;
 					const flipped = changeSetting(appState.settings, id, !appState.settings[id] as never);
+					// One that cannot be turned on just now only says why where it could do something.
+					if (flipped.settings[id] === appState.settings[id]) return !settingsUsedBy(flow).has(id);
 					return (
-						flipped.settings[id] !== appState.settings[id] &&
 						!changesInPlainWords(flow, appState.settings, flipped.settings) &&
 						changesInPlainWords(base.diagrams[otherDiagram], appState.settings, flipped.settings)
 					);
@@ -316,9 +324,13 @@
 		// A switch has no use for these keys, and keeps the focus after it is clicked.
 		const typing = 'input:not([type="checkbox"]), select, textarea, [data-testid="source-panel"]';
 		if (target.closest(typing)) return;
+		// A presenter's clicker sends the page keys, but they should still scroll what someone is reading.
+		if (event.key.startsWith('Page') && target.closest('.detail')) return;
 		const move = {
 			ArrowRight: forward,
 			ArrowLeft: back,
+			PageDown: forward,
+			PageUp: back,
 			Home: () => goToStep(steps[0].id),
 			End: () => goToStep(steps[steps.length - 1].id)
 		}[event.key];
@@ -331,7 +343,12 @@
 
 <svelte:window {onkeydown} />
 
-<div class="workspace" data-ready={animate} data-diagram={appState.diagram}>
+<div
+	class="workspace"
+	class:settings-hidden={appState.settingsHidden}
+	data-ready={animate}
+	data-diagram={appState.diagram}
+>
 	<header>
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
 		<a class="brand" href={homeHref}>Map</a>
@@ -342,23 +359,33 @@
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
 		/>
 		<p class="status" data-testid="provenance">
-			Prototype.
-			{#if appState.mode === 'advanced'}
-				{#if question}{flow.title}.{/if} Based on {origin.specs.join(', ')}.
-			{/if}
-			{#if origin.recorded}
-				Recorded from
-				{#if !appState.serverNotes}
-					a real server
-				{:else if appState.mode === 'simple'}
-					a real server, Keycloak {origin.keycloak},
-				{:else}
-					Keycloak {origin.keycloak}
+			<span class="what">
+				Prototype.
+				{#if appState.mode === 'advanced'}
+					{#if question}{flow.title}.{/if} Based on {origin.specs.join(', ')}.
 				{/if}
-				on {origin.date}.
-			{:else}
-				These settings together were not recorded.
-			{/if}
+				{#if origin.recorded}
+					Recorded from
+					{#if !appState.serverNotes}
+						a real server
+					{:else if appState.mode === 'simple'}
+						a real server, Keycloak {origin.keycloak},
+					{:else}
+						Keycloak {origin.keycloak}
+					{/if}
+					on {origin.date}.
+				{:else}
+					These settings together were not recorded.
+				{/if}
+			</span>
+			<button
+				type="button"
+				class="quiet"
+				data-testid="server-notes-quick"
+				onclick={() => onnavigate(withServerNotes(appState, !appState.serverNotes), 'push')}
+			>
+				{appState.serverNotes ? 'Not on Keycloak?' : 'Show the server notes'}
+			</button>
 		</p>
 	</header>
 
@@ -383,7 +410,18 @@
 	</aside>
 
 	<main class="diagram">
-		<DiagramSwitch current={appState.diagram} {hrefs} caption={flow.caption} />
+		<div class="above">
+			<DiagramSwitch current={appState.diagram} {hrefs} caption={flow.caption} />
+			<button
+				type="button"
+				class="quiet"
+				data-testid="settings-toggle"
+				onclick={() =>
+					onnavigate(withSettingsHidden(appState, !appState.settingsHidden), 'replace')}
+			>
+				{appState.settingsHidden ? 'Show settings' : 'Hide settings'}
+			</button>
+		</div>
 		<div class="canvas">
 			<!-- Two diagrams, not two states of one, so switching does not animate. -->
 			{#key appState.diagram}
@@ -518,15 +556,53 @@
 		margin: 0;
 		font-size: 16px;
 		font-weight: 600;
+		white-space: nowrap;
 	}
 
 	.status {
+		display: flex;
 		flex: 1;
+		align-items: baseline;
+		justify-content: flex-end;
+		gap: 10px;
 		min-width: 0;
 		margin: 0;
-		text-align: right;
 		color: var(--muted);
 		font-size: 12px;
+	}
+
+	/* One line, so the diagram does not lose height to it. All of it is in the source and the title. */
+	.what {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.quiet {
+		flex: none;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--muted);
+		font-size: 12px;
+		text-decoration: underline;
+		white-space: nowrap;
+	}
+
+	.above {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding-right: 12px;
+	}
+
+	.settings-hidden {
+		grid-template-columns: 0 minmax(0, 1fr) 330px;
+	}
+
+	.settings-hidden .settings {
+		display: none;
 	}
 
 	.settings {
@@ -599,6 +675,10 @@
 		.status,
 		.diagram {
 			display: none;
+		}
+
+		.settings-hidden .settings {
+			display: block;
 		}
 
 		.narrow-note {

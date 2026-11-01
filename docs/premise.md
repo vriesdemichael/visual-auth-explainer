@@ -249,7 +249,7 @@ Three independent toggles already give eight variants. Offer named presets as we
 
 ### Presentations are one use of the application (Proposed)
 
-The maintainer can present with it by opening an exact state, so flow, settings, mode and step all belong in the URL, which an application needs anyway. A presenter view and slide exports are not requirements. People also forget details within months, so being somewhere they return to may matter more than a one-time walkthrough.
+The maintainer can present with it by opening an exact state, so flow, settings, mode and step all belong in the URL, which an application needs anyway. The settings can be put out of the way to give the diagram the room, the page keys a clicker sends move through the steps, and a reload keeps the question. A presenter view and slide exports are not requirements. People also forget details within months, so being somewhere they return to may matter more than a one-time walkthrough.
 
 ### Felt understanding misleads (Proposed)
 
