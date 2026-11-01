@@ -401,6 +401,67 @@
 				"secondSawForm": true
 			}
 		},
+		"loggingOut": {
+			"onlyTheAppForgets": {
+				"nextLoginSawForm": false
+			},
+			"withAnIdToken": {
+				"backAtTheApp": true,
+				"state": "kept"
+			},
+			"after": {
+				"tokenNotExpired": true,
+				"demoApi": 200,
+				"userinfo": 401,
+				"otherAppUserinfo": 401,
+				"refresh": {
+					"status": 400,
+					"error": "invalid_grant",
+					"description": "Session not active"
+				},
+				"otherAppRefresh": {
+					"status": 400,
+					"error": "invalid_grant",
+					"description": "Session not active"
+				},
+				"otherAppNextLoginSawForm": true
+			},
+			"withNoIdToken": {
+				"asks": true
+			}
+		},
+		"whoMayAsk": {
+			"before": {
+				"asker": "not named in the token",
+				"active": false
+			},
+			"after": {
+				"asker": "named in the token",
+				"active": true
+			},
+			"afterALogout": {
+				"active": false
+			}
+		},
+		"postLogoutAddress": {
+			"before": {
+				"status": 400,
+				"saysInvalidRedirect": true
+			},
+			"after": {
+				"backAtTheApp": true
+			}
+		},
+		"backchannelLogoutUrl": {
+			"before": {
+				"delivered": 0
+			},
+			"after": {
+				"delivered": 1,
+				"hasTheEvent": true,
+				"aud": "note-logout-two"
+			}
+		},
 		"refreshTokens": {
 			"accessTokenLifespan": 300,
 			"first": {
@@ -642,6 +703,26 @@
 				"missing": []
 			},
 			"audience": {
+				"found": [
+					"Audience"
+				],
+				"missing": []
+			},
+			"post-logout-address": {
+				"found": [
+					"Access settings",
+					"Valid post logout redirect URIs"
+				],
+				"missing": []
+			},
+			"backchannel-logout-url": {
+				"found": [
+					"Logout settings",
+					"Backchannel logout URL"
+				],
+				"missing": []
+			},
+			"who-may-ask": {
 				"found": [
 					"Audience"
 				],
