@@ -179,7 +179,11 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			verifier: valueIn('token-request', 'code_verifier'),
 			challenge: valueIn('authorize', 'code_challenge'),
 			'access-token': valueIn('token-response', 'access_token'),
-			'id-token': valueIn('token-response', 'id_token'),
+			'id-token':
+				valueIn('token-response', 'id_token') ?? valueIn('attacker-token-response', 'id_token'),
+			'refresh-token':
+				valueIn('token-response', 'refresh_token') ??
+				valueIn('attacker-token-response', 'refresh_token'),
 			'upstream-token': valueIn('upstream-token-response', 'access_token')
 		};
 

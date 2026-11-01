@@ -7,6 +7,7 @@ export type ArtifactId =
 	| 'challenge'
 	| 'access-token'
 	| 'id-token'
+	| 'refresh-token'
 	| 'proof'
 	| 'upstream-token';
 
@@ -54,6 +55,12 @@ export const artifacts: Readonly<
 		short: 'ID',
 		explains:
 			'Tells the app who logged in, when and where. Unlike the access token, it is made for the app to read, after checking it. It does not get you into an API.'
+	},
+	'refresh-token': {
+		label: 'refresh token',
+		short: 'refresh',
+		explains:
+			'Gets the app a new access token later, without the user having to log in again. It only ever goes to the identity provider, and it lasts longer than an access token, so it is worth more to a thief.'
 	},
 	proof: {
 		label: 'key proof',

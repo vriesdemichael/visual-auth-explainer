@@ -580,9 +580,9 @@ export const authorizationCode: DiagramDef = {
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'access-token', when: attackerWins },
 				{ name: 'token_type=Bearer', place: 'body', when: attackerWins },
-				{ name: 'id_token', place: 'body', when: all(attackerWins, oidc) },
+				{ name: 'id_token', place: 'body', artifact: 'id-token', when: all(attackerWins, oidc) },
 				{ name: 'expires_in', place: 'body', when: attackerWins },
-				{ name: 'refresh_token', place: 'body', when: attackerWins },
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token', when: attackerWins },
 				{ name: 'scope', place: 'body', when: attackerWins },
 				{
 					name: 'error=invalid_grant',
@@ -846,9 +846,11 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: oidc,
-					text: 'The access token is for the API, and the ID token tells the app who logged in.'
+					text: 'The access token is for the API, and the ID token tells the app who logged in. The refresh token is for later, to get a new access token without the user.'
 				},
-				{ text: 'The access token lets the app call the API. It is meant for the API to read.' }
+				{
+					text: 'The access token lets the app call the API, and is meant for the API to read. The refresh token is for later, to get a new one without the user.'
+				}
 			],
 			inPractice: [
 				{
@@ -876,6 +878,7 @@ export const authorizationCode: DiagramDef = {
 				{
 					name: 'refresh_token',
 					place: 'body',
+					artifact: 'refresh-token',
 					note: 'Gets a new access token later, which this diagram does not follow'
 				},
 				{ name: 'scope', place: 'body' }

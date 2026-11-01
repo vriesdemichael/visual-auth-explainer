@@ -103,7 +103,7 @@ test.describe('what each has seen', () => {
 	test('is there for a screen reader too', async ({ page }) => {
 		await open(page, 'step=token-response');
 		await expect(page.locator('[data-lifeline="app"]')).toHaveAccessibleDescription(
-			'Has seen: client secret, code, access token.'
+			'Has seen: client secret, code, access token, refresh token.'
 		);
 	});
 });

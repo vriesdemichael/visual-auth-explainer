@@ -165,8 +165,8 @@ const list: readonly Term[] = [
 		id: 'refresh-token',
 		name: 'Refresh token',
 		words: ['refresh token', 'refresh tokens', 'token for getting new ones'],
-		explains:
-			'Gets the app a new access token later, without the user having to log in again. So it is worth more to a thief than the access token itself.',
+		explains: '',
+		artifact: 'refresh-token',
 		at: flowAt('token-response')
 	},
 	{

@@ -251,7 +251,12 @@ describe('who has seen what', () => {
 		const flowView = view();
 		expect(holdingsAt(flowView, 'open-app').app).toEqual(['secret']);
 		expect(holdingsAt(flowView, 'callback').app).toEqual(['secret', 'code']);
-		expect(holdingsAt(flowView, 'token-response').app).toEqual(['secret', 'code', 'access-token']);
+		expect(holdingsAt(flowView, 'token-response').app).toEqual([
+			'secret',
+			'code',
+			'access-token',
+			'refresh-token'
+		]);
 	});
 
 	it('hands the password to the upstream IdP instead when another IdP does the login', () => {
@@ -537,7 +542,7 @@ describe('an attacker', () => {
 	});
 
 	it('gets the tokens from an app with no secret and no PKCE, and uses them', () => {
-		expect(held({ clientType: 'public' })).toEqual(['code', 'access-token']);
+		expect(held({ clientType: 'public' })).toEqual(['code', 'access-token', 'refresh-token']);
 		expect(answer({ clientType: 'public' })?.label).toMatch(/^200/);
 		expect(steps({ clientType: 'public' })).toContain('attacker-api-request');
 	});
