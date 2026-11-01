@@ -44,7 +44,7 @@
 		onexplainartifact
 	}: Props = $props();
 
-	let frame = $state<Frame>(untrack(() => toFrame(layout)));
+	let frame = $state.raw<Frame>(untrack(() => toFrame(layout)));
 	let animating = $state(false);
 	let scroller = $state<HTMLElement>();
 	let scrolled = $state(false);
@@ -59,7 +59,7 @@
 		const resized = layout.roomKey !== drawn.roomKey;
 		drawn = layout;
 		const target = toFrame(layout);
-		const start = untrack(() => $state.snapshot(frame)) as Frame;
+		const start = untrack(() => frame);
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		if (!untrack(() => animate) || reduced || resized) {
 			frame = target;
