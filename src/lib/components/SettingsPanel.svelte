@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import {
 		defaultSettings,
 		isOffered,
@@ -61,6 +62,14 @@
 
 	const defOf = (id: SettingId): SettingDef => settingDefs[id];
 	const set = (id: SettingId, value: boolean | string) => onchange(id, value as never);
+	// The button goes with its chip, so the focus goes to the next one, or to what they were part of.
+	let panelHeading = $state<HTMLElement>();
+	async function turnOff(id: SettingId) {
+		set(id, defaultSettings[id]);
+		await tick();
+		const next = window.document.querySelector<HTMLElement>('[data-remove]');
+		(next ?? panelHeading)?.focus();
+	}
 	const blockedBy = (id: SettingId, value: string | boolean) =>
 		unavailable(id, value as never, settings)?.because;
 	function chipText(id: SettingId) {
@@ -70,7 +79,7 @@
 	}
 </script>
 
-<h2>{simple ? 'Try changing' : 'Settings'}</h2>
+<h2 tabindex="-1" bind:this={panelHeading}>{simple ? 'Try changing' : 'Settings'}</h2>
 {#each offered as id (id)}
 	{@const def = defOf(id)}
 	<section data-setting={id}>
@@ -183,7 +192,7 @@
 						class="remove"
 						data-remove={id}
 						aria-label={`Turn off ${defOf(id).label}`}
-						onclick={() => set(id, defaultSettings[id])}
+						onclick={() => turnOff(id)}
 					>
 						×
 					</button>
@@ -255,6 +264,28 @@
 
 	.toggle input:checked::after {
 		transform: translateX(14px);
+	}
+
+	/* Forced colours flatten the background that says on or off. */
+	@media (forced-colors: active) {
+		.toggle input {
+			border: 1px solid ButtonText;
+			background: ButtonFace;
+			forced-color-adjust: none;
+		}
+
+		.toggle input::after {
+			background: ButtonText;
+			forced-color-adjust: none;
+		}
+
+		.toggle input:checked {
+			background: Highlight;
+		}
+
+		.toggle input:checked::after {
+			background: HighlightText;
+		}
 	}
 
 	input[type='radio'] {

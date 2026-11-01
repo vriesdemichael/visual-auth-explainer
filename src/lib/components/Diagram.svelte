@@ -550,6 +550,26 @@
 		}
 	}
 
+	@media (forced-colors: active) {
+		.row.current .hit,
+		.row.current:hover .hit {
+			fill: none;
+			stroke: Highlight;
+			stroke-width: 2;
+			forced-color-adjust: none;
+		}
+
+		.row.current .number circle {
+			fill: Highlight;
+			forced-color-adjust: none;
+		}
+
+		.row.current .number text {
+			fill: HighlightText;
+			forced-color-adjust: none;
+		}
+	}
+
 	.row.current .hit,
 	.row.current:hover .hit {
 		fill: var(--accent-soft);

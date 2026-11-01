@@ -123,11 +123,12 @@ button {
 	cursor: pointer;
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled, [aria-disabled='true']) {
 	border-color: var(--strong-line);
 }
 
-button:disabled {
+button:disabled,
+button[aria-disabled='true'] {
 	opacity: 0.45;
 	cursor: default;
 }

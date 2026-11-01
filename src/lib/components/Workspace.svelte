@@ -194,6 +194,11 @@
 		if (next) onnavigate(next, 'replace');
 	}
 
+	const focusControls = () =>
+		window.document
+			.querySelector<HTMLElement>('[data-testid="next"], [data-testid="next-question"]')
+			?.focus();
+
 	const back = () => go(previousStep(base, appState));
 	const forward = () => go(nextStep(base, appState));
 
@@ -335,11 +340,16 @@
 
 <div
 	class="workspace"
+	data-testid="workspace"
 	class:settings-hidden={appState.settingsHidden}
 	data-ready={animate}
 	data-diagram={appState.diagram}
 >
 	<header>
+		<!-- The way forward is after every setting, so it should not take thirty presses to get to. -->
+		<button type="button" class="skip" data-testid="skip-to-controls" onclick={focusControls}>
+			Skip to the step controls
+		</button>
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
 		<a class="brand" href={homeHref}>Map</a>
 		<span class="slash" aria-hidden="true">/</span>
@@ -539,7 +549,17 @@
 	}
 
 	.slash {
-		color: var(--strong-line);
+		color: var(--muted);
+	}
+
+	.skip {
+		position: absolute;
+		z-index: 2;
+		transform: translateY(-300%);
+	}
+
+	.skip:focus-visible {
+		transform: none;
 	}
 
 	h1 {
