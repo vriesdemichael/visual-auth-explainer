@@ -46,18 +46,28 @@ export function flagStatus(flag: KeycloakFlag): string {
 }
 
 export type Known =
-	| { kind: 'recorded'; keycloak: string; date: string }
+	| { kind: 'recorded'; by: 'server' | 'demo'; keycloak: string; date: string }
+	| { kind: 'copied'; text: string }
+	| { kind: 'other-settings' }
 	| { kind: 'spec'; source: string }
 	| { kind: 'unchecked' };
 
+// The lifelines a real identity provider stands behind. Everything else in a recording is the demo.
+const SERVERS: ReadonlySet<string> = new Set(['idp', 'upstream']);
+
 /** How we know a message looks the way it does. Steps with nothing on the wire have nothing to check. */
-export function knownFrom(step: Step): Known | null {
+export function knownFrom(step: Step, settings: Settings): Known | null {
 	if (step.channel !== 'front' && step.channel !== 'back') return null;
 	if (step.specOnly) return { kind: 'spec', source: step.specOnly };
-	if (recordedIndex.steps.includes(step.id)) {
-		return { kind: 'recorded', keycloak: recordedIndex.keycloak, date: recordedIndex.recordedAt };
-	}
-	return { kind: 'unchecked' };
+	if (!recordedIndex.steps.includes(step.id)) return { kind: 'unchecked' };
+	if (!recordingFor(settings)) return { kind: 'other-settings' };
+	if (step.recordedAs) return { kind: 'copied', text: step.recordedAs };
+	return {
+		kind: 'recorded',
+		by: SERVERS.has(step.from) || SERVERS.has(step.to) ? 'server' : 'demo',
+		keycloak: recordedIndex.keycloak,
+		date: recordedIndex.recordedAt
+	};
 }
 
 /** The specs behind what is on screen, and which real server it was checked against, and when. */
@@ -68,6 +78,7 @@ export function provenance(flow: FlowDef, settings: Settings) {
 	const specs = [...new Set([...flow.specs, ...fromSettings])].filter((id) => !isVendorSource(id));
 	return {
 		specs: specs.map((id) => sources[id].label),
+		recorded: recordingFor(settings) !== null,
 		keycloak: recordedIndex.keycloak,
 		date: recordedIndex.recordedAt
 	};

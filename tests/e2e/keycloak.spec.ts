@@ -21,7 +21,7 @@ test.describe('a note on a message', () => {
 		await expect(redirect).toContainText(
 			'Clients › your client › Settings › Access settings › Valid redirect URIs'
 		);
-		await expect(redirect).toContainText(/Tried on \d+\.\d+\.\d+/);
+		await expect(redirect).toContainText(/the answer changed, on Keycloak \d+\.\d+\.\d+/);
 	});
 
 	test('explains the claims a token has on a default client', async ({ page }) => {

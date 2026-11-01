@@ -25,7 +25,7 @@
 			Flag <code>{note.flag.name}</code>: {flagStatus(note.flag)}
 		</p>
 	{/if}
-	<p class="checked">Tried on {version}: changing it changes this.</p>
+	<p class="checked">{note.evidence} Keycloak {version}.</p>
 </details>
 
 <style>

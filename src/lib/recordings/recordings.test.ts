@@ -3,10 +3,10 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
 import { evaluate, type Field, type FlowView, type Step } from '#lib/flow/model.ts';
-import { allValidSettings, defaultSettings, normalize } from '#lib/flow/settings.ts';
+import { allValidSettings, defaultSettings, normalize, type Settings } from '#lib/flow/settings.ts';
 import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 import type { RecordedMessage, Recording } from '#lib/recordings/format.ts';
-import { knownFrom, provenance, recordedIndex } from '#lib/recordings/known.ts';
+import { knownFrom, provenance, recordedIndex, recordingFor } from '#lib/recordings/known.ts';
 import { shapeDifferences, shapeOf } from '#lib/recordings/shape.ts';
 
 const FOLDER = 'static/recordings/authorization-code';
@@ -120,6 +120,17 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 	it('has no message the diagram does not draw', () => {
 		const drawn = new Set(stepsOf(recording).map((step) => step.id));
 		expect(recorded.map((m) => m.step).filter((step) => !drawn.has(step!))).toEqual([]);
+	});
+
+	it('has the status its label says', () => {
+		const steps = new Map(stepsOf(recording).map((step) => [step.id, step]));
+		const wrong = recorded.flatMap((message) => {
+			const status = steps.get(message.step!)?.label.match(/^\d{3}\b/)?.[0];
+			return status && status !== String(message.status)
+				? [`${message.step}: says ${status}, was ${message.status}`]
+				: [];
+		});
+		expect(wrong).toEqual([]);
 	});
 
 	it('happened in the order the diagram draws it', () => {
@@ -264,7 +275,7 @@ describe('how each message is known', () => {
 			[base.diagrams.setup, base.diagrams.flow].flatMap((flow) =>
 				evaluate(flow, settings)
 					.steps.filter(onTheWire)
-					.filter((step) => knownFrom(step)?.kind === 'unchecked')
+					.filter((step) => knownFrom(step, settings)?.kind === 'unchecked')
 					.map((step) => step.id)
 			)
 		);
@@ -273,16 +284,47 @@ describe('how each message is known', () => {
 
 	it('says nothing about steps with nothing on the wire', () => {
 		const steps = evaluate(base.diagrams.setup, defaultSettings).steps;
-		expect(knownFrom(steps[0])).toBeNull();
+		expect(knownFrom(steps[0], defaultSettings)).toBeNull();
 	});
 
 	it('names the spec when Keycloak did not do it', () => {
-		const step = evaluate(base.diagrams.flow, {
-			...defaultSettings,
-			binding: 'dpop',
-			dpopNonce: true
-		}).steps.find((s) => s.id === 'nonce-challenge')!;
-		expect(knownFrom(step)).toMatchObject({ kind: 'spec' });
+		const settings = { ...defaultSettings, binding: 'dpop', dpopNonce: true } as const;
+		const step = evaluate(base.diagrams.flow, settings).steps.find(
+			(s) => s.id === 'nonce-challenge'
+		)!;
+		expect(knownFrom(step, settings)).toMatchObject({ kind: 'spec' });
+	});
+
+	const stepAt = (id: string, settings: Settings = defaultSettings) =>
+		evaluate(base.diagrams.flow, settings).steps.find((step) => step.id === id)!;
+
+	it('names the server only for what the server took part in', () => {
+		expect(knownFrom(stepAt('token-response'), defaultSettings)).toMatchObject({
+			kind: 'recorded',
+			by: 'server'
+		});
+		for (const id of ['open-app', 'redirect-to-idp', 'callback', 'api-request', 'api-response']) {
+			expect(knownFrom(stepAt(id), defaultSettings), id).toMatchObject({
+				kind: 'recorded',
+				by: 'demo'
+			});
+		}
+	});
+
+	it('does not claim a recording for settings that have none', () => {
+		const settings = { ...defaultSettings, oidc: true, consent: true };
+		expect(recordingFor(settings)).toBeNull();
+		expect(knownFrom(stepAt('token-response', settings), settings)).toEqual({
+			kind: 'other-settings'
+		});
+		expect(provenance(base.diagrams.flow, settings).recorded).toBe(false);
+	});
+
+	it('does not pass off a copy of a message as a message of its own', () => {
+		const settings = { ...defaultSettings, attacker: true };
+		expect(knownFrom(stepAt('attacker-steals-code', settings), settings)).toMatchObject({
+			kind: 'copied'
+		});
 	});
 });
 

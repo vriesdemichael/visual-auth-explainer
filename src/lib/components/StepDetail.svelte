@@ -5,7 +5,7 @@
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
 	import { artifacts, channels, whyOf, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
 	import type { Note } from '#lib/keycloak/notes.ts';
-	import { knownFrom, recordedIndex } from '#lib/recordings/known.ts';
+	import { recordedIndex, type Known } from '#lib/recordings/known.ts';
 
 	/** A link the route has already resolved. */
 	interface Link {
@@ -32,6 +32,8 @@
 		/** What one server has to say about this step, and whether to name that server at all. */
 		notes?: readonly Note[];
 		serverNamed?: boolean;
+		/** How we know this message looks the way it does. */
+		known?: Known | null;
 	}
 
 	let {
@@ -47,11 +49,15 @@
 		onexplainartifact,
 		wire,
 		notes = [],
-		serverNamed = true
+		serverNamed = true,
+		known = null
 	}: Props = $props();
 
 	const simple = $derived(mode === 'simple');
-	const known = $derived(knownFrom(step));
+	// Where a message was recorded means nothing yet to someone new, but a message nobody recorded
+	// must not look like one that was.
+	const showKnown = $derived(known && (!simple || known.kind === 'spec'));
+	const server = $derived(serverNamed ? 'Keycloak' : 'the server');
 	const nameOf = (id: string) => {
 		const line = lifelines.find((candidate) => candidate.id === id);
 		return (simple ? line?.plainName : line?.name) ?? id;
@@ -144,10 +150,17 @@
 			<strong>{channels[step.channel].label}.</strong>
 			{channels[step.channel].explains}
 		</p>
-		{#if known}
+		{#if known && showKnown}
 			<p class="known" data-known={known.kind} data-testid="step-known">
-				{#if known.kind === 'recorded'}
+				{#if known.kind === 'recorded' && known.by === 'server'}
 					Recorded from {serverNamed ? `Keycloak ${known.keycloak}` : 'a real server'} on {known.date}.
+				{:else if known.kind === 'recorded'}
+					Recorded on {known.date} from the demo app and API the recording uses, so this one says nothing
+					about {server}.
+				{:else if known.kind === 'copied'}
+					{known.text}
+				{:else if known.kind === 'other-settings'}
+					This message was recorded with other settings, not these.
 				{:else if known.kind === 'spec'}
 					From {known.source} only. The server it was recorded from did not do this.
 				{:else}
@@ -267,10 +280,6 @@
 
 	.pitfall p {
 		margin: 6px 0 0;
-	}
-
-	.keycloak {
-		color: var(--muted);
 	}
 
 	.carried {

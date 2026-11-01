@@ -176,7 +176,7 @@ test.describe('settings', () => {
 		await expect(page.getByTestId('change-summary')).toContainText('2 steps added');
 		await expect(page.locator('[data-chip="authorize:code_challenge"]')).toBeVisible();
 		await expect(page.locator('[data-chip="token-request:code_verifier"]')).toBeVisible();
-		await expect(pitfall).toContainText('They get nothing');
+		await expect(pitfall).toContainText('they get nothing');
 		await expect(heldByBrowser.filter({ hasText: 'challenge' })).toBeVisible();
 		await expect(heldByBrowser.filter({ hasText: 'verifier' })).toHaveCount(0);
 		check();

@@ -212,8 +212,8 @@ export const authorizationCodeSetup: FlowDef = {
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
-			plain: 'Addresses and keys',
-			label: 'Endpoints and keys',
+			plain: 'Where everything is',
+			label: 'Endpoints',
 			concept:
 				"The identity provider's endpoints, and where to find the keys that verify its tokens.",
 			links: [
