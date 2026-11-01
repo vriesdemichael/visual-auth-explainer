@@ -10,6 +10,8 @@ import {
 	resolveStep,
 	serializeState,
 	withDiagram,
+	withExplained,
+	withMode,
 	withSetting,
 	withSourceClosed,
 	withSourceOpen,
@@ -35,7 +37,15 @@ describe('the URL', () => {
 		for (const settings of allValidSettings()) {
 			for (const diagram of diagrams) {
 				for (const step of evaluate(base.diagrams[diagram], settings).steps) {
-					const state = { flow: base.id, diagram, settings, step: step.id, source: null };
+					const state = {
+						flow: base.id,
+						diagram,
+						mode: 'simple' as const,
+						settings,
+						step: step.id,
+						source: null,
+						explained: null
+					};
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
 				}
 			}
@@ -121,6 +131,61 @@ describe('switching diagrams', () => {
 		const state = withDiagram(base, onSetup(''), 'flow', 'authorize');
 		expect(state.diagram).toBe('flow');
 		expect(state.step).toBe('authorize');
+	});
+});
+
+describe('the mode', () => {
+	it('is simple unless it says otherwise, and only then in the URL', () => {
+		expect(onFlow('').mode).toBe('simple');
+		expect(serializeState(base, onFlow(''))).toBe('');
+		expect(onFlow('mode=nonsense').mode).toBe('simple');
+		const advanced = withMode(onFlow(''), 'advanced');
+		expect(serializeState(base, advanced)).toBe('mode=advanced');
+		expect(onFlow('mode=advanced')).toEqual(advanced);
+	});
+
+	it('changes nothing about the flow (ADR-004)', () => {
+		const state = onFlow('oidc=1&binding=dpop&step=token-request');
+		const next = withMode(state, 'advanced');
+		expect(next.settings).toEqual(state.settings);
+		expect(next.step).toBe(state.step);
+		expect(next.diagram).toBe(state.diagram);
+	});
+});
+
+describe('what is being explained', () => {
+	it('round-trips through the URL', () => {
+		for (const search of [
+			'explain=lifeline.idp',
+			'explain=artifact.code',
+			'explain=setting.oidc'
+		]) {
+			expect(serializeState(base, onFlow(search))).toBe(search);
+		}
+	});
+
+	it('opens nothing for what does not exist', () => {
+		expect(onFlow('explain=lifeline.nope').explained).toBeNull();
+		expect(onFlow('explain=artifact.nope').explained).toBeNull();
+		expect(onFlow('explain=setting.nope').explained).toBeNull();
+		expect(onFlow('explain=nope').explained).toBeNull();
+		expect(onFlow('explain=lifeline.idp-admin').explained).toBeNull();
+		expect(onSetup('explain=lifeline.idp-admin').explained).toEqual({
+			kind: 'lifeline',
+			id: 'idp-admin'
+		});
+	});
+
+	it('closes', () => {
+		expect(serializeState(base, withExplained(onFlow('explain=artifact.code'), null))).toBe('');
+	});
+
+	it('lets go of a lifeline when switching diagrams, since it may not be there', () => {
+		expect(withDiagram(base, onFlow('explain=lifeline.browser'), 'setup').explained).toBeNull();
+		expect(withDiagram(base, onFlow('explain=artifact.code'), 'setup').explained).toEqual({
+			kind: 'artifact',
+			id: 'code'
+		});
 	});
 });
 

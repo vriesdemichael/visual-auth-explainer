@@ -5,9 +5,10 @@ import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { evaluate, holdingsAt } from '#lib/flow/model.ts';
 import { allValidSettings, defaultSettings, type Settings } from '#lib/flow/settings.ts';
+import type { Mode } from '#lib/flow/vocabulary.ts';
 
-const layout = (settings: Partial<Settings> = {}) =>
-	layoutDiagram(evaluate(flow, { ...defaultSettings, ...settings }));
+const layout = (settings: Partial<Settings> = {}, mode: Mode = 'advanced') =>
+	layoutDiagram(evaluate(flow, { ...defaultSettings, ...settings }), mode);
 
 describe('layout', () => {
 	it.each(allValidSettings().map((settings) => [JSON.stringify(settings), settings] as const))(
@@ -55,6 +56,30 @@ describe('layout', () => {
 		expect(ids).not.toContain('authorize:client_id');
 		expect(chips.find((chip) => chip.id === 'token-response:id_token')?.text).toBe('ID token');
 		expect(chips.find((chip) => chip.id === 'authorize:scope=openid')?.text).toBe('scope=openid');
+	});
+
+	it('moves nothing when the mode changes (ADR-004)', () => {
+		for (const settings of allValidSettings()) {
+			const [simple, advanced] = (['simple', 'advanced'] as const).map((mode) =>
+				layoutDiagram(evaluate(flow, settings), mode)
+			);
+			expect(simple.rows.map((row) => row.y)).toEqual(advanced.rows.map((row) => row.y));
+			expect(simple.height).toBe(advanced.height);
+		}
+	});
+
+	it('shows plain words and no parameters in simple mode', () => {
+		const simple = layout({ oidc: true }, 'simple');
+		expect(simple.rows.find((row) => row.id === 'authorize')?.label).toBe(
+			'The browser asks to log in'
+		);
+		expect(simple.chips.every((chip) => chip.artifact)).toBe(true);
+		expect(simple.lanes.find((lane) => lane.id === 'idp')?.name).toBe('Identity provider');
+	});
+
+	it('still marks what a real server did not do in simple mode', () => {
+		const simple = layout({ binding: 'dpop', dpopNonce: true }, 'simple');
+		expect(simple.chips.map((chip) => chip.id)).toContain('nonce-challenge:spec only');
 	});
 
 	it('numbers every message, and says in words what the arrow shows', () => {

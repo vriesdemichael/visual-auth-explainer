@@ -19,6 +19,8 @@
 		/** What each lifeline has seen, up to the current step. */
 		holdings?: Readonly<Record<string, readonly ArtifactId[]>>;
 		onselect?: (step: string) => void;
+		onexplainlifeline?: (id: string) => void;
+		onexplainartifact?: (id: ArtifactId) => void;
 	}
 
 	let {
@@ -27,7 +29,9 @@
 		fresh = new Set(),
 		animate = true,
 		holdings = {},
-		onselect
+		onselect,
+		onexplainlifeline,
+		onexplainartifact
 	}: Props = $props();
 
 	let frame = $state<Frame>(untrack(() => toFrame(layout)));
@@ -82,19 +86,19 @@
 
 	const heldText = (ids: readonly ArtifactId[]) =>
 		ids.length ? ids.map((id) => artifacts[id].label).join(', ') : 'nothing yet';
-	const headsLabel = $derived(
-		`Who takes part, and what each has seen so far. ${frame.lanes
-			.map((lane) => `${lane.name}: ${heldText(holdings[lane.id] ?? [])}.`)
-			.join(' ')}`
-	);
+	const activate = (event: KeyboardEvent, then: () => void) => {
+		if (event.key !== 'Enter' && event.key !== ' ') return;
+		event.preventDefault();
+		then();
+	};
 </script>
 
 <div class="diagram" data-testid="diagram" data-animating={animating}>
 	<svg
 		class="heads"
 		viewBox={`0 0 ${frame.width} ${HEAD_HEIGHT}`}
-		role="img"
-		aria-label={headsLabel}
+		role="group"
+		aria-label="Who takes part, and what each has seen so far"
 		data-testid="diagram-heads"
 	>
 		{#each frame.lanes as lane (lane.id)}
@@ -105,7 +109,13 @@
 				style:opacity={lane.opacity}
 				data-lifeline={lane.leaving ? undefined : lane.id}
 				transform={`translate(${lane.x} 0)`}
+				role="button"
+				tabindex={lane.leaving ? -1 : 0}
+				aria-describedby={`seen-${lane.id}`}
+				onclick={() => onexplainlifeline?.(lane.id)}
+				onkeydown={(event) => activate(event, () => onexplainlifeline?.(lane.id))}
 			>
+				<desc id={`seen-${lane.id}`}>Has seen: {heldText(holdings[lane.id] ?? [])}.</desc>
 				<rect x="-72" y="5" width="144" height="46" rx="8" />
 				<path class="icon" d={ICONS[lane.icon]} transform="translate(-65 16) scale(0.95)" />
 				<text class="name" x="-38" y="25">{lane.name}</text>
@@ -227,12 +237,22 @@
 
 			{#each frame.chips as chip (chip.id)}
 				{@const state = rowState(chip.step)}
+				<!-- A chip with no token in it is not a button, so the role depends on the chip. -->
+				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 				<g
 					class={`chip ${state}`}
 					class:fresh={fresh.has(chip.id) || fresh.has(chip.step)}
 					style:opacity={chip.opacity}
 					data-chip={chip.leaving ? undefined : chip.id}
 					data-artifact={chip.artifact}
+					role={chip.artifact ? 'button' : undefined}
+					tabindex={chip.artifact ? -1 : undefined}
+					onclick={() => {
+						if (chip.artifact) onexplainartifact?.(chip.artifact);
+					}}
+					onkeydown={(event) => {
+						if (chip.artifact) activate(event, () => onexplainartifact?.(chip.artifact!));
+					}}
 				>
 					<rect x={chip.x} y={chip.y} width={chip.width} height="18" rx="9" />
 					<text x={chip.x + chip.width / 2} y={chip.y + 13} text-anchor="middle">{chip.text}</text>
@@ -526,10 +546,32 @@
 		fill: var(--on-tone);
 	}
 
+	.lane-head {
+		cursor: pointer;
+	}
+
+	.lane-head:hover > rect {
+		stroke: var(--strong-line);
+	}
+
+	.lane-head:focus {
+		outline: none;
+	}
+
+	.lane-head:focus-visible > rect {
+		stroke: var(--accent);
+		stroke-width: 2;
+	}
+
 	.chip {
 		pointer-events: none;
 		--chip: var(--muted);
 		--chip-soft: var(--panel);
+	}
+
+	.chip[role='button']:not(.future) {
+		pointer-events: auto;
+		cursor: pointer;
 	}
 
 	.chip rect,

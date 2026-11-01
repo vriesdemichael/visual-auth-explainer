@@ -8,9 +8,13 @@ export const SETUP_PATH = 'authorization-code/setup/';
 
 const pathOf = (diagram: DiagramId) => (diagram === 'setup' ? SETUP_PATH : FLOW_PATH);
 
-/** Opens a state and waits until the page has hydrated, so input is not lost. */
+/**
+ * Opens a state and waits until the page has hydrated, so input is not lost. Advanced mode, because
+ * it shows what most tests look at. Simple mode, the default, has its own spec.
+ */
 export async function open(page: Page, search = '', diagram: DiagramId = 'flow') {
-	await page.goto(pathOf(diagram) + (search ? `?${search}` : ''));
+	const query = search.includes('mode=') ? search : `mode=advanced${search ? `&${search}` : ''}`;
+	await page.goto(`${pathOf(diagram)}?${query}`);
 	await page.locator('.workspace[data-ready="true"]').waitFor();
 }
 
@@ -46,7 +50,18 @@ export async function expectMatchesModel(page: Page, search: string, diagram: Di
 	);
 }
 
-export const currentSearch = (page: Page) => new URL(page.url()).search.replace(/^\?/, '');
+/** The query, without the mode that `open` adds. */
+export function currentSearch(page: Page) {
+	const { searchParams } = new URL(page.url());
+	searchParams.delete('mode');
+	return searchParams.toString();
+}
+
+/** Where the page is, for tests about the address, without the mode that `open` adds. */
+export function placeOf(page: Page) {
+	const search = currentSearch(page);
+	return new URL(page.url()).pathname + (search ? `?${search}` : '');
+}
 
 /** Fails the test on anything the page logs as an error. */
 export function watchForErrors(page: Page) {

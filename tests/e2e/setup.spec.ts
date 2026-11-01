@@ -8,6 +8,7 @@ import {
 	expectMatchesModel,
 	lifelineIds,
 	open,
+	placeOf,
 	SETUP_PATH,
 	visibleStepIds,
 	watchForErrors
@@ -33,7 +34,7 @@ test.describe('the two diagrams', () => {
 		const check = watchForErrors(page);
 		await open(page);
 		await toSetup(page).click();
-		await expect(page).toHaveURL(SETUP_PATH);
+		await expect.poll(() => placeOf(page)).toMatch(/setup\/$/);
 		await expect(toSetup(page)).toHaveAttribute('aria-current', 'page');
 		await expectMatchesModel(page, '', 'setup');
 		expect(await lifelineIds(page)).toEqual(['app-team', 'app', 'idp', 'idp-admin']);
@@ -181,25 +182,25 @@ test.describe('links', () => {
 	test('?setup=1 moves to the setup path', async ({ page }) => {
 		await open(page, 'setup=1');
 		await expect(current(page)).toHaveAttribute('data-step', 'register-client');
-		await expect(page).toHaveURL(SETUP_PATH);
+		await expect.poll(() => placeOf(page)).toMatch(/setup\/$/);
 	});
 
 	test('?step=discover moves to the setup path and keeps the step', async ({ page }) => {
 		await open(page, 'step=discover');
 		await expect(current(page)).toHaveAttribute('data-step', 'discover');
-		await expect(page).toHaveURL(`${SETUP_PATH}?step=discover`);
+		await expect.poll(() => placeOf(page)).toMatch(/setup\/\?step=discover$/);
 	});
 
 	test('?setup=1&oidc=1 keeps the settings', async ({ page }) => {
 		await open(page, 'setup=1&oidc=1');
-		await expect(page).toHaveURL(`${SETUP_PATH}?oidc=1`);
+		await expect.poll(() => placeOf(page)).toMatch(/setup\/\?oidc=1$/);
 		await expect(page.locator('[data-setting="oidc"] input')).toBeChecked();
 	});
 
 	test('a user flow step on the setup path moves back', async ({ page }) => {
 		await open(page, 'step=authorize', 'setup');
 		await expect(current(page)).toHaveAttribute('data-step', 'authorize');
-		await expect(page).toHaveURL(/authorization-code\/\?step=authorize$/);
+		await expect.poll(() => placeOf(page)).toMatch(/authorization-code\/\?step=authorize$/);
 	});
 });
 

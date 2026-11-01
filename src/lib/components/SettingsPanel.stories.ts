@@ -13,6 +13,14 @@ type Story = StoryObj<typeof meta>;
 
 export const Defaults: Story = {};
 
+export const Simple: Story = {
+	args: { mode: 'simple' }
+};
+
+export const SimpleWithAnAdvancedSettingOn: Story = {
+	args: { mode: 'simple', settings: { ...defaultSettings, binding: 'dpop', dpopNonce: true } }
+};
+
 export const DPoPOffersANonce: Story = {
 	args: { settings: { ...defaultSettings, binding: 'dpop' } }
 };

@@ -67,6 +67,35 @@ describe('step IDs', () => {
 	});
 });
 
+describe('the plain language', () => {
+	const everything = [...flow.steps, ...setup.steps];
+	const plainTexts = allValidSettings().flatMap((settings) =>
+		[flow, setup].flatMap((diagram) => evaluate(diagram, settings).steps.map((step) => step.plain))
+	);
+
+	it('is there for every step', () => {
+		for (const text of plainTexts) expect(text).not.toBe('');
+		expect(everything.every((step) => step.plain)).toBe(true);
+	});
+
+	it('uses no words from the wire, because that is what advanced mode is for', () => {
+		const wire = /\b(GET|POST|302|400|\/\w+|client_id|redirect_uri|scope|nonce|IdP)\b/;
+		expect([...new Set(plainTexts)].filter((text) => wire.test(text))).toEqual([]);
+	});
+
+	it('fits on the lifelines', () => {
+		for (const line of [...flow.lifelines, ...setup.lifelines]) {
+			expect(line.plainName.length, line.id).toBeLessThanOrEqual(18);
+			expect(line.plainRole.length, line.id).toBeLessThanOrEqual(20);
+		}
+	});
+
+	it('explains what an issuer is, on the identity provider', () => {
+		const idp = flow.lifelines.find((line) => line.id === 'idp');
+		expect(idp?.concept).toContain('issuer');
+	});
+});
+
 describe('how a message travels', () => {
 	const channelOf = (id: string) => view().steps.find((step) => step.id === id)?.channel;
 

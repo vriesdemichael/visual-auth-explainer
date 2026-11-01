@@ -297,7 +297,7 @@ test.describe('without JavaScript', () => {
 		await page.goto(FLOW_PATH);
 		const { steps } = expectedFor('');
 		expect(await visibleStepIds(page)).toEqual(steps);
-		await expect(page.getByTestId('step-detail')).toContainText('Open the app');
+		await expect(page.getByTestId('step-detail')).toContainText('The user opens the app');
 		await expect(page).toHaveTitle('Authorization code flow');
 	});
 });

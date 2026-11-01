@@ -138,7 +138,9 @@ Three things follow:
 | `Execute` | Only where it adds something (section 5.6) | Only where it adds something (section 5.6) |
 
 - Default to simple. A meta-analysis of 60 experiments found novices gain from high assistance (d = 0.505) and experts from low (d = −0.428), with help for novices the stronger effect. It did not test this kind of mode, so this is reasoning from adjacent evidence.
-- A step can also expand for more detail within a mode. That supplements the modes and does not replace them.
+- A step can also expand for more detail within a mode. That supplements the modes and does not replace them. A pitfall works this way: at the redirect URI check, "What if the address does not match?" opens to say what happens, with Keycloak's real error.
+- **Proposed: simple mode offers two settings,** "Know who logged in" and "Log in with another provider", and each explains the problem it solves when turned on. Everything on screen can be asked about: selecting a lifeline, a token or a setting's "Why?" explains it and says who has seen it so far.
+- **Proposed: first use.** The first step of each diagram says what it is for and to press Next, and Next is the one thing that stands out. What is ahead is faint.
 - Keep **settings** (PKCE on or off) separate from the **mode**. A setting changes the flow, and the mode changes how much is exposed. Switching mode does not change which flow is on screen ([ADR-004](adr/004-modes-never-change-the-flow.md)). **Decided:** an advanced setting stays on when someone switches back to simple, as a chip they can remove, and the text drops to concept level. So DPoP can be shown simply.
 
 ### 5.6 Execute
@@ -357,7 +359,6 @@ A content-site setup, with prose pages and the diagram as one embedded island, i
 Still to settle:
 
 - **Entry map:** whether a node is a named state as proposed in section 5.9, which nodes the first version has, and whether it shows planned ones.
-- **First use of the application screen:** **Proposed:** the user flow first, faint arrows, the cast of lifelines in the step detail, and Next as the obvious action.
 - **Keycloak overlay:** whether visitors can turn it off.
 - **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). **Proposed:** a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows and how presets relate to map nodes. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md).

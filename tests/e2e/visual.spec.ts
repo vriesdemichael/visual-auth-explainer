@@ -9,6 +9,10 @@ test.skip(
 );
 
 const states: readonly [string, string, 'flow' | 'setup'][] = [
+	['simple-first-step', 'mode=simple', 'flow'],
+	['simple-token-response', 'mode=simple&oidc=1&step=token-response', 'flow'],
+	['simple-explanation', 'mode=simple&step=callback&explain=artifact.code', 'flow'],
+	['simple-setup', 'mode=simple&step=hand-over-credentials', 'setup'],
 	['first-step', '', 'flow'],
 	['token-response', 'step=token-response', 'flow'],
 	['openid-connect', 'oidc=1&step=token-response', 'flow'],

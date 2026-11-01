@@ -1,31 +1,53 @@
 <script lang="ts">
 	import {
+		defaultSettings,
 		isOffered,
 		settingDefs,
 		settingIds,
+		simpleSettingIds,
 		unavailable,
 		type SettingDef,
 		type SettingId,
 		type Settings
 	} from '#lib/flow/settings.ts';
+	import type { Mode } from '#lib/flow/vocabulary.ts';
 	import { refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	interface Props {
 		settings: Settings;
+		mode?: Mode;
 		onchange: <K extends SettingId>(id: K, value: Settings[K]) => void;
 		onopensource: (setting: SettingId, ref: SourceRef) => void;
+		onexplain?: (setting: SettingId) => void;
 	}
 
-	let { settings, onchange, onopensource }: Props = $props();
+	let { settings, mode = 'advanced', onchange, onopensource, onexplain }: Props = $props();
 
-	const offered = $derived(settingIds.filter((id) => isOffered(id, settings)));
+	const simple = $derived(mode === 'simple');
+	const offered = $derived(
+		(simple ? simpleSettingIds : settingIds).filter((id) => isOffered(id, settings))
+	);
+	// An advanced setting stays on in simple mode, as a chip that says so (ADR-004).
+	const alsoOn = $derived(
+		simple
+			? settingIds.filter(
+					(id) => !simpleSettingIds.includes(id) && settings[id] !== defaultSettings[id]
+				)
+			: []
+	);
+
 	const defOf = (id: SettingId): SettingDef => settingDefs[id];
 	const set = (id: SettingId, value: boolean | string) => onchange(id, value as never);
 	const blockedBy = (id: SettingId, value: string) =>
 		unavailable(id, value as never, settings)?.because;
+	function chipText(id: SettingId) {
+		const def = defOf(id);
+		if (def.kind === 'toggle') return def.label;
+		return `${def.label}: ${def.options.find((option) => option.value === settings[id])?.label}`;
+	}
 </script>
 
-<h2>Settings</h2>
+<h2>{simple ? 'Try changing' : 'Settings'}</h2>
 {#each offered as id (id)}
 	{@const def = defOf(id)}
 	<section data-setting={id}>
@@ -36,7 +58,7 @@
 					checked={settings[id] === true}
 					onchange={(event) => set(id, event.currentTarget.checked)}
 				/>
-				{def.label}
+				{simple ? (def.simple?.label ?? def.label) : def.label}
 			</label>
 		{:else}
 			<fieldset>
@@ -58,22 +80,58 @@
 				{/each}
 			</fieldset>
 		{/if}
-		<p>{def.summary}</p>
-		<ul class="sources">
-			{#each def.sources as ref (ref.source)}
+		<p>{simple ? (def.simple?.summary ?? def.summary) : def.summary}</p>
+		<ul class="more">
+			<li>
+				<button
+					type="button"
+					class="link"
+					data-why={id}
+					aria-label={`Why ${simple ? (def.simple?.label ?? def.label) : def.label}?`}
+					onclick={() => onexplain?.(id)}
+				>
+					Why?
+				</button>
+			</li>
+			{#if !simple}
+				{#each def.sources as ref (ref.source)}
+					<li>
+						<button
+							type="button"
+							class="link"
+							data-source-ref={`${id}:${ref.source}`}
+							onclick={() => onopensource(id, ref)}
+						>
+							{refLabel(ref)}
+						</button>
+					</li>
+				{/each}
+			{/if}
+		</ul>
+	</section>
+{/each}
+
+{#if alsoOn.length}
+	<section class="also" data-testid="also-on">
+		<h3>Also on, from advanced</h3>
+		<ul>
+			{#each alsoOn as id (id)}
 				<li>
+					{chipText(id)}
 					<button
 						type="button"
-						data-source-ref={`${id}:${ref.source}`}
-						onclick={() => onopensource(id, ref)}
+						class="remove"
+						data-remove={id}
+						aria-label={`Turn off ${defOf(id).label}`}
+						onclick={() => set(id, defaultSettings[id])}
 					>
-						{refLabel(ref)}
+						×
 					</button>
 				</li>
 			{/each}
 		</ul>
 	</section>
-{/each}
+{/if}
 
 <style>
 	h2 {
@@ -177,7 +235,7 @@
 		font-size: 12px;
 	}
 
-	.sources {
+	.more {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 2px 10px;
@@ -186,7 +244,7 @@
 		list-style: none;
 	}
 
-	.sources button {
+	.link {
 		padding: 0;
 		border: 0;
 		background: none;
@@ -194,5 +252,40 @@
 		font-size: 11.5px;
 		text-align: left;
 		text-decoration: underline;
+	}
+
+	.also h3 {
+		margin: 0 0 4px;
+		font-size: 12px;
+		font-weight: 600;
+		color: var(--muted);
+	}
+
+	.also ul {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		margin: 0;
+		padding: 0;
+		list-style: none;
+	}
+
+	.also li {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		padding: 1px 4px 1px 10px;
+		border: 1px solid var(--line);
+		border-radius: 10px;
+		background: var(--raised);
+		font-size: 12px;
+	}
+
+	.remove {
+		padding: 0 4px;
+		border: 0;
+		background: none;
+		color: var(--muted);
+		line-height: 1;
 	}
 </style>

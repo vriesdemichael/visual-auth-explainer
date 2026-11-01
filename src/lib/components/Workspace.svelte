@@ -3,6 +3,8 @@
 	import ChannelLegend from '#lib/components/ChannelLegend.svelte';
 	import Diagram from '#lib/components/Diagram.svelte';
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
+	import Explanation from '#lib/components/Explanation.svelte';
+	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
 	import SettingsPanel from '#lib/components/SettingsPanel.svelte';
 	import SourcePanel from '#lib/components/SourcePanel.svelte';
 	import StepControls from '#lib/components/StepControls.svelte';
@@ -23,12 +25,16 @@
 		nextStep,
 		previousStep,
 		withDiagram,
+		withExplained,
+		withMode,
 		withSetting,
 		withSourceClosed,
 		withSourceOpen,
 		withSourceSection,
-		type AppState
+		type AppState,
+		type Explained
 	} from '#lib/flow/state.ts';
+	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 	import { provenance } from '#lib/recordings/known.ts';
 	import { sources } from '#lib/sources/sources.ts';
 
@@ -55,7 +61,7 @@
 	const flow = $derived(base.diagrams[appState.diagram]);
 	const view = $derived(evaluate(flow, appState.settings));
 	const steps = $derived(view.steps);
-	const layout = $derived(layoutDiagram(view));
+	const layout = $derived(layoutDiagram(view, appState.mode));
 	const position = $derived(steps.findIndex((step) => step.id === appState.step));
 	const current = $derived(steps[position]);
 	const holdings = $derived(holdingsAt(view, appState.step));
@@ -66,6 +72,7 @@
 	let change = $state<ViewDiff | null>(null);
 	let resets = $state<Reset[]>([]);
 	let changedElsewhere = $state(false);
+	let changedSetting = $state<SettingId | null>(null);
 	let previousView = untrack(() => view);
 	let previousStepId = untrack(() => appState.step);
 	let previousDiagram = untrack(() => appState.diagram);
@@ -80,6 +87,7 @@
 				change = null;
 				resets = [];
 				changedElsewhere = false;
+				changedSetting = null;
 			} else if (!isEmptyDiff(diff) && animate) {
 				// Opening a link also moves from the prerendered default state, but changes nothing.
 				change = diff;
@@ -122,6 +130,7 @@
 			isEmptyDiff(diffViews(evaluate(flow, before), evaluate(flow, after))) &&
 			!isEmptyDiff(diffViews(evaluate(other, before), evaluate(other, after)));
 		if (changedElsewhere) change = null;
+		changedSetting = id;
 		onnavigate(result.state, 'push');
 	}
 
@@ -131,6 +140,48 @@
 
 	const back = () => go(previousStep(base, appState));
 	const forward = () => go(nextStep(base, appState));
+
+	const explain = (explained: Explained | null) =>
+		onnavigate(withExplained(appState, explained), 'push');
+	const nameOf = (id: string) => {
+		const line = view.lifelines.find((candidate) => candidate.id === id);
+		return (appState.mode === 'simple' ? line?.plainName : line?.name) ?? id;
+	};
+	const explanation = $derived.by(() => {
+		const explained = appState.explained;
+		if (explained?.kind === 'lifeline') {
+			const line = view.lifelines.find((candidate) => candidate.id === explained.id);
+			if (!line) return null;
+			return {
+				title: nameOf(line.id),
+				text: line.concept,
+				seen: holdings[line.id] ?? []
+			};
+		}
+		if (explained?.kind === 'artifact') {
+			return {
+				title: artifacts[explained.id].label,
+				text: artifacts[explained.id].explains,
+				seenBy: view.lifelines
+					.filter((line) => holdings[line.id]?.includes(explained.id))
+					.map((line) => nameOf(line.id))
+			};
+		}
+		if (explained?.kind === 'setting') {
+			const def = settingDefs[explained.id];
+			return {
+				title: appState.mode === 'simple' ? (def.simple?.label ?? def.label) : def.label,
+				text: def.why,
+				sources: def.sources
+			};
+		}
+		return null;
+	});
+	// The setting an open explanation is about is where its sources should open from.
+	const explainedSetting = $derived(
+		appState.explained?.kind === 'setting' ? appState.explained.id : null
+	);
+	const intro = $derived(position === 0 ? flow.intro : null);
 
 	const openSource = $derived(appState.source);
 	const openWhy = $derived(
@@ -159,6 +210,10 @@
 			closeSource();
 			return;
 		}
+		if (event.key === 'Escape' && appState.explained) {
+			explain(null);
+			return;
+		}
 		const target = event.target as HTMLElement;
 		if (target.closest('input, select, textarea, [data-testid="source-panel"]')) return;
 		if (event.key === 'ArrowRight') {
@@ -179,6 +234,10 @@
 		<a class="brand" href={homeHref}>Visual auth explainer</a>
 		<span class="slash" aria-hidden="true">/</span>
 		<h1>{flow.title}</h1>
+		<ModeSwitch
+			mode={appState.mode}
+			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
+		/>
 		<p class="status" data-testid="provenance">
 			Prototype. Based on {origin.specs.join(', ')}. Recorded from Keycloak {origin.keycloak} on
 			{origin.date}.
@@ -188,7 +247,9 @@
 	<aside class="settings" aria-label="Settings">
 		<SettingsPanel
 			settings={appState.settings}
+			mode={appState.mode}
 			onchange={setSetting}
+			onexplain={(id) => explain({ kind: 'setting', id })}
 			onopensource={(setting, ref) => onnavigate(withSourceOpen(appState, setting, ref), 'push')}
 		/>
 	</aside>
@@ -204,6 +265,8 @@
 					{fresh}
 					{holdings}
 					currentStep={appState.step}
+					onexplainlifeline={(id) => explain({ kind: 'lifeline', id })}
+					onexplainartifact={(id: ArtifactId) => explain({ kind: 'artifact', id })}
 					onselect={(step) => onnavigate({ ...appState, step }, 'replace')}
 				/>
 			{/key}
@@ -212,7 +275,28 @@
 	</main>
 
 	<aside class="detail" aria-label="The current step">
-		<StepDetail step={current} lifelines={view.lifelines} {change} {resets} {links} {elsewhere} />
+		{#if explanation}
+			<Explanation
+				{...explanation}
+				onclose={() => explain(null)}
+				onexplainartifact={(id) => explain({ kind: 'artifact', id })}
+				onopensource={(ref) => {
+					if (explainedSetting) onnavigate(withSourceOpen(appState, explainedSetting, ref), 'push');
+				}}
+			/>
+		{/if}
+		<StepDetail
+			step={current}
+			lifelines={view.lifelines}
+			mode={appState.mode}
+			{intro}
+			{change}
+			{resets}
+			{links}
+			{elsewhere}
+			changed={changedSetting}
+			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
+		/>
 	</aside>
 
 	<footer>
@@ -283,6 +367,7 @@
 
 	.status {
 		margin: 0 0 0 auto;
+		text-align: right;
 		color: var(--muted);
 		font-size: 12px;
 	}

@@ -43,6 +43,22 @@ export const PeopleNotHttp: Story = {
 	}
 };
 
+export const Simple: Story = {
+	args: { mode: 'simple', step: stepIn('token-response', { oidc: true }) }
+};
+
+export const SimpleOnTheFirstStep: Story = {
+	args: { mode: 'simple', step: stepIn('open-app'), intro: flow.intro }
+};
+
+export const SimpleWithAPitfall: Story = {
+	args: { mode: 'simple' }
+};
+
+export const AfterAChangeSayingWhy: Story = {
+	args: { mode: 'simple', change: diffViews(view(), view({ oidc: true })), changed: 'oidc' }
+};
+
 export const WithALinkToTheOtherDiagram: Story = {
 	args: { links: [{ text: 'See where the redirect URI was registered', href: '#' }] }
 };
