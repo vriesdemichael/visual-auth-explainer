@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
+import { artifacts } from '#lib/flow/vocabulary.ts';
 
 const css = readFileSync('src/app.css', 'utf8');
 
@@ -56,7 +57,8 @@ const pairs: readonly (readonly [string, string, number])[] = [
 	['access', 'access-soft', TEXT],
 	['identity', 'identity-soft', TEXT],
 	['proof', 'proof-soft', TEXT],
-	['upstream', 'upstream-soft', TEXT]
+	['upstream', 'upstream-soft', TEXT],
+	['pkce', 'pkce-soft', TEXT]
 ];
 
 describe('colours (ADR-014)', () => {
@@ -74,6 +76,10 @@ describe('colours (ADR-014)', () => {
 			const ratio = contrast(all[front][theme], all[back][theme]);
 			expect(ratio, `${all[front][theme]} on ${all[back][theme]}`).toBeGreaterThanOrEqual(needed);
 		});
+	});
+
+	it('exist for every thing that gets passed around', () => {
+		for (const id of Object.keys(artifacts)) expect(css, id).toContain(`[data-artifact='${id}']`);
 	});
 
 	it('have no text hidden behind transparency in the diagram', () => {

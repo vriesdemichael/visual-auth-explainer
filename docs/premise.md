@@ -269,7 +269,7 @@ An order for later releases. **Proposed**, and expected to change.
 | Client registration, discovery | Setup diagram | Steps before any user arrives |
 | Authorization code | Base flow | The main flow |
 | OIDC | Modifier | Adds the `openid` scope, an ID token and UserInfo. The access token does not change on a default Keycloak client |
-| PKCE | Modifier | Adds `code_challenge` and `code_verifier` |
+| PKCE | Modifier, off to start with | Adds `code_challenge` and `code_verifier`, with a step where the app makes them and one where the IdP checks them. Independent of the client type, because a real Keycloak takes all four combinations |
 | Public or confidential client | Exclusive | Changes setup and the token request |
 | Pre-registered, DCR or CIMD | Exclusive | Changes the setup diagram. CIMD is the `cimd` flag, experimental |
 | External IdP (brokering) | Modifier | Adds a lifeline and a nested flow |
@@ -305,7 +305,7 @@ Then build a rough animated prototype, because the data model alone will not sho
 3. **Concept layer on the diagram:** select a lifeline to learn what the user, app, IdP and API are, and what an issuer is.
 4. **Setup diagram:** client registration, redirect URI and discovery.
 5. **Authorization code flow:** stepped through with only what is relevant at each step.
-6. **One toggle, OAuth to OIDC:** with the animated transition.
+6. **Two toggles, OAuth to OIDC and PKCE:** with the animated transition. PKCE is the review's addition, because a code flow without it teaches an out-of-date picture, and the setting for a public client has nothing honest to say without it. It starts off, because a toggle teaches by contrast and turning it on by default would change what every existing link shows. The setting says that current advice is to have it on.
 7. **Advanced mode:** parameters and raw request and response for these steps, with `Execute` where it adds something.
 8. **Keycloak overlay:** a first few settings, such as valid redirect URIs and client scopes.
 9. **CI and Storybook from the first code commit:** build, type checks, flow model tests, the Storybook build and the automated click-through, all blocking merges.
@@ -370,6 +370,6 @@ Still to settle:
 
 - The maintainer reaches for it instead of drawing a new diagram, including when presenting.
 - People find it, come back to it unprompted, and can get to the settings that match their question.
-- Adding a toggle is a small change of flow data, recordings and tests, and the click-through still passes.
+- Adding a toggle is a small change of flow data, recordings and tests, and the click-through still passes. **The first measurement is PKCE ([#10](https://github.com/vriesdemichael/visual-auth-explainer/issues/10)):** about 200 lines of flow data, settings, words and sources, 7 lines in the recording app, and tests. It did touch the engine three times, in small and general ways: a value can be held in memory rather than on a message, a pitfall's text can vary with the settings, and the heads of the lifelines now keep as much room as their chips need, where it used to be a fixed two rows. Its new chips also needed colours in two components, so those moved to one place and the next one needs none.
 - If new toggles keep forcing engine changes, rethink the model before adding more.
 - If IdentiFlows ships toggles first, drop the general mechanic as the differentiator and keep the Keycloak layer.

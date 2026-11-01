@@ -178,6 +178,7 @@ export class Demo {
 	#servers: Server[] = [];
 	#state = '';
 	#key: ProofKey | null = null;
+	#verifier: string | null = null;
 
 	get #run() {
 		if (!this.current) throw new Error('No run in progress');
@@ -211,6 +212,7 @@ export class Demo {
 			client_id: run.clientId
 		};
 		if (run.clientSecret) body.client_secret = run.clientSecret;
+		if (this.#verifier) body.code_verifier = this.#verifier;
 		const headers: Record<string, string> = this.#key
 			? { dpop: this.#key.proof('POST', url, nonce ? { nonce } : {}) }
 			: {};
@@ -292,6 +294,7 @@ export class Demo {
 				const { settings } = run;
 				this.#state = random();
 				this.#key = settings.binding === 'dpop' ? new ProofKey() : null;
+				this.#verifier = settings.pkce ? random() + random() : null;
 				const query = new URLSearchParams({
 					response_type: 'code',
 					client_id: run.clientId,
@@ -303,6 +306,10 @@ export class Demo {
 					query.set('nonce', random());
 				}
 				if (this.#key) query.set('dpop_jkt', this.#key.thumbprint);
+				if (this.#verifier) {
+					query.set('code_challenge', sha256(this.#verifier));
+					query.set('code_challenge_method', 'S256');
+				}
 				response.writeHead(302, { location: `${this.#endpoint('auth')}?${query}` });
 				response.end();
 				return;

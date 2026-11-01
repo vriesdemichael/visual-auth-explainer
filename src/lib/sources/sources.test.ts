@@ -16,7 +16,10 @@ describe('the RFC files', () => {
 	const published: Record<string, string> = {
 		'rfc6749.txt': 'f204fc8661d6c92d2ec6e0b54808f961a9ad26e792f57f312d9528335519bd71',
 		'rfc6750.txt': '9dc385cf4ecdd85024e5a95e447ede9230e11700bf35251906b25b37557d604b',
-		'rfc9449.txt': '3842c58e1f6043389416023b9bb8d765048266024982fbbd90640e05943f4e13'
+		'rfc9449.txt': '3842c58e1f6043389416023b9bb8d765048266024982fbbd90640e05943f4e13',
+		// These two on 2026-11-01.
+		'rfc7636.txt': '1972e5d81cbaba7066cfd46374207bc2b4546b085ed5dd9b034e79e023e0ca31',
+		'rfc9700.txt': '9919d061d40a97886ca866b51c69389b6c81c65cd4b979056c14fdbebfcf622a'
 	};
 
 	it.each(Object.entries(published))('%s is byte for byte what was published', (file, hash) => {
@@ -56,6 +59,10 @@ describe('splitting an RFC', () => {
 		expect(titleOf('rfc6749.txt', 'A')).toBe('Augmented Backus-Naur Form (ABNF) Syntax');
 		expect(titleOf('rfc6749.txt', 'A.1')).toBe('"client_id" Syntax');
 		expect(titleOf('rfc9449.txt', '8')).toBe('Authorization Server-Provided Nonce');
+		expect(titleOf('rfc7636.txt', '4.6')).toBe(
+			'Server Verifies code_verifier before Returning the Tokens'
+		);
+		expect(titleOf('rfc9700.txt', '2.1.1')).toBe('Authorization Code Grant');
 	});
 
 	it('leaves a text with no headings whole', () => {

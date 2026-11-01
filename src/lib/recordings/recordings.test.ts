@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
@@ -161,6 +162,8 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			secret:
 				recording.settings.clientType === 'confidential' ? 'throwaway-client-secret' : undefined,
 			code: valueIn('redirect-with-code', 'code'),
+			verifier: valueIn('token-request', 'code_verifier'),
+			challenge: valueIn('authorize', 'code_challenge'),
 			'access-token': valueIn('token-response', 'access_token'),
 			'id-token': valueIn('token-response', 'id_token'),
 			'upstream-token': valueIn('upstream-token-response', 'access_token')
@@ -179,6 +182,19 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			});
 		});
 		expect(wrong).toEqual([]);
+	});
+
+	it('has a challenge that really is the fingerprint of the verifier', () => {
+		const body = recorded.find((m) => m.step === 'token-request')?.body as Record<string, string>;
+		const authorize = recorded.find((m) => m.step === 'authorize')!;
+		const challenge = carried(authorize).query.get('code_challenge');
+		if (!recording.settings.pkce) {
+			expect(challenge).toBeNull();
+			expect(body.code_verifier).toBeUndefined();
+			return;
+		}
+		const worked = createHash('sha256').update(body.code_verifier).digest('base64url');
+		expect(worked).toBe(challenge);
 	});
 
 	it('never lets a token through the browser', () => {

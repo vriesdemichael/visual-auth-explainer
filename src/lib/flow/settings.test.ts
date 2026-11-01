@@ -39,7 +39,7 @@ describe('what a setting says for itself', () => {
 	});
 
 	it('is in plain words for the few simple mode offers', () => {
-		expect(simpleSettingIds).toEqual(['oidc', 'broker']);
+		expect(simpleSettingIds).toEqual(['oidc', 'pkce', 'broker']);
 		for (const id of simpleSettingIds) {
 			expect(settingDefs[id].simple?.label).not.toBe(settingDefs[id].label);
 		}
@@ -48,12 +48,12 @@ describe('what a setting says for itself', () => {
 
 describe('constraints', () => {
 	it('allow exactly the expected combinations', () => {
-		// oidc (2) x token type x client and upstream tokens. Confidential has no broker, broker, V1
+		// oidc (2) x pkce (2) x token type x client and upstream tokens. Confidential has no broker, broker, V1
 		// and V2. Public has no V2, and neither does DPoP, because Keycloak refused its token.
 		const bearer = 4 + 3;
 		const dpop = 3 + 3;
 		const dpopWithNonce = 3 + 3;
-		expect(allValidSettings()).toHaveLength(2 * (bearer + dpop + dpopWithNonce));
+		expect(allValidSettings()).toHaveLength(2 * 2 * (bearer + dpop + dpopWithNonce));
 	});
 
 	it('include the defaults', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { HEAD_HEIGHT, layHeld, layoutDiagram, WIDTH } from '#lib/diagram/layout.ts';
+import { layHeld, layoutDiagram, SELF_LOOP, WIDTH } from '#lib/diagram/layout.ts';
 import { interpolate, toFrame, type Frame } from '#lib/diagram/motion.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
@@ -25,6 +25,24 @@ describe('layout', () => {
 			}
 		}
 	);
+
+	// A label on a message to itself has only the room beside the lane, and nothing wraps it.
+	it('keeps the label of a message to itself inside the diagram', () => {
+		const charWidth = 6.4;
+		for (const settings of allValidSettings()) {
+			for (const diagram of [flow, setup]) {
+				for (const mode of ['simple', 'advanced'] as const) {
+					const { rows } = layoutDiagram(evaluate(diagram, settings), mode);
+					for (const row of rows.filter((candidate) => candidate.self)) {
+						const room = SELF_LOOP.width + 8 + row.label.length * charWidth;
+						const edge = row.x1 + row.selfSide * room;
+						expect(edge, row.label).toBeGreaterThanOrEqual(0);
+						expect(edge, row.label).toBeLessThanOrEqual(WIDTH);
+					}
+				}
+			}
+		}
+	});
 
 	it('keeps lanes inside the diagram, and slides them over for a new lifeline', () => {
 		const before = layout();
@@ -100,25 +118,35 @@ describe('layout', () => {
 		}
 	});
 
-	it('fits what a lifeline can have seen in the room under its name', () => {
-		const everything = holdingsAt(
-			evaluate(flow, {
-				...defaultSettings,
-				oidc: true,
-				binding: 'dpop',
-				dpopNonce: true,
-				broker: true,
-				upstreamTokens: 'v1'
-			}),
-			'call-upstream'
-		);
-		for (const held of Object.values(everything)) {
-			for (const chip of layHeld(held)) {
-				expect(chip.y + 16).toBeLessThanOrEqual(HEAD_HEIGHT);
-				expect(Math.abs(chip.x)).toBeLessThanOrEqual(87);
-				expect(chip.x + chip.width).toBeLessThanOrEqual(87);
+	it('fits what a lifeline can have seen in the room under its name, in every combination', () => {
+		for (const settings of allValidSettings()) {
+			for (const diagram of [flow, setup]) {
+				const view = evaluate(diagram, settings);
+				const { headHeight } = layoutDiagram(view);
+				for (const step of view.steps) {
+					for (const held of Object.values(holdingsAt(view, step.id))) {
+						for (const chip of layHeld(held)) {
+							expect(chip.y + 16).toBeLessThanOrEqual(headHeight);
+							expect(Math.abs(chip.x)).toBeLessThanOrEqual(87);
+							expect(chip.x + chip.width).toBeLessThanOrEqual(87);
+						}
+					}
+				}
 			}
 		}
+	});
+
+	it('keeps the heads the same size in both modes and while stepping', () => {
+		const view = evaluate(flow, { ...defaultSettings, oidc: true, pkce: true });
+		expect(layoutDiagram(view, 'simple').headHeight).toBe(
+			layoutDiagram(view, 'advanced').headHeight
+		);
+	});
+
+	it('only makes the heads taller when a diagram needs it, so the first one stays compact', () => {
+		const plain = layout().headHeight;
+		const busy = layout({ oidc: true, pkce: true, binding: 'dpop' }).headHeight;
+		expect(busy).toBeGreaterThan(plain);
 	});
 
 	it('frames a group around exactly its rows', () => {

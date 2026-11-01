@@ -3,6 +3,7 @@ import { all, any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
 const confidential = is('clientType', 'confidential');
+const pkce = is('pkce', true);
 const dpop = is('binding', 'dpop');
 const bearer = is('binding', 'bearer');
 const nonce = is('dpopNonce', true);
@@ -121,6 +122,31 @@ export const authorizationCode: FlowDef = {
 			when: dpop
 		},
 		{
+			id: 'make-verifier',
+			from: 'app',
+			to: 'app',
+			kind: 'internal',
+			plain: 'The app makes up a one-time secret',
+			label: 'Generate the verifier and challenge',
+			concept:
+				'The app makes up a random value for this login, the verifier, and keeps it to itself. From it, it works out a fingerprint, the challenge, that cannot be turned back. Only the fingerprint goes through the browser.',
+			when: pkce,
+			fields: [
+				{
+					name: 'code_verifier',
+					place: 'memory',
+					note: 'Random, for this login only',
+					artifact: 'verifier'
+				},
+				{
+					name: 'code_challenge',
+					place: 'memory',
+					note: 'SHA-256 of the verifier',
+					artifact: 'challenge'
+				}
+			]
+		},
+		{
 			id: 'redirect-to-idp',
 			from: 'app',
 			to: 'browser',
@@ -128,7 +154,8 @@ export const authorizationCode: FlowDef = {
 			plain: 'The app sends the browser to log in',
 			label: '302 to the identity provider',
 			concept:
-				'The app sends the browser to the identity provider, because the password must never reach the app.'
+				'The app sends the browser to the identity provider, because the password must never reach the app.',
+			fields: [{ name: 'code_challenge', place: 'query', artifact: 'challenge', when: pkce }]
 		},
 		{
 			id: 'authorize',
@@ -170,6 +197,19 @@ export const authorizationCode: FlowDef = {
 					place: 'query',
 					note: 'Optional: ties the code to the key',
 					when: dpop
+				},
+				{
+					name: 'code_challenge',
+					place: 'query',
+					note: 'The identity provider keeps this with the code',
+					artifact: 'challenge',
+					when: pkce
+				},
+				{
+					name: 'code_challenge_method=S256',
+					place: 'query',
+					note: 'How the fingerprint was made',
+					when: pkce
 				}
 			]
 		},
@@ -368,7 +408,13 @@ export const authorizationCode: FlowDef = {
 			kind: 'request',
 			plain: 'The code reaches the app',
 			label: 'Deliver the code',
-			concept: 'The code reaches the app. On its own it is worth little, which is the point.',
+			concept: [
+				{
+					when: all(not(confidential), not(pkce)),
+					text: 'The code reaches the app. With no secret and no PKCE, this code is all anyone needs to get the tokens, and it has just been through the browser.'
+				},
+				{ text: 'The code reaches the app. On its own it is worth little, which is the point.' }
+			],
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query', note: 'Must match what the app sent' },
@@ -384,19 +430,71 @@ export const authorizationCode: FlowDef = {
 			label: 'POST /token',
 			concept: [
 				{
+					when: all(confidential, pkce),
+					text: 'The app trades the code for tokens on a direct call. Its secret proves which app it is, and the verifier proves it started this very login. Neither was sent through the browser.'
+				},
+				{
 					when: confidential,
 					text: 'The app trades the code for tokens on a direct call, and proves who it is with its secret. Someone who only saw the code in the browser cannot do this.'
+				},
+				{
+					when: pkce,
+					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, but it does have the verifier, which was never sent through the browser. Someone who only saw the code cannot do this. If the app runs in the browser, this call comes from its own JavaScript.'
 				},
 				{
 					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, so anyone holding the code could do this too, which is the gap PKCE closes. If the app runs in the browser, this call comes from its own JavaScript.'
 				}
 			],
+			pitfall: {
+				title: 'What if someone else gets hold of the code?',
+				text: [
+					{
+						when: all(not(confidential), not(pkce)),
+						text: 'They can do exactly this. Nothing in this request shows it comes from the real app, so whoever intercepted the code gets the tokens. This is the attack PKCE was made for.'
+					},
+					{
+						when: not(confidential),
+						text: 'They get nothing. They would also need the verifier, and it has never left the app. The challenge they may have seen cannot be turned back into it.'
+					},
+					{
+						when: pkce,
+						text: 'They get nothing, even by handing the code to the real app from their own browser. The app would send the verifier of that other login, and it does not match.'
+					},
+					{
+						when: oidc,
+						text: 'They cannot do this alone, because they do not have the secret. They could hand the code to the real app from their own browser, so that it trades the code for them. The nonce lets the app notice this, if it checks. PKCE stops it at the identity provider.'
+					},
+					{
+						text: 'They cannot do this alone, because they do not have the secret. But they can hand the code to the real app from their own browser, so that it trades the code for them, and then they are in as the user. PKCE stops this as well.'
+					}
+				],
+				keycloak: [
+					{
+						when: pkce,
+						text: 'Keycloak answers 400 invalid_grant: PKCE code verifier not specified. That try also uses up the code, so the real app has to start the login again.'
+					},
+					{
+						when: confidential,
+						text: 'Without the secret, Keycloak answers 401 unauthorized_client. It only insists on PKCE when Require PKCE is on for the client.'
+					},
+					{
+						text: 'Keycloak allows this by default, and the real app then finds the code already used. Turning on Require PKCE for the client makes Keycloak refuse a login without it.'
+					}
+				]
+			},
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
 				{ name: 'code', place: 'body', artifact: 'code' },
 				{ name: 'redirect_uri', place: 'body' },
 				{ name: 'client_id', place: 'body' },
 				{ name: 'client_secret', place: 'body', artifact: 'secret', when: confidential },
+				{
+					name: 'code_verifier',
+					place: 'body',
+					note: 'Sent now, and never through the browser',
+					artifact: 'verifier',
+					when: pkce
+				},
 				{
 					name: 'DPoP',
 					place: 'header',
@@ -434,6 +532,26 @@ export const authorizationCode: FlowDef = {
 			when: all(dpop, nonce),
 			specOnly: 'RFC 9449 section 8',
 			fields: [{ name: 'DPoP', place: 'header', note: 'A proof with the nonce', artifact: 'proof' }]
+		},
+		{
+			id: 'check-verifier',
+			from: 'idp',
+			to: 'idp',
+			kind: 'internal',
+			plain: 'It checks the one-time secret',
+			label: 'Check the verifier',
+			concept:
+				'The identity provider works out the fingerprint of the verifier it just got, and compares it with the challenge it kept with this code. They only match for whoever started this login.',
+			when: pkce,
+			fields: [
+				{
+					name: 'code_verifier',
+					place: 'memory',
+					note: 'Its SHA-256 has to match',
+					artifact: 'verifier'
+				},
+				{ name: 'code_challenge', place: 'memory', artifact: 'challenge' }
+			]
 		},
 		{
 			id: 'token-response',

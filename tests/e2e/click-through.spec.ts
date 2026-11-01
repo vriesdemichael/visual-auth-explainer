@@ -19,6 +19,8 @@ const STABLE_URLS = [
 	{ search: 'oidc=1', step: 'open-app', stepCount: 15, lifelines: 4 },
 	{ search: 'binding=dpop', step: 'open-app', stepCount: 13, lifelines: 4 },
 	{ search: 'binding=dpop&nonce=1', step: 'open-app', stepCount: 15, lifelines: 4 },
+	{ search: 'pkce=1', step: 'open-app', stepCount: 14, lifelines: 4 },
+	{ search: 'client=public&pkce=1', step: 'open-app', stepCount: 14, lifelines: 4 },
 	{ search: 'broker=1', step: 'open-app', stepCount: 18, lifelines: 5 },
 	{ search: 'broker=1&upstream=v1', step: 'open-app', stepCount: 22, lifelines: 5 },
 	{ search: 'broker=1&upstream=v2', step: 'open-app', stepCount: 22, lifelines: 5 },
@@ -164,6 +166,26 @@ test.describe('settings', () => {
 		await expect(page.locator('[data-chip="token-response:id_token"]')).toBeVisible();
 		await expect(page.locator('[data-lifeline="app"]')).toContainText('Relying party');
 		await expect(page.getByTestId('change-summary')).toContainText('3 steps added');
+		check();
+	});
+
+	test('PKCE sends a fingerprint through the browser and keeps the verifier out of it', async ({
+		page
+	}) => {
+		const check = watchForErrors(page);
+		await open(page, 'client=public&step=token-request');
+		const heldByBrowser = page.locator('[data-lifeline="browser"] [data-artifact]');
+		const pitfall = page.getByTestId('step-pitfall');
+		await expect(pitfall).toContainText('gets the tokens');
+
+		await toggle(page, 'pkce').check();
+		await expectMatchesModel(page, 'client=public&pkce=1&step=token-request');
+		await expect(page.getByTestId('change-summary')).toContainText('2 steps added');
+		await expect(page.locator('[data-chip="authorize:code_challenge"]')).toBeVisible();
+		await expect(page.locator('[data-chip="token-request:code_verifier"]')).toBeVisible();
+		await expect(pitfall).toContainText('They get nothing');
+		await expect(heldByBrowser.filter({ hasText: 'challenge' })).toBeVisible();
+		await expect(heldByBrowser.filter({ hasText: 'verifier' })).toHaveCount(0);
 		check();
 	});
 

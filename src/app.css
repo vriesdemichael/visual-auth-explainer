@@ -46,6 +46,8 @@
 	--proof-soft: light-dark(#e0f5f9, #0f2f37);
 	--upstream: light-dark(#4b5563, #aab2bf);
 	--upstream-soft: light-dark(#eceef1, #2a2e36);
+	--pkce: light-dark(#5f6800, #c3dc3c);
+	--pkce-soft: light-dark(#f3f6d6, #2b3010);
 
 	--sans: 'IBM Plex Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
@@ -62,6 +64,49 @@ body {
 	background: var(--bg);
 	color: var(--fg);
 	font: 14px/1.5 var(--sans);
+}
+
+/* What each thing that gets passed around looks like, in the diagram and beside it. */
+[data-artifact='password'] {
+	--chip: var(--password);
+	--chip-soft: var(--password-soft);
+}
+
+[data-artifact='code'] {
+	--chip: var(--code);
+	--chip-soft: var(--code-soft);
+}
+
+[data-artifact='secret'] {
+	--chip: var(--secret);
+	--chip-soft: var(--secret-soft);
+}
+
+/* Two forms of one thing, so one colour. */
+[data-artifact='verifier'],
+[data-artifact='challenge'] {
+	--chip: var(--pkce);
+	--chip-soft: var(--pkce-soft);
+}
+
+[data-artifact='access-token'] {
+	--chip: var(--access);
+	--chip-soft: var(--access-soft);
+}
+
+[data-artifact='id-token'] {
+	--chip: var(--identity);
+	--chip-soft: var(--identity-soft);
+}
+
+[data-artifact='proof'] {
+	--chip: var(--proof);
+	--chip-soft: var(--proof-soft);
+}
+
+[data-artifact='upstream-token'] {
+	--chip: var(--upstream);
+	--chip-soft: var(--upstream-soft);
 }
 
 .pending .workspace {
