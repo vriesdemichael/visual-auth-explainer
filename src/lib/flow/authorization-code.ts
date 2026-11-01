@@ -85,7 +85,7 @@ export const authorizationCode: DiagramDef = {
 			role: 'Has a copy of the code',
 			icon: 'attacker',
 			concept:
-				"Someone who can see the redirects that go through the browser, but is not the app. On a phone that can be another app claiming the same address. In a browser it can be a log or a history that keeps addresses. Something running inside the app's own page sees far more than this, and no setting here stops that.",
+				"Someone who can see the redirects that go through the browser, but is not the app. On a phone that can be another app claiming the same address, which gets the code first. A log or a history that keeps addresses usually sees it too late, because a code works once. Something running inside the app's own page sees far more than this, and no setting here stops that.",
 			when: attacker
 		},
 		{
@@ -129,7 +129,7 @@ export const authorizationCode: DiagramDef = {
 			label: 'Open the app',
 			concept: 'The user wants something from the app, and the app needs them logged in first.',
 			inPractice:
-				'Which pages need a login is your code. For most of what follows, a library does the work, and you give it a few values.',
+				'Which pages need a login is your code. For most of what follows a library does the work, and how much depends on the library: a framework integration does nearly all of it, and a low-level one leaves some checks to you.',
 			links: [
 				{
 					diagram: 'setup',
@@ -155,7 +155,7 @@ export const authorizationCode: DiagramDef = {
 			from: 'app',
 			to: 'app',
 			kind: 'internal',
-			plain: 'The app makes up a one-time secret',
+			plain: 'The app makes up a one-time value',
 			label: 'Generate the verifier and challenge',
 			concept:
 				'The app makes up a random value for this login, the verifier, and keeps it to itself. From it, it works out a fingerprint, the challenge, that cannot be turned back. Only the fingerprint goes through the browser.',
@@ -482,7 +482,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'Someone else copies the code',
 			label: 'Code intercepted',
 			concept:
-				'The code crosses the browser, so anything that can see that can copy it, the moment it goes by.',
+				'The code crosses the browser, so anything that can see that can copy it. This shows them getting there before the real app, which is the case that matters.',
 			recordedAs:
 				'The request the real app gets, drawn going to them as well. How someone gets a copy is not something a recording can show.',
 			when: attacker,
@@ -535,7 +535,7 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: attackerWins,
-					text: 'The identity provider has no way to tell. They now hold what the app was supposed to get, and the user never knew.'
+					text: 'The identity provider has no way to tell. They now hold what the app was supposed to get, including a token for getting new ones, and nothing has told the user.'
 				},
 				{
 					when: stoppedByPkce,
@@ -607,10 +607,16 @@ export const authorizationCode: DiagramDef = {
 					when: all(not(confidential), not(pkce)),
 					text: 'The code reaches the app. With no secret and no PKCE, this code is all anyone needs to get the tokens, and it has just been through the browser.'
 				},
-				{ text: 'The code reaches the app. On its own it is worth little, which is the point.' }
+				{
+					when: pkce,
+					text: 'The code reaches the app. On its own it is worth little, which is the point.'
+				},
+				{
+					text: 'The code reaches the app. Someone with only the code cannot trade it without the secret, though that is not quite the end of it, as the next step says.'
+				}
 			],
 			inPractice:
-				'A library handles this, at the address you registered. That address has to exist in your app, and match exactly.',
+				'A framework usually handles this, at the address you registered, which has to match exactly. With a low-level library, comparing state with what this browser was given is your code. Do not skip it.',
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query', note: 'Must match what the app sent' },
@@ -741,10 +747,10 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: pkce,
-					text: 'A code works once, and this server counts a failed try as that once, which the specs do not ask for. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
+					text: 'A code works once, and this server counts a failed try as that once. The specs do not say whether it should. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
 				},
 				{
-					text: 'A code works once, and it has been used, so the app gets nothing and the user sees an error. The specs advise the server to cancel what that code got, and this one does. But someone else has had the tokens by then, and an API that only checks the signature goes on taking them until they expire.'
+					text: 'A code works once, and it has been used, so the app gets nothing and the user sees an error.The specs advise the server to cancel what that code got, and this one does. But someone else has had the tokens by then, and an API that only looks at the token itself goes on taking them until they expire.'
 				}
 			],
 			when: codeGone,
@@ -758,7 +764,7 @@ export const authorizationCode: DiagramDef = {
 			from: 'idp',
 			to: 'idp',
 			kind: 'internal',
-			plain: 'It checks the one-time secret',
+			plain: 'It checks the one-time value',
 			label: 'Check the verifier',
 			concept:
 				'The identity provider works out the fingerprint of the verifier it just got, and compares it with the challenge it kept with this code. They only match for whoever started this login.',
@@ -788,8 +794,19 @@ export const authorizationCode: DiagramDef = {
 				},
 				{ text: 'The access token lets the app call the API. It is meant for the API to read.' }
 			],
-			inPractice:
-				'A library takes these. Where they are kept is up to you, and worth thinking about, because whoever gets them can use them.',
+			inPractice: [
+				{
+					when: not(confidential),
+					text: 'A library takes these. If your app runs in the browser, so do they: the diagram draws the two apart to show the redirects, but anything running in that page can reach them. That is why some keep tokens on a server behind the app.'
+				},
+				{
+					when: dpop,
+					text: 'A library takes these. Where they are kept is up to you. A stolen token is no use without the key, but code running inside your app can use the key while it is there.'
+				},
+				{
+					text: 'A library takes these. Where they are kept is up to you, and worth thinking about, because whoever gets them can use them.'
+				}
+			],
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'access-token' },
 				{ name: 'token_type=Bearer', place: 'body', when: bearer },
@@ -813,7 +830,8 @@ export const authorizationCode: DiagramDef = {
 			label: 'Validate the ID token',
 			concept:
 				'The app checks signature, issuer, audience, expiry and nonce before it trusts the token.',
-			inPractice: 'A library does this. Do not skip it, and do not write it yourself.',
+			inPractice:
+				'A framework usually does all of this. A low-level library may check the signature and leave the nonce to you, so read what yours does, and do not skip any of it. After this your app starts its own session for the user, and logging out is yours as well. Neither is on this diagram.',
 			when: all(oidc, stillGoing),
 			fields: [
 				{ name: 'iss', place: 'token' },
@@ -901,7 +919,7 @@ export const authorizationCode: DiagramDef = {
 				{ text: 'The API checks the signature, that the token has not expired, and who it is for.' }
 			],
 			inPractice:
-				'A library or a gateway does this, once you tell it the issuer and who tokens have to be for. Forgetting the second is a common mistake.',
+				'A library or a gateway does this, once you tell it the issuer and who tokens have to be for. Forgetting the second is a common mistake. Whether the scope covers this request, and whether this user may see this thing, is your code, and a valid token says neither.',
 			fields: [
 				{ name: 'aud', place: 'token' },
 				{ name: 'exp', place: 'token' },

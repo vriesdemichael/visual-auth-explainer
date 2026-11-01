@@ -219,11 +219,18 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 		const attackers = 'https://someone-else.test/callback';
 		await change(client, { redirectUris: [`${APP}/*`] });
 		const atTheEnd = { sameSite: await ask(`${APP}/elsewhere`), otherSite: await ask(attackers) };
+		await change(client, { redirectUris: [`${APP}*`] });
+		const noSlash = {
+			sameSite: await ask(`${APP}/elsewhere`),
+			otherSite: await ask(attackers),
+			startingTheSame: await ask(`${APP}.someone-else.test/callback`)
+		};
 		await change(client, { redirectUris: ['*'] });
 		answers.validRedirectUris = {
 			...(answers.validRedirectUris as object),
 			wildcard: {
 				atTheEnd,
+				noSlash,
 				alone: { sameSite: await ask(`${APP}/elsewhere`), otherSite: await ask(attackers) }
 			}
 		};
@@ -263,7 +270,14 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 				}
 			);
 			await context.close();
-			return result;
+			// Whether the server answered anyway, and the browser only kept it from the page.
+			const again = await token(LOCAL_REALM, {
+				grant_type: 'authorization_code',
+				code,
+				redirect_uri: REDIRECT_URI,
+				client_id: 'note-origins'
+			});
+			return { ...result, theSameCodeAfterwards: again.status };
 		};
 		const before = await fromThePage();
 		await change(client, { webOrigins: [APP] });
@@ -388,6 +402,9 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 		const client = await freshClient(admin, 'note-audience');
 		const said = (aud: unknown) => ({ aud, namesTheApi: [aud].flat().includes('my-api') });
 		const before = await tokensFor(browser, demo, 'note-audience');
+		const demoApi = await statusOf(`${API}/resource`, {
+			authorization: `Bearer ${before.json.access_token}`
+		});
 		await admin.call('POST', `${onClient(client)}/protocol-mappers/models`, {
 			name: 'my-api',
 			protocol: 'openid-connect',
@@ -396,7 +413,7 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 		});
 		const after = await tokensFor(browser, demo, 'note-audience');
 		answers.audience = {
-			before: said(claimsOf(before.json.access_token).aud),
+			before: { ...said(claimsOf(before.json.access_token).aud), demoApi: demoApi.status },
 			after: said(claimsOf(after.json.access_token).aud)
 		};
 	}

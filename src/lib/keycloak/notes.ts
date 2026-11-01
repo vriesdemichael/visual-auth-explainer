@@ -97,14 +97,14 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'valid-redirect-uris',
 		steps: ['authorize', 'create-client'],
 		title: 'Valid redirect URIs',
-		text: 'The addresses this client may send users back to. Anything else gets a 400, and the page says: Invalid parameter: redirect_uri. It does take a * at the end of an address, and * alone takes any site at all, which is the hole an exact match closes.',
+		text: 'The addresses this client may send users back to. Anything else gets a 400, and the page says: Invalid parameter: redirect_uri. It does take a * at the end of an address, which then lets any page on that site get the code, and * alone takes any site at all. An exact match closes both.',
 		place: clientSettings('Access settings', 'Valid redirect URIs'),
 		backedBy: {
 			question: 'validRedirectUris',
 			shows: {
 				before: { status: 400 },
 				after: { status: 200 },
-				wildcard: { atTheEnd: { otherSite: 400 }, alone: { otherSite: 200 } }
+				wildcard: { atTheEnd: { sameSite: 200, otherSite: 400 }, alone: { otherSite: 200 } }
 			}
 		}
 	},
@@ -159,12 +159,15 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'web-origins',
 		steps: ['token-request'],
 		title: 'Web origins',
-		text: "An app that runs in the page makes this request from the page, so the browser only lets it read the answer if the app's address is listed here. Otherwise it gets a CORS error, with the tokens in an answer it cannot read. The app in this recording is a server standing in for one, which needs nothing here.",
+		text: "An app that runs in the page makes this request from the page, so the browser blocks it unless the app's origin is listed here. It shows up as a CORS error, and the code still works afterwards, so the login can be tried again once the origin is listed. The app in this recording is a server standing in for one, which needs nothing here.",
 		when: not(confidential),
 		place: clientSettings('Access settings', 'Web origins'),
 		backedBy: {
 			question: 'webOrigins',
-			shows: { before: { blocked: true }, after: { blocked: false, status: 200 } }
+			shows: {
+				before: { blocked: true, theSameCodeAfterwards: 200 },
+				after: { blocked: false, status: 200 }
+			}
 		}
 	},
 	{
@@ -193,7 +196,7 @@ export const noteDefs: readonly NoteDef[] = [
 		text: [
 			{
 				when: all(pkce, not(confidential)),
-				text: 'Someone with only the code gets a 400 invalid_grant: PKCE code verifier not specified. That try also uses up the code, so the real app has to start the login again. That is how Keycloak does it, and the specs do not ask for it.'
+				text: 'Someone with only the code gets a 400 invalid_grant: PKCE code verifier not specified.That try also uses up the code, so the real app has to start the login again. That is how Keycloak does it, and the specs do not say whether a failed try counts.'
 			},
 			{
 				when: pkce,
@@ -226,7 +229,7 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'code-used-twice',
 		steps: ['real-app-refused'],
 		title: 'A code used twice',
-		text: 'Keycloak cancels what the code got when someone uses it again: after this, UserInfo says 401 to their access token and their refresh token is refused. The demo API only checks the signature, so it goes on answering until the token expires, and so would yours.',
+		text: 'Keycloak cancels what the code got when someone uses it again:after this, UserInfo says 401 to their access token and their refresh token is refused. The demo API looks at the token itself and never asks Keycloak, so it goes on answering until the token expires. An API that asks the server each time may not.',
 		when: not(pkce),
 		backedBy: {
 			question: 'stolenTokensAfterTheRealAppTried',
@@ -286,7 +289,7 @@ export const noteDefs: readonly NoteDef[] = [
 		steps: ['token-response', 'api-check-token'],
 		claims: ['aud'],
 		title: 'Audience mapper',
-		text: "A default client's access token names account as its audience, not your API, so an API that checks the audience refuses it. Add an Audience mapper to the client's dedicated scope to name your API. The demo API here is told to accept account, so that it can run against a default client.",
+		text: "A default client's access token names account as its audience, not your API, so an API that checks the audience refuses it. Add an Audience mapper to the client's dedicated scope to name your API.The demo API here is told to accept account, so that it can run against a default client, which means any default client's token in this realm gets in. Yours should expect its own name.",
 		place: {
 			path: [
 				'Clients',
@@ -303,7 +306,7 @@ export const noteDefs: readonly NoteDef[] = [
 		backedBy: {
 			question: 'audience',
 			shows: {
-				before: { aud: 'account', namesTheApi: false },
+				before: { aud: 'account', namesTheApi: false, demoApi: 200 },
 				after: { namesTheApi: true }
 			}
 		}

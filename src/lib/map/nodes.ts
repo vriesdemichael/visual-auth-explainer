@@ -145,8 +145,9 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'stolen-token',
-					title: 'What if someone steals the token?',
-					summary: 'DPoP ties a token to a key that never leaves the app.',
+					title: 'How does DPoP stop a stolen token being used?',
+					summary:
+						'It ties a token to a key that never leaves the app. The theft itself is not drawn.',
 					preset: 'dpop',
 					step: 'api-request'
 				}),
@@ -209,7 +210,7 @@ export const mapTracks: readonly MapTrack[] = [
 					id: 'browser-app',
 					title: 'An app that runs in the browser',
 					summary:
-						'No secret to keep, so PKCE does the work. Recorded from a server standing in for it.',
+						'No secret to keep, so PKCE protects the code. The tokens then live in the page, which is the harder problem.',
 					mode: 'advanced',
 					preset: 'browser-app',
 					step: 'token-request'

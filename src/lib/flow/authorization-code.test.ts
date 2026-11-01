@@ -118,6 +118,14 @@ describe('what a step means for someone building an app', () => {
 		expect(left).toEqual([]);
 	});
 
+	it('does not tell them a library does what a low-level one leaves to them', () => {
+		const said = (id: string, settings = defaultSettings) =>
+			evaluate(flow, settings).steps.find((step) => step.id === id)?.inPractice;
+		expect(said('callback')).toContain('comparing state');
+		expect(said('validate-id-token', { ...defaultSettings, oidc: true })).toContain('nonce');
+		expect(said('api-check-token')).toContain('scope');
+	});
+
 	it('says what is left to them in setup', () => {
 		const said = evaluate(setup, defaultSettings).steps.filter((step) => step.inPractice);
 		expect(said.map((step) => step.id)).toEqual(
@@ -126,7 +134,7 @@ describe('what a step means for someone building an app', () => {
 	});
 
 	it('uses no words from the wire, whichever mode it is read in', () => {
-		const wire = /\b(GET|POST|\d{3}|client_id|redirect_uri|nonce|IdP)\b/;
+		const wire = /\b(GET|POST|\d{3}|client_id|redirect_uri|IdP)\b/;
 		for (const diagram of [flow, setup]) {
 			for (const settings of allValidSettings()) {
 				for (const step of evaluate(diagram, settings).steps) {
@@ -426,7 +434,8 @@ describe('PKCE', () => {
 	it('takes back what the app says about a code being worth little, when it is not', () => {
 		const said = (settings: Partial<Settings>) =>
 			view(settings).steps.find((step) => step.id === 'callback')?.concept;
-		expect(said({})).toMatch(/worth little/);
+		expect(said({})).toMatch(/not quite the end of it/);
+		expect(said({ pkce: true })).toMatch(/worth little/);
 		expect(said({ clientType: 'public', pkce: true })).toMatch(/worth little/);
 		expect(said({ clientType: 'public' })).toMatch(/all anyone needs/);
 	});

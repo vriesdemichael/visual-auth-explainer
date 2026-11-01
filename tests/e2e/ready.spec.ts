@@ -134,7 +134,7 @@ test.describe('without JavaScript', () => {
 	test('a named state still shows its diagram and its words', async ({ page }) => {
 		await page.goto('authorization-code/pkce/');
 		await expect(page.locator('[data-step="make-verifier"]')).toBeAttached();
-		await expect(page.getByTestId('step-detail')).toContainText('one-time secret');
+		await expect(page.getByTestId('step-detail')).toContainText('one-time value');
 	});
 });
 
