@@ -4,9 +4,13 @@
 
 	interface Props {
 		view: FlowView;
+		/** The diagram with nothing on, so that what this one adds is what stands out. */
+		base?: FlowView | null;
+		/** The message this is about, when it is about one in particular. */
+		about?: string | null;
 	}
 
-	let { view }: Props = $props();
+	let { view, base = null, about = null }: Props = $props();
 
 	// The same spacing everywhere, so a diagram that does more is visibly larger.
 	const SCALE = 200 / WIDTH;
@@ -17,6 +21,9 @@
 	const x = (value: number) => value * SCALE;
 	const y = (row: number) => TOP + row * ROW;
 	const height = $derived(y(layout.rows.length) + 2);
+	const known = $derived(new Set(base?.steps.map((step) => step.id)));
+	const anyAdded = $derived(base !== null && view.steps.some((step) => !known.has(step.id)));
+	const isAdded = (id: string) => known.has(id) === false;
 </script>
 
 <svg viewBox={`0 0 200 ${height}`} style:aspect-ratio={`200 / ${height}`} aria-hidden="true">
@@ -25,16 +32,29 @@
 	{/each}
 	{#each layout.rows as row, i (row.id)}
 		{#if row.self}
-			<circle class="self" data-channel={row.channel} cx={x(row.x1)} cy={y(i)} r="1.6" />
+			<circle
+				class="self"
+				class:quiet={anyAdded && !isAdded(row.id)}
+				class:added={anyAdded && isAdded(row.id)}
+				data-channel={row.channel}
+				cx={x(row.x1)}
+				cy={y(i)}
+				r="1.6"
+			/>
 		{:else}
 			<line
 				class="row"
+				class:quiet={anyAdded && !isAdded(row.id)}
+				class:added={anyAdded && isAdded(row.id)}
 				data-channel={row.channel}
 				x1={x(row.x1)}
 				x2={x(row.x2)}
 				y1={y(i)}
 				y2={y(i)}
 			/>
+		{/if}
+		{#if row.id === about}
+			<circle class="about" cx={x(row.x1)} cy={y(i)} r="3" data-about={row.id} />
 		{/if}
 	{/each}
 </svg>
@@ -70,5 +90,20 @@
 
 	.self {
 		fill: var(--muted);
+	}
+
+	/* Most of a diagram is the same flow, so the part this question is about is what stands out. */
+	.quiet {
+		opacity: 0.35;
+	}
+
+	.row.added {
+		stroke-width: 2.2;
+	}
+
+	.about {
+		fill: var(--accent);
+		stroke: var(--raised);
+		stroke-width: 1;
 	}
 </style>

@@ -189,11 +189,11 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'web-app',
-					title: 'A web app, set up the way it should be',
-					summary: 'On a server that can keep a secret, with OpenID Connect and PKCE.',
+					title: 'A web app on a server',
+					summary:
+						'It can keep a secret. With OpenID Connect to know who logged in, and PKCE on top.',
 					mode: 'advanced',
-					preset: 'oidc-pkce',
-					step: 'authorize'
+					preset: 'oidc-pkce'
 				}),
 				node({
 					id: 'browser-app',
@@ -276,6 +276,13 @@ export function nodeState(of: MapNode): AppState {
 
 export const nodeView = (of: MapNode) => evaluate(flowOf(of), nodeSettings(of));
 
+/** The same diagram with nothing switched on, which is what a node's diagram adds to. */
+export const nodeBaseView = (of: MapNode) => evaluate(flowOf(of), defaultSettings);
+
+/** The question to go on to, in the order the map lays them out. */
+export const nextQuestion = (of: MapNode): MapNode | null =>
+	mapNodes[mapNodes.indexOf(of) + 1] ?? null;
+
 /** The state as a query, which a query on the address itself adds to. */
 export function nodeSearch(of: MapNode, added = ''): string {
 	const search = new URLSearchParams(serializeState(flows[of.flow], nodeState(of)));
@@ -284,6 +291,12 @@ export function nodeSearch(of: MapNode, added = ''): string {
 }
 
 const sameSettings = (a: Settings, b: Settings) => settingIds.every((id) => a[id] === b[id]);
+
+/** Whether what is on screen still answers this question, wherever someone has stepped to. */
+export const stillAnswers = (of: MapNode, state: AppState) =>
+	state.flow === of.flow &&
+	state.diagram === of.diagram &&
+	sameSettings(nodeSettings(of), state.settings);
 
 /** The node someone is at, going by what is on screen. Stepping through it is still being at it. */
 export function nodeMatching(state: AppState): MapNode | null {

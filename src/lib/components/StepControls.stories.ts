@@ -23,3 +23,11 @@ export const WhereExecuteAddsSomething: Story = {
 export const AtTheEnd: Story = {
 	args: { position: 12 }
 };
+
+export const AtTheEndWithAQuestionToGoOnTo: Story = {
+	args: { position: 12, onwardHref: '#next' }
+};
+
+export const AtTheEndWithNowhereToGo: Story = {
+	args: { position: 12 }
+};

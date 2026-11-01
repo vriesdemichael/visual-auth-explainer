@@ -111,8 +111,8 @@ test.describe('what each has seen', () => {
 test.describe('how we know', () => {
 	test('each message says where it comes from', async ({ page }) => {
 		await open(page, 'step=token-request');
-		await expect(page.getByTestId('step-known')).toHaveAttribute('data-known', 'recorded');
-		await expect(page.getByTestId('step-known')).toContainText('Recorded from Keycloak');
+		await expect(page.getByTestId('payload-origin')).toContainText('Keycloak');
+		await expect(page.getByTestId('step-known')).toHaveCount(0);
 	});
 
 	test('what Keycloak did not do is marked on the diagram and in the detail', async ({ page }) => {

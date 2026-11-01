@@ -2,6 +2,7 @@
 	import Payload from '#lib/components/Payload.svelte';
 	import RunValues from '#lib/components/RunValues.svelte';
 	import type { Step } from '#lib/flow/model.ts';
+	import type { Note } from '#lib/keycloak/notes.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import { traceRun } from '#lib/recordings/wire.ts';
 
@@ -25,6 +26,8 @@
 		onstep?: (step: string) => void;
 		/** Whether to name the server this was recorded from. */
 		serverNamed?: boolean;
+		/** What one server has to say about this step, some of it about what is in a token. */
+		notes?: readonly Note[];
 	}
 
 	let {
@@ -35,7 +38,8 @@
 		answerTo = null,
 		numberOf,
 		onstep,
-		serverNamed = true
+		serverNamed = true,
+		notes = []
 	}: Props = $props();
 
 	const message = $derived(recording?.messages.find((candidate) => candidate.step === step.id));
@@ -77,7 +81,7 @@
 		{#if answerTo}
 			<p class="answer" data-testid="answer-to">The answer to step {numberOf(answerTo)}.</p>
 		{/if}
-		<Payload {step} {message} {trace} {numberOf} {onstep} />
+		<Payload {step} {message} {trace} {numberOf} {onstep} {notes} />
 		<RunValues values={soFar} {numberOf} {onstep} />
 		<p class="origin" data-testid="payload-origin">
 			One real run against {serverNamed ? `Keycloak ${recording.keycloak}` : 'a real server'}, on {recording.recordedAt},

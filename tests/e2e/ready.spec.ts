@@ -28,7 +28,8 @@ test.describe('by keyboard alone', () => {
 	test('the whole flow can be walked, from the map to the last step', async ({ page }) => {
 		const { steps } = evaluate(base.diagrams.flow, defaultSettings);
 		await page.goto('./');
-		await page.keyboard.press('Tab');
+		// Past the links that jump to each part of the map, to the first question.
+		for (let i = 0; i < 6; i++) await page.keyboard.press('Tab');
 		await page.keyboard.press('Enter');
 		await ready(page);
 
@@ -38,7 +39,7 @@ test.describe('by keyboard alone', () => {
 			await page.keyboard.press('Enter');
 			await expect(current(page)).toHaveAttribute('data-step', step.id);
 		}
-		await expect(page.getByTestId('next')).toBeDisabled();
+		await expect(page.getByTestId('next-question')).toBeVisible();
 	});
 
 	test('a setting can be flipped, and a message reached', async ({ page }) => {

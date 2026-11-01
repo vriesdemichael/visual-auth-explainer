@@ -60,6 +60,8 @@ export interface NoteDef {
 	backedBy: { question: string; shows: Readonly<Record<string, unknown>> };
 	/** What was done to find this out, when it was more than changing one setting. */
 	seen?: string;
+	/** What in an access token this setting controls. */
+	claims?: readonly string[];
 }
 
 export interface Note {
@@ -71,6 +73,7 @@ export interface Note {
 	flag?: KeycloakFlag;
 	/** How this was found out, up to the name of the server. */
 	evidence: string;
+	claims: readonly string[];
 }
 
 const CHANGED_IT = 'Changed this, and the answer changed, on';
@@ -238,6 +241,15 @@ export const noteDefs: readonly NoteDef[] = [
 	{
 		id: 'client-scopes',
 		steps: ['token-response'],
+		claims: [
+			'name',
+			'email',
+			'preferred_username',
+			'given_name',
+			'family_name',
+			'email_verified',
+			'scope'
+		],
 		title: 'Client scopes',
 		text: "What the access token says about the user comes from the client's default client scopes, whether or not the app asked for openid. A new client has profile and email among them, so its token already holds a name and an email address. Take those two off and they are gone.",
 		place: {
@@ -256,6 +268,7 @@ export const noteDefs: readonly NoteDef[] = [
 	{
 		id: 'token-lifespan',
 		steps: ['token-response'],
+		claims: ['exp'],
 		title: 'Access Token Lifespan',
 		text: 'Sets expires_in for this client. Left empty, it comes from the realm, which is five minutes on a new one.',
 		place: {
@@ -270,7 +283,8 @@ export const noteDefs: readonly NoteDef[] = [
 	},
 	{
 		id: 'audience',
-		steps: ['api-check-token'],
+		steps: ['token-response', 'api-check-token'],
+		claims: ['aud'],
 		title: 'Audience mapper',
 		text: "A default client's access token names account as its audience, not your API, so an API that checks the audience refuses it. Add an Audience mapper to the client's dedicated scope to name your API. The demo API here is told to accept account, so that it can run against a default client.",
 		place: {
@@ -424,6 +438,7 @@ export function notesFor(step: string, settings: Settings): Note[] {
 			path: def.place?.path,
 			serverOption: def.serverOption,
 			flag: def.flag,
-			evidence: def.seen ?? CHANGED_IT
+			evidence: def.seen ?? CHANGED_IT,
+			claims: def.claims ?? []
 		}));
 }

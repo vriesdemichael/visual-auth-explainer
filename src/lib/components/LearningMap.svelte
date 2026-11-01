@@ -1,6 +1,12 @@
 <script lang="ts">
 	import MiniDiagram from '#lib/components/MiniDiagram.svelte';
-	import { nodeView, type MapNode, type MapTrack } from '#lib/map/nodes.ts';
+	import {
+		nodeBaseView,
+		nodeState,
+		nodeView,
+		type MapNode,
+		type MapTrack
+	} from '#lib/map/nodes.ts';
 
 	interface Props {
 		tracks: readonly MapTrack[];
@@ -12,9 +18,17 @@
 	let { tracks, hrefOf, current = null }: Props = $props();
 </script>
 
+<!-- A question can be a long way down, and someone with an error wants to get to it quickly. -->
+<nav class="jump" aria-label="Jump to a part of the map" data-testid="map-jump">
+	{#each tracks as track (track.id)}
+		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- a place on this page -->
+		<a href={`#${track.id}`}>{track.title}</a>
+	{/each}
+</nav>
+
 <ol class="tracks" data-testid="map">
 	{#each tracks as track (track.id)}
-		<li class="track">
+		<li class="track" id={track.id}>
 			<h2>{track.title}</h2>
 			<p class="lead">{track.lead}</p>
 			{#each track.chains as chain, c (c)}
@@ -28,11 +42,15 @@
 								data-testid={`node-${node.id}`}
 								aria-current={current === node.id ? 'location' : undefined}
 							>
-								<MiniDiagram view={nodeView(node)} />
+								<MiniDiagram
+									view={nodeView(node)}
+									base={nodeBaseView(node)}
+									about={node.step ? nodeState(node).step : null}
+								/>
 								<strong>{node.title}</strong>
 								<span class="summary">{node.summary}</span>
 								{#if node.mode === 'advanced'}
-									<span class="tag">Real traffic</span>
+									<span class="tag">Advanced</span>
 								{/if}
 							</a>
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
@@ -51,6 +69,14 @@
 		list-style: none;
 	}
 
+	.jump {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 16px;
+		margin-bottom: 18px;
+		font-size: 13px;
+	}
+
 	/* One line everything branches off, because everything builds on the same flow. */
 	.tracks {
 		position: relative;
@@ -61,6 +87,7 @@
 	.track {
 		position: relative;
 		padding-bottom: 30px;
+		scroll-margin-top: 12px;
 	}
 
 	.track::before {
@@ -89,13 +116,14 @@
 	.chain {
 		display: flex;
 		flex-wrap: wrap;
-		align-items: flex-start;
+		align-items: stretch;
 		gap: 18px;
 		margin-bottom: 18px;
 	}
 
 	.chain > li {
 		position: relative;
+		display: flex;
 		flex: 0 1 250px;
 		min-width: 200px;
 	}
@@ -111,6 +139,7 @@
 	}
 
 	.node {
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		gap: 6px;
@@ -148,6 +177,7 @@
 	}
 
 	.tag {
+		margin-top: auto;
 		align-self: flex-start;
 		padding: 0 7px;
 		border: 1px solid var(--strong-line);
