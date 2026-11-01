@@ -78,6 +78,48 @@ test.describe('the current step stays on screen', () => {
 	});
 });
 
+test.describe('what a setting adds', () => {
+	test.use({ viewport: { width: 1366, height: 768 } });
+
+	test('is on screen together with the current step, when both fit', async ({ page }) => {
+		await open(page, 'mode=simple&client=public&attacker=1&step=attacker-token-response');
+		await page.locator('[data-setting="pkce"] input').check();
+		await expectOnScreen(page);
+		await expect
+			.poll(() =>
+				page.locator('[data-step="make-verifier"] .hit').evaluate((hit) => {
+					const row = hit.getBoundingClientRect();
+					const view = hit.closest('.scroller')!.getBoundingClientRect();
+					return row.top >= view.top - 1 && row.bottom <= view.bottom + 1;
+				})
+			)
+			.toBe(true);
+	});
+});
+
+test.describe('the text in the diagram', () => {
+	test.use({ viewport: { width: 1280, height: 720 } });
+
+	/** The size it comes out on screen, because the diagram scales with its width. */
+	const shownSize = (page: Page, selector: string) =>
+		page
+			.locator(selector)
+			.first()
+			.evaluate((text) => {
+				const svg = (text as SVGElement).ownerSVGElement!;
+				const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+				return parseFloat(getComputedStyle(text).fontSize) * scale;
+			});
+
+	test('can be read on a laptop', async ({ page }) => {
+		await open(page, 'mode=simple&oidc=1&step=token-response');
+		expect(await shownSize(page, '.row .label')).toBeGreaterThanOrEqual(10.4);
+		expect(await shownSize(page, '.lane-head .name')).toBeGreaterThanOrEqual(10.8);
+		expect(await shownSize(page, '.chip text')).toBeGreaterThanOrEqual(9.2);
+		expect(await shownSize(page, '.held text')).toBeGreaterThanOrEqual(8.4);
+	});
+});
+
 test.describe('the keys', () => {
 	const stepAt = (page: Page) => page.locator('[data-state="current"]');
 

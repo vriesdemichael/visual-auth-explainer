@@ -30,11 +30,9 @@ test.describe('someone arriving for the first time', () => {
 	test('reads what happens in plain words', async ({ page }) => {
 		await visit(page, `${FLOW_PATH}?step=redirect-to-idp`);
 		const detail = page.getByTestId('step-detail');
-		await expect(detail.getByRole('heading').first()).toHaveText(
-			'The app sends the browser to log in'
-		);
+		await expect(detail.getByRole('heading').first()).toHaveText('The app sends them to log in');
 		await expect(row(page, 'redirect-to-idp').locator('.label')).toHaveText(
-			'The app sends the browser to log in'
+			'The app sends them to log in'
 		);
 		await expect(page.locator('[data-lifeline="idp"]')).toContainText('Identity provider');
 		await expect(page.getByRole('main')).not.toContainText('302');

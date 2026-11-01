@@ -477,7 +477,7 @@
 			'header header header' auto
 			'settings diagram detail' minmax(0, 1fr)
 			'settings controls detail' auto
-			/ 256px minmax(0, 1fr) 340px;
+			/ 240px minmax(0, 1fr) 330px;
 		height: 100dvh;
 	}
 

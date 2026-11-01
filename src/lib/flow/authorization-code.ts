@@ -181,7 +181,7 @@ export const authorizationCode: DiagramDef = {
 			from: 'app',
 			to: 'browser',
 			kind: 'response',
-			plain: 'The app sends the browser to log in',
+			plain: 'The app sends them to log in',
 			label: '302 to the identity provider',
 			concept:
 				'The app sends the browser to the identity provider, because the password must never reach the app.',

@@ -27,7 +27,7 @@ describe('layout', () => {
 	);
 
 	it('keeps a label off its step number, and inside the diagram', () => {
-		const half = (label: string) => (label.length * 7) / 2;
+		const half = (label: string) => (label.length * 7.3) / 2;
 		const wrong = allValidSettings().flatMap((settings) =>
 			(['simple', 'advanced'] as const).flatMap((mode) =>
 				[flow, setup].flatMap((diagram) =>
