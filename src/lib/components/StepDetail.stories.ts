@@ -25,6 +25,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Request: Story = {};
 
+export const SeenAsSomeoneNotPartOfIt: Story = {
+	args: { step: stepIn('token-request'), unseenBy: "User's browser" }
+};
+
 export const WithFieldsFromSettings: Story = {
 	args: { step: stepIn('authorize', { oidc: true, binding: 'dpop' }) }
 };

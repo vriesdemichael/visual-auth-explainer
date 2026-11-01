@@ -4,7 +4,7 @@
 	import type { Step } from '#lib/flow/model.ts';
 	import type { Note } from '#lib/keycloak/notes.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
-	import { traceRun } from '#lib/recordings/wire.ts';
+	import { traceRun, valuesSeen } from '#lib/recordings/wire.ts';
 
 	/** A link the route has already resolved. */
 	interface Link {
@@ -28,6 +28,8 @@
 		serverNamed?: boolean;
 		/** What one server has to say about this step, some of it about what is in a token. */
 		notes?: readonly Note[];
+		/** Which steps whoever this is shown as was part of. */
+		seesStep?: (step: string) => boolean;
 	}
 
 	let {
@@ -39,14 +41,19 @@
 		numberOf,
 		onstep,
 		serverNamed = true,
-		notes = []
+		notes = [],
+		seesStep = () => true
 	}: Props = $props();
 
 	const message = $derived(recording?.messages.find((candidate) => candidate.step === step.id));
 	const trace = $derived(recording ? traceRun(recording) : []);
 	const here = $derived(numberOf(step.id) ?? 0);
 	// Earlier steps always count as executed, so what the run has so far follows from the step alone.
-	const soFar = $derived(trace.filter((value) => (numberOf(value.step) ?? Infinity) <= here));
+	const soFar = $derived(
+		recording
+			? valuesSeen(recording, trace, seesStep, (id) => (numberOf(id) ?? Infinity) <= here)
+			: []
+	);
 </script>
 
 <section class="wire" data-testid="on-the-wire">
@@ -81,7 +88,16 @@
 		{#if answerTo}
 			<p class="answer" data-testid="answer-to">The answer to step {numberOf(answerTo)}.</p>
 		{/if}
-		<Payload {step} {message} {trace} {numberOf} {onstep} {notes} {serverNamed} />
+		<Payload
+			{step}
+			{message}
+			{trace}
+			{numberOf}
+			{onstep}
+			{notes}
+			{serverNamed}
+			redacted={!seesStep(step.id)}
+		/>
 		<RunValues values={soFar} {numberOf} {onstep} />
 		<p class="origin" data-testid="payload-origin">
 			One real run against {serverNamed ? `Keycloak ${recording.keycloak}` : 'a real server'}, on {recording.recordedAt},

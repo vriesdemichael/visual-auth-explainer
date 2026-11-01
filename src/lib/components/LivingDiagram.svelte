@@ -41,12 +41,13 @@
 	const layout = $derived(
 		layoutDiagram(view, node.mode, width && height ? { width, height } : undefined)
 	);
+	const eyes = $derived(nodeState(node).eyes);
 </script>
 
 <section class="living" data-testid="living" data-node={node.id}>
 	<!-- To look at. What can be done with it is in the link under it, and on the map beside it. -->
 	<div class="picture" inert bind:clientWidth={width} bind:clientHeight={height}>
-		<Diagram {layout} currentStep={current} {fresh} holdings={holdingsAt(view, current)} />
+		<Diagram {layout} currentStep={current} {fresh} {eyes} holdings={holdingsAt(view, current)} />
 	</div>
 	<div class="words">
 		<strong>{node.title}</strong>

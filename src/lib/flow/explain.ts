@@ -19,6 +19,8 @@ export interface Explaining {
 	parts?: readonly Term[];
 	/** It is about one server, which someone can have left out. */
 	aboutTheServer?: boolean;
+	/** The party this is about, whose view can be shown. */
+	party?: string;
 }
 
 export function explanationOf(
@@ -34,7 +36,11 @@ export function explanationOf(
 		return {
 			title: simple ? line.plainName : line.name,
 			text: line.concept,
-			seen: holdings[line.id] ?? []
+			// Seen as someone else, what that one never saw stays hidden here too.
+			seen: (holdings[line.id] ?? []).filter(
+				(id) => !state.eyes || state.eyes === line.id || holdings[state.eyes]?.includes(id)
+			),
+			party: line.id
 		};
 	}
 	if (explained?.kind === 'artifact') {

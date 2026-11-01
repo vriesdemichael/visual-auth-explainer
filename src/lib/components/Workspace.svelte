@@ -4,6 +4,7 @@
 	import Diagram from '#lib/components/Diagram.svelte';
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
+	import EyesSwitch from '#lib/components/EyesSwitch.svelte';
 	import Mark from '#lib/components/Mark.svelte';
 	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
 	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
@@ -38,6 +39,7 @@
 		withDiagram,
 		withSettingsHidden,
 		withExplained,
+		withEyes,
 		withMode,
 		withServerNotes,
 		withSetting,
@@ -48,6 +50,7 @@
 		type Explained
 	} from '#lib/flow/state.ts';
 	import { explanationOf, litBy, stateShowing } from '#lib/flow/explain.ts';
+	import { sees } from '#lib/flow/eyes.ts';
 	import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
@@ -252,6 +255,20 @@
 		sending = next?.step ?? null;
 		go(next);
 	};
+
+	// Only ever about what is shown, so a flow looks the same underneath (ADR-004).
+	const nameOfParty = (line: { plainName: string; name: string }) =>
+		mode === 'simple' ? line.plainName : line.name;
+	const parties = $derived(
+		view.lifelines.map((line) => ({ id: line.id, name: nameOfParty(line) }))
+	);
+	const eyesName = $derived(parties.find((party) => party.id === appState.eyes)?.name ?? null);
+	const seesStep = (id: string) => {
+		const step = steps.find((candidate) => candidate.id === id);
+		return !appState.eyes || !step || sees(step, appState.eyes);
+	};
+	const stepsSeen = $derived(steps.filter((step) => seesStep(step.id)).length);
+	const seeAs = (party: string | null) => onnavigate(withEyes(appState, party), 'push');
 
 	const explain = (explained: Explained | null) =>
 		onnavigate(withExplained(appState, explained), 'push');
@@ -523,6 +540,7 @@
 	<main class="diagram">
 		<div class="above">
 			<DiagramSwitch current={appState.diagram} {hrefs} caption={flow.caption} />
+			<EyesSwitch {parties} current={appState.eyes} onchange={seeAs} />
 			<button
 				type="button"
 				class="quiet"
@@ -546,6 +564,7 @@
 					{lit}
 					{sending}
 					{landing}
+					eyes={appState.eyes}
 					currentStep={appState.step}
 					onexplainlifeline={(id) => explain({ kind: 'lifeline', id })}
 					onexplainartifact={(id: ArtifactId) => explain({ kind: 'artifact', id })}
@@ -559,6 +578,18 @@
 	</main>
 
 	<aside class="detail" aria-label="The current step">
+		{#if eyesName}
+			<section class="eyes" data-testid="eyes-note" role="status">
+				<p>
+					<strong>Seen as: {eyesName}.</strong>
+					This shows what it was sent or sent itself, {stepsSeen} of the {steps.length} steps. Not what
+					it could work out, or what anything else running there could read.
+				</p>
+				<button type="button" class="quiet" data-testid="eyes-off" onclick={() => seeAs(null)}>
+					See everything again
+				</button>
+			</section>
+		{/if}
 		{#if questionAnswer}
 			<QuestionAnswer
 				answer={questionAnswer}
@@ -575,6 +606,10 @@
 				onleaveout={explanation.aboutTheServer
 					? () => onnavigate(withServerNotes(withExplained(appState, null), false), 'push')
 					: null}
+				onseeonly={explanation.party
+					? () => seeAs(appState.eyes === explanation.party ? null : explanation.party!)
+					: null}
+				seeingOnly={appState.eyes === explanation.party}
 				onclose={() => explain(null)}
 				onexplainartifact={(id) => explain({ kind: 'artifact', id })}
 				onopensource={(ref) => {
@@ -588,6 +623,7 @@
 			mode={appState.mode}
 			{intro}
 			{partWhy}
+			unseenBy={seesStep(current.id) ? null : eyesName}
 			previousChannel={steps[position - 1]?.channel ?? null}
 			atEnd={position === steps.length - 1}
 			{onward}
@@ -616,6 +652,7 @@
 						onstep={goToStep}
 						serverNamed={appState.serverNotes}
 						{notes}
+						{seesStep}
 					/>
 				{/if}
 			{/snippet}
@@ -769,6 +806,18 @@
 
 	.above :global(nav) {
 		margin-right: auto;
+	}
+
+	.eyes {
+		margin: 0 0 14px;
+		padding: 10px 12px;
+		border-radius: 8px;
+		background: var(--panel);
+		font-size: 12.5px;
+	}
+
+	.eyes p {
+		margin: 0 0 6px;
 	}
 
 	.settings-hidden {

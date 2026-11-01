@@ -27,7 +27,9 @@ const states: readonly [string, string, 'flow' | 'setup'][] = [
 	['external-idp', 'broker=1&step=upstream-authorize', 'flow'],
 	['everything', 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1&step=token-request', 'flow'],
 	['setup', '', 'setup'],
-	['setup-with-external-idp', 'broker=1&upstream=v2&step=register-with-upstream', 'setup']
+	['setup-with-external-idp', 'broker=1&upstream=v2&step=register-with-upstream', 'setup'],
+	['seen-as-the-browser', 'mode=simple&eyes=browser&step=token-response', 'flow'],
+	['seen-as-the-browser-raw', 'eyes=browser&step=token-response', 'flow']
 ];
 
 for (const scheme of ['light', 'dark'] as const) {

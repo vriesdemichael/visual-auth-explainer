@@ -26,7 +26,8 @@ export function nodeState(of: MapNode): AppState {
 		source: null,
 		explained: null,
 		serverNotes: true,
-		settingsHidden: false
+		settingsHidden: false,
+		eyes: of.eyes ?? null
 	};
 }
 
@@ -49,6 +50,7 @@ const sameSettings = (a: Settings, b: Settings) => settingIds.every((id) => a[id
 export const stillAnswers = (of: MapNode, state: AppState) =>
 	state.flow === of.flow &&
 	state.diagram === of.diagram &&
+	(of.eyes ?? null) === state.eyes &&
 	sameSettings(nodeSettings(of), state.settings);
 
 /** The node someone is at, going by what is on screen. Stepping through it is still being at it. */
@@ -59,6 +61,7 @@ export function nodeMatching(state: AppState): MapNode | null {
 			candidate.flow === state.flow &&
 			candidate.diagram === state.diagram &&
 			candidate.mode === state.mode &&
+			(candidate.eyes ?? null) === state.eyes &&
 			sameSettings(nodeSettings(candidate), state.settings)
 	);
 	return same.find((candidate) => nodeState(candidate).step === state.step) ?? same[0] ?? null;

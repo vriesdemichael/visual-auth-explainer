@@ -37,6 +37,10 @@ export const CarryingATokenInAHeader: Story = { args: argsFor('api-request') };
 
 export const AnHtmlPageLeftOut: Story = { args: argsFor('login-page') };
 
+export const TokensSomeoneWasNotSent: Story = {
+	args: { ...argsFor('token-response'), redacted: true }
+};
+
 export const SayingWhichSettingPutWhatInAToken: Story = {
 	args: {
 		...argsFor('token-response'),

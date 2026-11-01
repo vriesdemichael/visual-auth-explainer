@@ -58,6 +58,26 @@ export const ARefusalOnItsWay: Story = {
 	}
 };
 
+export const SeenAsTheBrowser: Story = {
+	args: {
+		currentStep: 'token-response',
+		eyes: 'browser',
+		holdings: holdingsAt(evaluate(flow, defaultSettings), 'token-response')
+	}
+};
+
+export const SeenAsAnAttackerWhoIsRefused: Story = {
+	args: {
+		layout: layoutFor({ attacker: true, clientType: 'public', pkce: true }),
+		currentStep: 'attacker-token-response',
+		eyes: 'attacker',
+		holdings: holdingsAt(
+			evaluate(flow, { ...defaultSettings, attacker: true, clientType: 'public', pkce: true }),
+			'attacker-token-response'
+		)
+	}
+};
+
 export const DPoP: Story = {
 	args: { layout: layoutFor({ binding: 'dpop' }), currentStep: 'token-request' }
 };

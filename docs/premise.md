@@ -134,6 +134,8 @@ Three things follow:
 
 **Proposed: how the diagram does it** ([ADR-014](adr/014-a-colour-means-one-thing-and-ahead-is-only-a-shape.md)). Only messages up to the current step have labels, and what is ahead is a numbered faint arrow, so a setting can still be seen changing it. Colour separates what goes through the browser from what goes direct. Under each lifeline is what it has seen so far, so at any step you can see that the browser saw the code but never the tokens, and that the app never saw the password. No tool found shows this.
 
+**Proposed: the whole flow through one party's eyes.** Pick the browser, and what it was never sent is a muted bar, in the diagram and in the raw view, with the value gone from the page and not just covered. "Seen" means what a party was sent or sent itself, and the screen says so: not what it could work out, or what anything else running there could read. It comes from the same fields as the chips, and it changes no flow ([ADR-004](adr/004-modes-never-change-the-flow.md)).
+
 ### 5.5 Simple mode and advanced mode
 
 **Decided:** the application has a simple mode and an advanced mode. In the maintainer's words, the advanced mode is there "to toggle more settings", at "the advanced level as in authplayground". So this is an application-wide mode that changes which settings are on offer and how much each step shows.

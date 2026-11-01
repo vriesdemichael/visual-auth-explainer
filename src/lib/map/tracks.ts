@@ -18,6 +18,8 @@ export interface MapNode {
 	preset: string;
 	/** The step where the answer can be seen. */
 	step?: string;
+	/** The one party whose view answers it. */
+	eyes?: string;
 	/** Why there is no such step, because a question should not open a walk away from its answer. */
 	startsAtTheBeginning?: string;
 }
@@ -62,6 +64,16 @@ export const mapTracks: readonly MapTrack[] = [
 					summary: 'Why the browser only gets a code, and what happened to the way that did not.',
 					preset: 'oauth',
 					step: 'redirect-with-code'
+				}),
+				node({
+					id: 'what-the-browser-sees',
+					answer:
+						"What passes through it: the user's password, the one-time code and its session with the identity provider. The access token goes straight to the app, on a direct call the browser is not part of.",
+					title: 'What can the browser see?',
+					summary: 'The whole flow with everything the browser was not sent hidden.',
+					preset: 'oauth',
+					step: 'token-response',
+					eyes: 'browser'
 				}),
 				node({
 					id: 'who-logged-in',
