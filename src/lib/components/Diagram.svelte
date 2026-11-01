@@ -39,6 +39,7 @@
 	let scroller = $state<HTMLElement>();
 	let drawn = untrack(() => layout);
 	const BREATHING_ROOM = 60;
+	const TIGHT_ROOM = 12;
 
 	$effect(() => {
 		// The first frame is already this layout, so a new diagram appears without moving.
@@ -69,15 +70,32 @@
 	const currentIndex = $derived(order.get(currentStep) ?? 0);
 	const currentRow = $derived(layout.rows[currentIndex]);
 
-	/** The current step stays on screen with room around it, whatever moved it there. */
+	const boxOf = (step: string) =>
+		scroller?.querySelector(`[data-step="${CSS.escape(step)}"] .hit`)?.getBoundingClientRect() ??
+		null;
+
+	/**
+	 * The current step stays on screen with room around it, whatever moved it there. So does what a
+	 * setting just added, if both fit, because a change nobody can see has not been shown.
+	 */
 	function keepInView() {
-		const hit = scroller?.querySelector(`[data-step="${CSS.escape(currentStep)}"] .hit`);
-		if (!scroller || !hit) return;
-		const row = hit.getBoundingClientRect();
+		const row = boxOf(currentStep);
+		if (!scroller || !row) return;
 		const view = scroller.getBoundingClientRect();
-		const room = Math.max(0, Math.min(BREATHING_ROOM, (view.height - row.height) / 2));
-		if (row.top - room < view.top) scroller.scrollTop -= view.top - (row.top - room);
-		else if (row.bottom + room > view.bottom) scroller.scrollTop += row.bottom + room - view.bottom;
+		const added = layout.rows.flatMap((candidate) =>
+			fresh.has(candidate.id) ? (boxOf(candidate.id) ?? []) : []
+		);
+		// All of it if that fits. Otherwise what came before, because what is ahead is still to come.
+		const wanted = [added, added.filter((box) => box.top <= row.top), []]
+			.map((boxes) => ({
+				from: Math.min(row.top, ...boxes.map((box) => box.top)),
+				to: Math.max(row.bottom, ...boxes.map((box) => box.bottom))
+			}))
+			.find(({ from, to }) => to - from + TIGHT_ROOM * 2 <= view.height);
+		const { from, to } = wanted ?? { from: row.top, to: row.bottom };
+		const room = Math.max(0, Math.min(BREATHING_ROOM, (view.height - (to - from)) / 2));
+		if (from - room < view.top) scroller.scrollTop -= view.top - (from - room);
+		else if (to + room > view.bottom) scroller.scrollTop += to + room - view.bottom;
 	}
 
 	// Every frame of a transition, because rows move under it, but not on someone scrolling by hand.
@@ -327,7 +345,7 @@
 
 	text {
 		fill: var(--fg);
-		font-size: 12.5px;
+		font-size: 13px;
 	}
 
 	.lane-head rect {
@@ -348,12 +366,12 @@
 
 	.lane-head .name {
 		font-weight: 600;
-		font-size: 13px;
+		font-size: 13.5px;
 	}
 
 	.lane-head .role {
 		fill: var(--muted);
-		font-size: 10.5px;
+		font-size: 11px;
 	}
 
 	.lane-head.active > rect {
@@ -380,7 +398,7 @@
 	}
 
 	.held text {
-		font-size: 9.5px;
+		font-size: 10.5px;
 		font-weight: 600;
 	}
 
@@ -496,7 +514,7 @@
 
 	.number text {
 		fill: var(--on-tone);
-		font-size: 10px;
+		font-size: 10.5px;
 		font-weight: 600;
 	}
 
@@ -534,7 +552,7 @@
 	.row.current .label {
 		fill: var(--fg);
 		font-weight: 600;
-		font-size: 13.5px;
+		font-size: 14px;
 		stroke: var(--accent-soft);
 	}
 
@@ -639,7 +657,7 @@
 	}
 
 	.chip text {
-		font-size: 11px;
+		font-size: 11.5px;
 		font-weight: 600;
 	}
 

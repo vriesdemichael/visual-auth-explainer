@@ -78,6 +78,77 @@ test.describe('the current step stays on screen', () => {
 	});
 });
 
+test.describe('what a setting adds', () => {
+	const isOnScreen = (page: Page, step: string) =>
+		page.locator(`[data-step="${step}"] .hit`).evaluate((hit) => {
+			const row = hit.getBoundingClientRect();
+			const view = hit.closest('.scroller')!.getBoundingClientRect();
+			return row.top >= view.top - 1 && row.bottom <= view.bottom + 1;
+		});
+	const flipPkceAtTheAttacker = async (page: Page) => {
+		await open(page, 'mode=simple&client=public&attacker=1&step=attacker-token-response');
+		await page.locator('[data-setting="pkce"] input').check();
+	};
+
+	test.describe('on a tall screen', () => {
+		test.use({ viewport: { width: 1440, height: 1000 } });
+
+		test('is on screen together with the current step', async ({ page }) => {
+			await flipPkceAtTheAttacker(page);
+			await expectOnScreen(page);
+			await expect.poll(() => isOnScreen(page, 'make-verifier')).toBe(true);
+		});
+	});
+
+	test.describe('on a laptop', () => {
+		test.use({ viewport: { width: 1366, height: 768 } });
+
+		test('can be brought into view, without moving from the step', async ({ page }) => {
+			await flipPkceAtTheAttacker(page);
+			await expectOnScreen(page);
+			expect(await isOnScreen(page, 'make-verifier')).toBe(false);
+			await page.getByTestId('change-show').click();
+			await expect.poll(() => isOnScreen(page, 'make-verifier')).toBe(true);
+			await expect(page.locator('[data-state="current"]')).toHaveAttribute(
+				'data-step',
+				'attacker-token-response'
+			);
+			await page.getByTestId('next').click();
+			await expectOnScreen(page);
+		});
+
+		test('has nothing to show when nothing was added', async ({ page }) => {
+			await open(page, 'mode=simple&oidc=1&step=token-response');
+			await page.locator('[data-setting="oidc"] input').uncheck();
+			await expect(page.getByTestId('change-summary')).toContainText('removed');
+			await expect(page.getByTestId('change-show')).toHaveCount(0);
+		});
+	});
+});
+
+test.describe('the text in the diagram', () => {
+	test.use({ viewport: { width: 1280, height: 720 } });
+
+	/** The size it comes out on screen, because the diagram scales with its width. */
+	const shownSize = (page: Page, selector: string) =>
+		page
+			.locator(selector)
+			.first()
+			.evaluate((text) => {
+				const svg = (text as SVGElement).ownerSVGElement!;
+				const scale = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+				return parseFloat(getComputedStyle(text).fontSize) * scale;
+			});
+
+	test('can be read on a laptop', async ({ page }) => {
+		await open(page, 'mode=simple&oidc=1&step=token-response');
+		expect(await shownSize(page, '.row .label')).toBeGreaterThanOrEqual(10.4);
+		expect(await shownSize(page, '.lane-head .name')).toBeGreaterThanOrEqual(10.8);
+		expect(await shownSize(page, '.chip text')).toBeGreaterThanOrEqual(9.2);
+		expect(await shownSize(page, '.held text')).toBeGreaterThanOrEqual(8.4);
+	});
+});
+
 test.describe('the keys', () => {
 	const stepAt = (page: Page) => page.locator('[data-state="current"]');
 

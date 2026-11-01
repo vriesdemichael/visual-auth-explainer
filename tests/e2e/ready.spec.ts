@@ -186,9 +186,7 @@ test.describe('on a phone', () => {
 		await ready(page);
 		await expect(page.getByTestId('step-detail')).toContainText('The user opens the app');
 		await page.getByTestId('next').click();
-		await expect(page.getByTestId('step-detail')).toContainText(
-			'The app sends the browser to log in'
-		);
+		await expect(page.getByTestId('step-detail')).toContainText('The app sends them to log in');
 		await expect(page.getByTestId('next')).toBeInViewport();
 	});
 

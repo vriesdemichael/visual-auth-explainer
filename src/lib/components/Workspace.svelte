@@ -187,6 +187,15 @@
 		onnavigate(result.state, 'push');
 	}
 
+	// What was added can be further up than fits on screen with the current step.
+	function showAdded() {
+		const first = last.diff?.addedSteps[0];
+		if (!first) return;
+		window.document
+			.querySelector(`[data-step="${CSS.escape(first)}"]`)
+			?.scrollIntoView({ block: 'center' });
+	}
+
 	function go(next: AppState | null) {
 		if (next) onnavigate(next, 'replace');
 	}
@@ -418,6 +427,7 @@
 			{links}
 			{elsewhere}
 			changed={last.setting}
+			onshowadded={showAdded}
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
 			{notes}
 			serverNamed={appState.serverNotes}
@@ -477,7 +487,7 @@
 			'header header header' auto
 			'settings diagram detail' minmax(0, 1fr)
 			'settings controls detail' auto
-			/ 256px minmax(0, 1fr) 340px;
+			/ 240px minmax(0, 1fr) 330px;
 		height: 100dvh;
 	}
 

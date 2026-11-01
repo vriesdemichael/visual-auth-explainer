@@ -17,19 +17,19 @@ const CHIP_LINE_HEIGHT = 22;
 const GROUP_TOP = 36;
 const GROUP_BOTTOM = 10;
 const GROUP_SIDE = 62;
-const CHIP_CHAR_WIDTH = 6.6;
+const CHIP_CHAR_WIDTH = 6.9;
 const CHIP_PADDING = 12;
 const CHIP_GAP = 6;
 const SELF_LOOP_WIDTH = 34;
 const SELF_LABEL_ROOM = 240;
 // The current row's label is the widest, in bold and a little larger.
-const LABEL_CHAR_WIDTH = 7;
+const LABEL_CHAR_WIDTH = 7.3;
 const LABEL_EDGE = 4;
 const NUMBER_ROOM = 14;
 
 const HELD_TOP = 58;
 const HELD_LINE_HEIGHT = 19;
-const HELD_CHAR_WIDTH = 5.6;
+const HELD_CHAR_WIDTH = 6.1;
 const HELD_PADDING = 12;
 const HELD_GAP = 4;
 const HELD_LINE_WIDTH = 174;
