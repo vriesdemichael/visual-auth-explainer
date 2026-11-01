@@ -12,7 +12,7 @@
 	} from '#lib/flow/settings.ts';
 	import type { Mode } from '#lib/flow/vocabulary.ts';
 	import { flagStatus } from '#lib/recordings/known.ts';
-	import { refLabel, type SourceRef } from '#lib/sources/sources.ts';
+	import { isVendorSource, refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	interface Props {
 		settings: Settings;
@@ -20,9 +20,20 @@
 		onchange: <K extends SettingId>(id: K, value: Settings[K]) => void;
 		onopensource: (setting: SettingId, ref: SourceRef) => void;
 		onexplain?: (setting: SettingId) => void;
+		/** Whether to show what is specific to the server this was recorded from. */
+		serverNotes?: boolean;
+		onservernotes?: (on: boolean) => void;
 	}
 
-	let { settings, mode = 'advanced', onchange, onopensource, onexplain }: Props = $props();
+	let {
+		settings,
+		mode = 'advanced',
+		onchange,
+		onopensource,
+		onexplain,
+		serverNotes = true,
+		onservernotes
+	}: Props = $props();
 
 	const simple = $derived(mode === 'simple');
 	const offered = $derived(
@@ -77,7 +88,7 @@
 						/>
 						{option.label}
 						{#if blocked}<small>{blocked}</small>{/if}
-						{#if !simple && option.flag}
+						{#if !simple && serverNotes && option.flag}
 							<small class="flag" data-flag={option.flag.name}>
 								Keycloak flag <code>{option.flag.name}</code>: {flagStatus(option.flag)}
 							</small>
@@ -100,7 +111,7 @@
 				</button>
 			</li>
 			{#if !simple}
-				{#each def.sources as ref (ref.source)}
+				{#each def.sources.filter((ref) => serverNotes || !isVendorSource(ref.source)) as ref (ref.source)}
 					<li>
 						<button
 							type="button"
@@ -116,6 +127,23 @@
 		</ul>
 	</section>
 {/each}
+
+{#if !simple}
+	<section data-testid="server-notes">
+		<label class="toggle">
+			<input
+				type="checkbox"
+				checked={serverNotes}
+				onchange={(event) => onservernotes?.(event.currentTarget.checked)}
+			/>
+			Server notes
+		</label>
+		<p>
+			Which setting controls each message, on the server this was recorded from. Off, it is the
+			protocol and nothing else.
+		</p>
+	</section>
+{/if}
 
 {#if alsoOn.length}
 	<section class="also" data-testid="also-on">

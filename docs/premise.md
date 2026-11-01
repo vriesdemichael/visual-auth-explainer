@@ -167,6 +167,8 @@ Three things follow:
 - The stronger edge is that **anyone can run it**. Every diagram can be reproduced against a real server, and vendors have little reason to build this layer.
 - So keep the **protocol layer neutral, with Keycloak as an overlay** on each message: this setting controls this behaviour. Someone on another IdP still gets the protocol explanation.
 
+**Built, with rules in [ADR-015](adr/015-keycloak-is-an-overlay-on-a-neutral-protocol.md).** Each note names a setting, where it is in the admin console, and is backed by changing that setting on a real server and seeing the behaviour change. **Proposed, for the maintainer to overrule:** one switch, Server notes, on by default, with notes in advanced mode only, closed until opened.
+
 **Decided:** recordings use a default Keycloak client, which is what people meet. On one, the access token carries the same identity claims with or without `openid`, so the overlay has to explain client scopes. Details are in [research/followup-checks.md](research/followup-checks.md).
 
 ### 5.8 Grow from a small start
@@ -362,7 +364,6 @@ A content-site setup, with prose pages and the diagram as one embedded island, i
 Still to settle:
 
 - **Entry map:** whether a node is a named state as proposed in section 5.9, which nodes the first version has, and whether it shows planned ones.
-- **Keycloak overlay:** whether visitors can turn it off.
 - **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). **Proposed:** a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows and how presets relate to map nodes. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md).
 - **Name and domain:** `visual-auth-explainer` is a working name only.

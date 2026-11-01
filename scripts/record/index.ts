@@ -27,6 +27,7 @@ import {
 	UPSTREAM_REALM,
 	USERNAME
 } from './keycloak.ts';
+import { lookInConsole } from './console.ts';
 import { questionsWithApiV1, questionsWithApiV2 } from './questions.ts';
 
 export const PINNED_KEYCLOAK = '26.8.1';
@@ -199,6 +200,7 @@ async function main() {
 	const recordings: Recording[] = [];
 	const answers: Record<string, unknown> = {};
 	let flags: Record<string, FlagStatus> = {};
+	const inConsole: Record<string, unknown> = {};
 	let keycloak = version;
 	let failed = false;
 
@@ -224,6 +226,7 @@ async function main() {
 					messages: run.messages
 				});
 			}
+			Object.assign(inConsole, await lookInConsole(browser, admin, features));
 			Object.assign(answers, await questions(browser, demo, admin));
 			if (!features.length) {
 				const info = await admin.call<{ features: ServerFeature[] }>('GET', '/serverinfo');
@@ -231,6 +234,7 @@ async function main() {
 			}
 			stopKeycloak();
 		}
+		answers.console = inConsole;
 		console.log(JSON.stringify(answers, null, '\t'));
 
 		if (checking) {

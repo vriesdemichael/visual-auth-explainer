@@ -11,6 +11,10 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+export const WithServerNotesOff: Story = {
+	args: { serverNotes: false, settings: { ...defaultSettings, broker: true, binding: 'dpop' } }
+};
+
 export const Defaults: Story = {};
 
 export const Simple: Story = {

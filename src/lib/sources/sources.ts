@@ -101,6 +101,9 @@ export const sources: Record<SourceId, SourceDef> = {
 
 export const sourceIds = Object.keys(sources) as SourceId[];
 
+/** One product's own docs, as opposed to a specification. */
+export const isVendorSource = (id: SourceId) => id.startsWith('keycloak');
+
 export function refLabel(ref: SourceRef): string {
 	const { label } = sources[ref.source];
 	return ref.section ? `${label} §${ref.section}` : label;

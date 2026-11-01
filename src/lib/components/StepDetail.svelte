@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import KeycloakNote from '#lib/components/KeycloakNote.svelte';
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
 	import { artifacts, channels, whyOf, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
-	import { knownFrom } from '#lib/recordings/known.ts';
+	import type { Note } from '#lib/keycloak/notes.ts';
+	import { knownFrom, recordedIndex } from '#lib/recordings/known.ts';
 
 	/** A link the route has already resolved. */
 	interface Link {
@@ -27,6 +29,9 @@
 		onexplainartifact?: (id: ArtifactId) => void;
 		/** What this step looks like on the wire, ahead of what each part of it is for. */
 		wire?: Snippet;
+		/** What one server has to say about this step, and whether to name that server at all. */
+		notes?: readonly Note[];
+		serverNamed?: boolean;
 	}
 
 	let {
@@ -40,7 +45,9 @@
 		elsewhere = null,
 		changed = null,
 		onexplainartifact,
-		wire
+		wire,
+		notes = [],
+		serverNamed = true
 	}: Props = $props();
 
 	const simple = $derived(mode === 'simple');
@@ -138,9 +145,9 @@
 		{#if known}
 			<p class="known" data-known={known.kind} data-testid="step-known">
 				{#if known.kind === 'recorded'}
-					Recorded from Keycloak {known.keycloak} on {known.date}.
+					Recorded from {serverNamed ? `Keycloak ${known.keycloak}` : 'a real server'} on {known.date}.
 				{:else if known.kind === 'spec'}
-					From {known.source} only. Keycloak did not do this when it was recorded.
+					From {known.source} only. The server it was recorded from did not do this.
 				{:else}
 					Not checked against a real server yet.
 				{/if}
@@ -153,8 +160,12 @@
 			<details class="pitfall" data-testid="step-pitfall">
 				<summary>{step.pitfall.title}</summary>
 				<p>{step.pitfall.text}</p>
-				{#if step.pitfall.keycloak}<p class="keycloak">{step.pitfall.keycloak}</p>{/if}
 			</details>
+		{/if}
+		{#if !simple}
+			{#each notes as note (note.id)}
+				<KeycloakNote {note} version={recordedIndex.keycloak} />
+			{/each}
 		{/if}
 		{#each links as link (link.href)}
 			<p>

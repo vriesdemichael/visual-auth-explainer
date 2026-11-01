@@ -23,6 +23,8 @@
 		answerTo?: string | null;
 		numberOf: (step: string) => number | null;
 		onstep?: (step: string) => void;
+		/** Whether to name the server this was recorded from. */
+		serverNamed?: boolean;
 	}
 
 	let {
@@ -32,7 +34,8 @@
 		nearest = [],
 		answerTo = null,
 		numberOf,
-		onstep
+		onstep,
+		serverNamed = true
 	}: Props = $props();
 
 	const message = $derived(recording?.messages.find((candidate) => candidate.step === step.id));
@@ -68,7 +71,7 @@
 		<p data-testid="recording-failed">The recording could not be loaded.</p>
 	{:else if !message}
 		<p data-testid="not-recorded">
-			A real Keycloak did not send this, so there is nothing to show.
+			The server it was recorded from did not send this, so there is nothing to show.
 		</p>
 	{:else}
 		{#if answerTo}
@@ -77,8 +80,8 @@
 		<Payload {step} {message} {trace} {numberOf} {onstep} />
 		<RunValues values={soFar} {numberOf} {onstep} />
 		<p class="origin" data-testid="payload-origin">
-			One real run against Keycloak {recording.keycloak}, on {recording.recordedAt}, with throwaway
-			values. Only the headers that matter here were kept.
+			One real run against {serverNamed ? `Keycloak ${recording.keycloak}` : 'a real server'}, on {recording.recordedAt},
+			with throwaway values. Only the headers that matter here were kept.
 		</p>
 	{/if}
 </section>

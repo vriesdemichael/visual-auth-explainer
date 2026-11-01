@@ -132,7 +132,9 @@ test.describe('how we know', () => {
 		const line = page.getByTestId('provenance');
 		await expect(line).toContainText('RFC 6749');
 		await expect(line).toContainText('OpenID Connect Core 1.0');
-		await expect(line).toContainText(/Recorded from Keycloak \d+\.\d+\.\d+ on\s+\d{4}-\d{2}-\d{2}/);
+		await expect(line).toContainText(
+			/Recorded from\s+Keycloak \d+\.\d+\.\d+ on\s+\d{4}-\d{2}-\d{2}/
+		);
 	});
 });
 
