@@ -97,7 +97,7 @@ export const mapTracks: readonly MapTrack[] = [
 					id: 'pkce',
 					title: 'How does PKCE work?',
 					summary:
-						'The app proves it started this login, with a value that never crossed the browser.',
+						'The app proves it started this login, with a value that was never in a redirect.',
 					preset: 'public-pkce',
 					step: 'make-verifier'
 				}),

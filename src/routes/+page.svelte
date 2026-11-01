@@ -14,7 +14,7 @@
 
 	const current = $derived(mounted ? page.url.searchParams.get('at') : null);
 	const DESCRIPTION =
-		'OAuth and OpenID Connect on one living diagram, checked against a real server. Pick a question and follow it, one message at a time.';
+		'OAuth and OpenID Connect on one living diagram, with its messages recorded from a real server. Pick a question and follow it, one message at a time.';
 	const sharing = sharingTags({
 		title: 'Visual auth explainer',
 		description: DESCRIPTION,
@@ -39,8 +39,8 @@
 <main data-ready={mounted}>
 	<h1>Visual auth explainer</h1>
 	<p class="lead">
-		OAuth and OpenID Connect on one living diagram, checked against a real server. Pick a question
-		and follow it, one message at a time. New to this? Start with the first one.
+		OAuth and OpenID Connect on one living diagram, with its messages recorded from a real server.
+		Pick a question and follow it, one message at a time. New to this? Start with the first one.
 	</p>
 	<LearningMap tracks={mapTracks} {hrefOf} {current} />
 </main>

@@ -40,6 +40,7 @@
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
+		knownFrom,
 		nearestRecordings,
 		provenance,
 		recordingFor,
@@ -315,9 +316,14 @@
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
 		/>
 		<p class="status" data-testid="provenance">
-			Prototype. Based on {origin.specs.join(', ')}. Recorded from
-			{appState.serverNotes ? `Keycloak ${origin.keycloak}` : 'a real server'} on
-			{origin.date}.
+			Prototype. Based on {origin.specs.join(', ')}.
+			{#if origin.recorded}
+				Recorded from
+				{appState.serverNotes ? `Keycloak ${origin.keycloak}` : 'a real server'} on
+				{origin.date}.
+			{:else}
+				These settings together were not recorded.
+			{/if}
 		</p>
 	</header>
 
@@ -382,6 +388,7 @@
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
 			notes={appState.serverNotes ? notesFor(current.id, appState.settings) : []}
 			serverNamed={appState.serverNotes}
+			known={knownFrom(current, appState.settings)}
 		>
 			{#snippet wire()}
 				{#if onWire}

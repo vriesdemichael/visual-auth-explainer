@@ -19,7 +19,7 @@ export interface LifelineDef {
 	plainRole: string;
 	name: string;
 	role: Text;
-	concept: string;
+	concept: Text;
 	icon: LifelineIcon;
 	/** Messages to or from this lifeline travel through the browser. */
 	front?: boolean;
@@ -89,6 +89,8 @@ export interface StepDef {
 	execute?: ExecuteDef;
 	/** Where this comes from, when a real Keycloak did not do it and so it could not be recorded. */
 	specOnly?: string;
+	/** How this got here, when it is not a message of its own in the recording. */
+	recordedAs?: string;
 	when?: Condition;
 }
 
@@ -121,7 +123,6 @@ export interface Lifeline {
 	concept: string;
 	icon: LifelineIcon;
 	startsWith: ArtifactId[];
-	causes: SettingId[];
 }
 
 export interface Field {
@@ -150,6 +151,7 @@ export interface Step {
 	/** The step with the answer, when executing this one adds something. */
 	execute?: string;
 	specOnly?: string;
+	recordedAs?: string;
 	causes: SettingId[];
 }
 
@@ -172,7 +174,14 @@ function resolvePitfall(pitfall: PitfallDef, settings: Settings): Pitfall {
 }
 
 const present = (when: Condition | undefined, settings: Settings) => !when || holds(when, settings);
-const causes = (when: Condition | undefined) => (when ? settingsIn(when) : []);
+
+/** What this is here because of: settings that were changed, and without which it would go. */
+function causes(when: Condition | undefined, settings: Settings): SettingId[] {
+	if (!when || holds(when, defaultSettings)) return [];
+	const changed = settingsIn(when).filter((id) => settings[id] !== defaultSettings[id]);
+	const needed = changed.filter((id) => !holds(when, { ...settings, [id]: defaultSettings[id] }));
+	return needed.length ? needed : changed;
+}
 
 function channelOf(flow: FlowDef, step: StepDef): Channel {
 	if (step.kind === 'human') return 'people';
@@ -199,7 +208,8 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			execute:
 				step.execute && present(step.execute.when, settings) ? step.execute.answer : undefined,
 			specOnly: step.specOnly,
-			causes: causes(step.when),
+			recordedAs: step.recordedAs,
+			causes: causes(step.when, settings),
 			fields: (step.fields ?? [])
 				.filter((field) => present(field.when, settings))
 				.map((field) => ({
@@ -207,7 +217,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 					place: field.place,
 					note: field.note,
 					artifact: field.artifact,
-					causes: causes(field.when),
+					causes: causes(field.when, settings),
 					changed: !present(field.when, defaultSettings)
 				}))
 		}));
@@ -222,12 +232,11 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 				plainRole: lifeline.plainRole,
 				name: lifeline.name,
 				role: resolveText(lifeline.role, settings),
-				concept: lifeline.concept,
+				concept: resolveText(lifeline.concept, settings),
 				icon: lifeline.icon,
 				startsWith: (lifeline.startsWith ?? [])
 					.filter((held) => present(held.when, settings))
-					.map((held) => held.artifact),
-				causes: causes(lifeline.when)
+					.map((held) => held.artifact)
 			})),
 		steps,
 		groups: flow.groups.filter((group) => present(group.when, settings))

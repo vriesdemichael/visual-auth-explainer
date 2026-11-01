@@ -6,6 +6,8 @@ Recordings run against a plain Keycloak container, with a client on Keycloak's d
 
 A test holds the flow data to the recordings in both directions: every message and field the diagram draws is in the recording, nothing else is there apart from what is only Keycloak's business, and each credential and token appears in exactly the messages the diagram says. When a real Keycloak does not do something the spec allows, the step says `specOnly` and the application marks it, because a message that was not recorded must not look like one that was.
 
+The screen claims no more than that. In advanced mode a message says how it is known: from the server when the identity provider took part in it, from the demo app and API when it did not, recorded with other settings when this combination has no recording, or from the spec. Simple mode leaves this out, because it means nothing yet to someone new, apart from a message that is only from the spec. A note in the Keycloak overlay says what was done to back it, in its own words.
+
 A workflow records against the latest Keycloak every week and on demand, compares the shape with what is committed, and opens an issue when it differs. The shape is which steps happened, which names they carried and which claims the tokens held, because codes, tokens and timestamps change on every run.
 
 `Execute` appears only on steps where it adds something, in advanced mode, and each step's data says whether it does. That means a step that sends something, where a later step uses what comes back. A step with no HTTP exchange never has it. Running one moves to the step with the answer and keeps nothing else, so the URL still only needs the step, and it says that nothing is really sent.

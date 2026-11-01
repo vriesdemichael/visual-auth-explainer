@@ -1,8 +1,10 @@
 import { resolveText, type Text } from '#lib/flow/model.ts';
 import {
+	all,
 	any,
 	holds,
 	is,
+	not,
 	type Condition,
 	type KeycloakFlag,
 	type Settings
@@ -56,6 +58,8 @@ export interface NoteDef {
 	flag?: KeycloakFlag;
 	/** The answer in questions.json that proves this, and what it has to show. */
 	backedBy: { question: string; shows: Readonly<Record<string, unknown>> };
+	/** What was done to find this out, when it was more than changing one setting. */
+	seen?: string;
 }
 
 export interface Note {
@@ -65,8 +69,11 @@ export interface Note {
 	path?: readonly string[];
 	serverOption?: string;
 	flag?: KeycloakFlag;
+	/** How this was found out, up to the name of the server. */
+	evidence: string;
 }
 
+const CHANGED_IT = 'Changed this, and the answer changed, on';
 const YOUR_CLIENT = 'your client';
 const clientSettings = (section: string, label: string, needsFlag?: string): ConsolePlace => ({
 	path: ['Clients', YOUR_CLIENT, 'Settings', section, label],
@@ -126,7 +133,7 @@ export const noteDefs: readonly NoteDef[] = [
 				text: 'On, which makes this a confidential client. Turn it off and this request needs no secret.'
 			},
 			{
-				text: 'Off, which makes this a public client. Turn it on and this request gets a 401 without a secret.'
+				text: 'Off, which makes this a public client. Turn it on and this request gets a 401 without a secret, with the error unauthorized_client, where RFC 6749 says invalid_client.'
 			}
 		],
 		place: clientSettings('Capability config', 'Client authentication'),
@@ -160,12 +167,16 @@ export const noteDefs: readonly NoteDef[] = [
 		title: 'Require PKCE',
 		text: [
 			{
+				when: all(pkce, not(confidential)),
+				text: 'Someone with only the code gets a 400 invalid_grant: PKCE code verifier not specified. That try also uses up the code, so the real app has to start the login again. That is how Keycloak does it, and the specs do not ask for it.'
+			},
+			{
 				when: pkce,
-				text: 'Someone with only the code gets a 400 invalid_grant: PKCE code verifier not specified. That try also uses up the code, so the real app has to start the login again.'
+				text: 'Without the secret, this gets a 401 before PKCE comes into it, with the error unauthorized_client, where RFC 6749 says invalid_client. The code itself is still good, so the real app carries on.'
 			},
 			{
 				when: confidential,
-				text: 'Without the secret, this gets a 401 unauthorized_client. The code itself is still good, and PKCE is not insisted on unless this is turned on.'
+				text: 'Without the secret, this gets a 401, with the error unauthorized_client, where RFC 6749 says invalid_client. The code itself is still good, and PKCE is not insisted on unless this is turned on.'
 			},
 			{
 				text: 'Off by default, so a public client with no PKCE gets its tokens, and so does anyone else who has the code. The real app then finds the code already used. Turn it on to refuse a login without PKCE.'
@@ -183,7 +194,8 @@ export const noteDefs: readonly NoteDef[] = [
 				},
 				confidentialNoPkceNoSecret: { status: 401, theRealAppAfterwards: { status: 200 } }
 			}
-		}
+		},
+		seen: 'Tried with each kind of client, with and without PKCE, on'
 	},
 	{
 		id: 'client-scopes',
@@ -262,7 +274,8 @@ export const noteDefs: readonly NoteDef[] = [
 		steps: ['nonce-challenge'],
 		title: 'Not something it did',
 		text: 'Keycloak did not ask for a nonce when this was recorded: a proof with none got a 200 and a bound token.',
-		backedBy: { question: 'dpopNonce', shows: { tokenStatus: 200, askedForNonce: false } }
+		backedBy: { question: 'dpopNonce', shows: { tokenStatus: 200, askedForNonce: false } },
+		seen: 'Seen on'
 	},
 	{
 		id: 'issuer',
@@ -277,7 +290,8 @@ export const noteDefs: readonly NoteDef[] = [
 		backedBy: {
 			question: 'issuerPerRealm',
 			shows: { realmsDiffer: true, endsWithRealm: true }
-		}
+		},
+		seen: 'Compared two realms on'
 	},
 	{
 		id: 'broker-redirector',
@@ -352,7 +366,8 @@ export const noteDefs: readonly NoteDef[] = [
 		backedBy: {
 			question: 'apiV1WhenV2IsEnabled',
 			shows: { status: 400 }
-		}
+		},
+		seen: 'Tried with and without the flag on'
 	}
 ];
 
@@ -366,6 +381,7 @@ export function notesFor(step: string, settings: Settings): Note[] {
 			text: resolveText(def.text, settings),
 			path: def.place?.path,
 			serverOption: def.serverOption,
-			flag: def.flag
+			flag: def.flag,
+			evidence: def.seen ?? CHANGED_IT
 		}));
 }

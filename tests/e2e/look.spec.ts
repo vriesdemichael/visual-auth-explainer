@@ -122,6 +122,24 @@ test.describe('how we know', () => {
 		await expect(page.locator('[data-chip="nonce-challenge:spec only"]')).toBeVisible();
 	});
 
+	test('it says when the server had no part in a message', async ({ page }) => {
+		await open(page, 'step=api-response');
+		await expect(page.getByTestId('step-known')).toContainText('demo app and API');
+		await expect(page.getByTestId('step-known')).not.toContainText('Recorded from');
+	});
+
+	test('it says when these settings were not recorded', async ({ page }) => {
+		await open(page, 'oidc=1&consent=1&step=token-response');
+		await expect(page.getByTestId('step-known')).toHaveAttribute('data-known', 'other-settings');
+		await expect(page.getByTestId('provenance')).toContainText('not recorded');
+		await expect(page.getByTestId('provenance')).not.toContainText('Recorded from');
+	});
+
+	test('someone new is not told about it on every step', async ({ page }) => {
+		await open(page, 'mode=simple&step=token-response');
+		await expect(page.getByTestId('step-known')).toHaveCount(0);
+	});
+
 	test('a step with nothing on the wire makes no claim', async ({ page }) => {
 		await open(page, '', 'setup');
 		await expect(page.getByTestId('step-known')).toHaveCount(0);

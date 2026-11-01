@@ -23,7 +23,7 @@ export const artifacts: Readonly<
 		label: 'code',
 		short: 'code',
 		explains:
-			'A one-time ticket. It travels through the browser, where it can be seen, so on its own it has to be worth little. The app trades it for tokens on a direct call.'
+			'A one-time ticket. It travels through the browser, where it can be seen, so on its own it should be worth little, which takes a secret or PKCE. The app trades it for tokens on a direct call.'
 	},
 	secret: {
 		label: 'client secret',
@@ -35,7 +35,7 @@ export const artifacts: Readonly<
 		label: 'code verifier',
 		short: 'verifier',
 		explains:
-			'A random value the app makes up for this one login and keeps to itself. It is sent once, directly, when the app trades the code, and never through the browser. So someone who saw the code still does not have it.'
+			'A random value the app makes up for this one login and keeps to itself. It is sent once, directly, when the app trades the code, and never in a redirect. So someone who saw the code still does not have it.'
 	},
 	challenge: {
 		label: 'code challenge',
@@ -77,7 +77,7 @@ const parameterWhy: Readonly<Record<string, string>> = {
 	state:
 		'A random value the app checks when the user comes back, so nobody can slip in an answer it did not ask for.',
 	'scope=openid': 'Asks for OpenID Connect on top of OAuth.',
-	scope: 'What the access covers, which can be less than what was asked for.',
+	scope: 'What the access covers, which is not always what was asked for.',
 	nonce:
 		'A random value that comes back inside the ID token, so the app can tell the token is from this login.',
 	code: 'The one-time code, which the app trades for tokens.',

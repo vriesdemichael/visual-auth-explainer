@@ -112,11 +112,11 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		label: 'Ask for consent',
 		param: 'consent',
 		default: false,
-		summary: 'The identity provider asks the user whether the app may have what it asks for.',
+		summary: 'The identity provider asks the user whether the app may have this access.',
 		why: 'An app should only get what the user is willing to give it. So the identity provider, which the user already trusts with their password, asks them. What it lists are scopes: each one names some access or some information. Many identity providers skip the question for their own apps, so you may never have seen it.',
 		simple: {
 			label: 'Ask the user to agree',
-			summary: 'The identity provider asks whether the app may have what it asks for.'
+			summary: 'The identity provider asks whether the app may have this access.'
 		},
 		sources: [
 			{
@@ -133,7 +133,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		default: 'confidential',
 		summary:
 			'Whether the app can keep a secret. One that cannot, such as an app in a browser, has to rely on PKCE.',
-		why: "A secret inside an app on someone else's device is not secret, because anyone can read it out. So an app in a browser or on a phone cannot prove who it is that way, and is treated differently.",
+		why: "A secret inside an app on someone else's device is not secret, because anyone can read it out. So an app in a browser or on a phone cannot prove who it is that way, and is treated differently. In a browser, the app and the browser on this diagram are the same place, so its direct calls come from the page.",
 		sources: [
 			{
 				source: 'rfc6749',
@@ -153,7 +153,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		default: false,
 		summary:
 			'The app proves it started this login, so a stolen code is no use alone. Current advice is to have it on, and a public client must.',
-		why: 'The code goes through the browser, where other software can get at it. An app with no secret has nothing else to show that it is the one that asked, so whoever holds the code gets the tokens. With PKCE the code only works together with a value that was never sent through the browser.',
+		why: 'The code goes through the browser, where other software can get at it. An app with no secret has nothing else to show that it is the one that asked, so whoever holds the code gets the tokens. With PKCE the code only works together with a value that was never in a redirect.',
 		simple: {
 			label: 'Protect against a stolen code',
 			summary:
@@ -179,7 +179,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		default: false,
 		summary:
 			'Someone copies the code as it crosses the browser and tries to use it. Flip PKCE or the client type to see what changes.',
-		why: 'A protection is hard to believe in until you see what it stops. This changes nothing about what the app does. It shows what someone else could do with the same code, and the answers on screen are what a real server gave.',
+		why: 'A protection is hard to believe in until you see what it stops. This changes nothing about what the app does. It shows what someone else could do with the same code, and what the identity provider answers them is what a real server gave.',
 		simple: {
 			label: 'Show someone stealing the code',
 			summary:

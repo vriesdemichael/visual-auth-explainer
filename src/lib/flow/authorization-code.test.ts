@@ -84,7 +84,7 @@ describe('the plain language', () => {
 	});
 
 	it('uses no words from the wire, because that is what advanced mode is for', () => {
-		const wire = /\b(GET|POST|302|400|\/\w+|client_id|redirect_uri|scope|nonce|IdP)\b/;
+		const wire = /\b(GET|POST|\d{3}|\/\w+|client_id|redirect_uri|scope|nonce|IdP)\b/;
 		expect([...new Set(plainTexts)].filter((text) => wire.test(text))).toEqual([]);
 	});
 
@@ -98,6 +98,41 @@ describe('the plain language', () => {
 	it('explains what an issuer is, on the identity provider', () => {
 		const idp = flow.lifelines.find((line) => line.id === 'idp');
 		expect(idp?.concept).toContain('issuer');
+	});
+});
+
+describe('why a step is here', () => {
+	const causesOf = (id: string, settings: Settings) =>
+		evaluate(flow, settings).steps.find((step) => step.id === id)?.causes;
+
+	it('is nothing, for everything in the base flow', () => {
+		for (const diagram of [flow, setup]) {
+			for (const step of evaluate(diagram, defaultSettings).steps) {
+				expect(step.causes, step.id).toEqual([]);
+			}
+		}
+	});
+
+	it('names only what would take it away, and never a setting that is still off', () => {
+		for (const settings of allValidSettings()) {
+			for (const step of evaluate(flow, settings).steps) {
+				for (const cause of step.causes) {
+					expect(settings[cause], `${step.id} because of ${cause}`).not.toBe(
+						defaultSettings[cause]
+					);
+				}
+			}
+		}
+	});
+
+	it('is what brought the attacker on, and not the protection that is off', () => {
+		const settings = { ...defaultSettings, attacker: true, clientType: 'public' } as const;
+		expect(causesOf('attacker-api-request', settings)).toEqual(['attacker', 'clientType']);
+	});
+
+	it('does not blame a setting for a step that is there anyway', () => {
+		expect(causesOf('login-page', defaultSettings)).toEqual([]);
+		expect(causesOf('api-response', { ...defaultSettings, attacker: true })).toEqual([]);
 	});
 });
 

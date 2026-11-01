@@ -40,6 +40,38 @@ export const NotNamingTheServer: Story = {
 	args: { step: stepIn('token-request'), serverNamed: false }
 };
 
+export const RecordedFromTheServer: Story = {
+	args: {
+		step: stepIn('token-request'),
+		known: { kind: 'recorded', by: 'server', keycloak: '26.8.1', date: '2026-11-01' }
+	}
+};
+
+export const RecordedFromTheDemo: Story = {
+	args: {
+		step: stepIn('api-response'),
+		known: { kind: 'recorded', by: 'demo', keycloak: '26.8.1', date: '2026-11-01' }
+	}
+};
+
+export const RecordedWithOtherSettings: Story = {
+	args: { step: stepIn('token-request'), known: { kind: 'other-settings' } }
+};
+
+export const ACopyOfAMessage: Story = {
+	args: {
+		step: stepIn('attacker-steals-code', { attacker: true }),
+		known: { kind: 'copied', text: 'The request the real app gets, drawn going to them as well.' }
+	}
+};
+
+export const FromTheSpecOnly: Story = {
+	args: {
+		step: stepIn('nonce-challenge', { binding: 'dpop', dpopNonce: true }),
+		known: { kind: 'spec', source: 'RFC 9449 section 8' }
+	}
+};
+
 export const NoFields: Story = {
 	args: { step: stepIn('open-app') }
 };

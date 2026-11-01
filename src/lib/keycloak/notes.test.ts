@@ -161,3 +161,25 @@ describe('the notes', () => {
 		});
 	});
 });
+
+describe('what a note says about a stolen code', () => {
+	const noteFor = (settings: Partial<Settings>) =>
+		notesFor('attacker-token-response', {
+			...defaultSettings,
+			attacker: true,
+			...settings
+		}).find((note) => note.id === 'intercepted-code')?.text;
+
+	it('says what the server did to a public client with PKCE', () => {
+		expect(noteFor({ clientType: 'public', pkce: true })).toContain('400 invalid_grant');
+	});
+
+	it('says the code survives on a client with a secret, with or without PKCE', () => {
+		for (const pkce of [true, false]) {
+			const text = noteFor({ clientType: 'confidential', pkce });
+			expect(text).toContain('401');
+			expect(text).toContain('still good');
+			expect(text).not.toContain('400');
+		}
+	});
+});

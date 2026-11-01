@@ -52,8 +52,15 @@ export const authorizationCode: FlowDef = {
 			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
 			icon: 'app',
 			startsWith: [{ artifact: 'secret', when: confidential }],
-			concept:
-				"The application the user wants to use. In OAuth's terms it is the client, and it never sees the user's password."
+			concept: [
+				{
+					when: not(confidential),
+					text: "The application the user wants to use. In OAuth's terms it is the client, and it never sees the user's password. If it runs in the browser, it and the browser on this diagram are the same place: its direct calls come from the page, and anything running in that page can see them."
+				},
+				{
+					text: "The application the user wants to use. In OAuth's terms it is the client, and it never sees the user's password."
+				}
+			]
 		},
 		{
 			id: 'idp',
@@ -68,7 +75,7 @@ export const authorizationCode: FlowDef = {
 			icon: 'idp',
 			startsWith: [{ artifact: 'secret', when: confidential }],
 			concept:
-				'The identity provider, or IdP, logs users in and issues tokens. Its issuer is the address that names it: every token says who issued it, and everyone checks that against the address they were set up with.'
+				'The identity provider, or IdP, logs users in and issues tokens. Its issuer is the address that names it: a token it signs says who issued it, and everyone checks that against the address they were set up with.'
 		},
 		{
 			id: 'attacker',
@@ -78,7 +85,7 @@ export const authorizationCode: FlowDef = {
 			role: 'Has a copy of the code',
 			icon: 'attacker',
 			concept:
-				'Someone who can see what goes through the browser, but is not the app. On a phone that can be another app claiming the same address. In a browser it can be an extension, or a log that keeps addresses.',
+				"Someone who can see the redirects that go through the browser, but is not the app. On a phone that can be another app claiming the same address. In a browser it can be a log or a history that keeps addresses. Something running inside the app's own page sees far more than this, and no setting here stops that.",
 			when: attacker
 		},
 		{
@@ -194,7 +201,7 @@ export const authorizationCode: FlowDef = {
 			],
 			pitfall: {
 				title: 'What if the address does not match?',
-				text: 'The identity provider has to stop and show an error, and must not send the browser anywhere. Otherwise an attacker could ask for the code to be sent to them, which is why the match has to be exact.'
+				text: 'The identity provider has to stop and show an error, and must not send the browser anywhere. Otherwise an attacker could ask for the code to be sent to them, which is why current advice is an exact match.'
 			},
 			links: [
 				{
@@ -260,7 +267,7 @@ export const authorizationCode: FlowDef = {
 			to: 'browser',
 			kind: 'response',
 			plain: 'Sent on to the other provider',
-			label: '302 to the other provider',
+			label: '303 to the other provider',
 			concept:
 				'The identity provider does not log the user in itself. It sends the browser on to the other provider.',
 			when: broker
@@ -415,7 +422,7 @@ export const authorizationCode: FlowDef = {
 			plain: 'What the app is asking for',
 			label: 'Consent page',
 			concept:
-				'The identity provider asks the user whether this app may have what it asks for. What it lists are scopes: each one names some access or some information. This is between the user and the identity provider, and the app has no part in it.',
+				'The identity provider asks the user whether this app may have this access. What it lists are scopes: each one names some access or some information. They come from what the app asked for and from how it was set up. This is between the user and the identity provider, and the app has no part in it.',
 			pitfall: {
 				title: 'What if the user says no?',
 				text: 'The browser still goes back to the app, but with error=access_denied in place of a code. So the app has to expect this, and has nothing to trade.'
@@ -470,6 +477,8 @@ export const authorizationCode: FlowDef = {
 			label: 'Code intercepted',
 			concept:
 				'The code crosses the browser, so anything that can see that can copy it, the moment it goes by.',
+			recordedAs:
+				'The request the real app gets, drawn going to them as well. How someone gets a copy is not something a recording can show.',
 			when: attacker,
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
@@ -524,7 +533,7 @@ export const authorizationCode: FlowDef = {
 				},
 				{
 					when: stoppedByPkce,
-					text: 'The code was tied to a challenge when it was issued, and only the verifier matches it. That has never been near the browser, so they cannot have it.'
+					text: 'The code was tied to a challenge when it was issued, and only the verifier matches it. That was never in a redirect, so someone who only saw the code does not have it.'
 				},
 				{
 					text: 'Without the secret, the identity provider will not even look at the code. But they could still hand it to the real app from their own browser, so that it trades the code for them, which is what PKCE stops.'
@@ -547,7 +556,7 @@ export const authorizationCode: FlowDef = {
 				{
 					name: 'error=unauthorized_client',
 					place: 'body',
-					note: 'The client did not prove who it is',
+					note: 'The client did not prove who it is. The spec calls this invalid_client, and this server says this instead',
 					when: stoppedBySecret
 				},
 				{
@@ -611,7 +620,7 @@ export const authorizationCode: FlowDef = {
 			concept: [
 				{
 					when: all(confidential, pkce),
-					text: 'The app trades the code for tokens on a direct call. Its secret proves which app it is, and the verifier proves it started this very login. Neither was sent through the browser.'
+					text: 'The app trades the code for tokens on a direct call. Its secret proves which app it is, and the verifier proves it started this very login. Neither was ever in a redirect.'
 				},
 				{
 					when: confidential,
@@ -619,7 +628,7 @@ export const authorizationCode: FlowDef = {
 				},
 				{
 					when: pkce,
-					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, but it does have the verifier, which was never sent through the browser. Someone who only saw the code cannot do this. If the app runs in the browser, this call comes from its own JavaScript.'
+					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, but it does have the verifier, which was never in a redirect. Someone who only saw the code cannot do this. If the app runs in the browser, this call comes from its own JavaScript.'
 				},
 				{
 					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, so anyone holding the code could do this too, which is the gap PKCE closes. If the app runs in the browser, this call comes from its own JavaScript.'
@@ -634,7 +643,7 @@ export const authorizationCode: FlowDef = {
 					},
 					{
 						when: not(confidential),
-						text: 'They get nothing. They would also need the verifier, and it has never left the app. The challenge they may have seen cannot be turned back into it.'
+						text: 'If all they can do is read the code, they get nothing. They would also need the verifier, which is only being sent now, and the challenge they may have seen cannot be turned back into it. Someone who can also change the login request as it goes by can get round this, though that takes much more.'
 					},
 					{
 						when: pkce,
@@ -658,7 +667,7 @@ export const authorizationCode: FlowDef = {
 				{
 					name: 'code_verifier',
 					place: 'body',
-					note: 'Sent now, and never through the browser',
+					note: 'Sent now, and never in a redirect',
 					artifact: 'verifier',
 					when: pkce
 				},
@@ -710,7 +719,7 @@ export const authorizationCode: FlowDef = {
 			concept: [
 				{
 					when: pkce,
-					text: 'A code works once, and trying it uses it up, even when the try fails. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
+					text: 'A code works once, and this server counts a failed try as that once, which the specs do not ask for. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
 				},
 				{
 					text: 'A code works once, and it has been used. So the app gets nothing, the user sees an error, and someone else has their tokens.'
@@ -816,7 +825,8 @@ export const authorizationCode: FlowDef = {
 			kind: 'response',
 			plain: 'Details about the user',
 			label: 'User claims',
-			concept: 'Who the user is, limited to what the requested scopes allow.',
+			concept:
+				'Who the user is, limited to the scopes granted, which are not always those asked for.',
 			when: all(oidc, stillGoing),
 			fields: [{ name: 'sub', place: 'body' }]
 		},
