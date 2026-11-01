@@ -4,12 +4,14 @@
 	import {
 		FULL_HEAD_WIDTH,
 		layHeld,
+		lineSpan,
 		TIME_GAP,
 		SELF_LOOP,
 		type DiagramLayout
 	} from '#lib/diagram/layout.ts';
 	import { interpolate, toFrame, TRANSITION_MS, type Frame } from '#lib/diagram/motion.ts';
 	import type { Lit } from '#lib/flow/explain.ts';
+	import { sees } from '#lib/flow/eyes.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 
 	interface Props {
@@ -25,6 +27,8 @@
 		sending?: string | null;
 		/** What it adds to what they have seen, as `lifeline:artifact`, to show when it gets there. */
 		landing?: ReadonlySet<string>;
+		/** The one party whose view to show. What it never saw is not drawn, only how much there was. */
+		eyes?: string | null;
 		onselect?: (step: string) => void;
 		onexplainlifeline?: (id: string) => void;
 		onexplainartifact?: (id: ArtifactId) => void;
@@ -39,6 +43,7 @@
 		holdings = {},
 		sending = null,
 		landing = new Set(),
+		eyes = null,
 		onselect,
 		onexplainlifeline,
 		onexplainartifact
@@ -82,9 +87,17 @@
 	const order = $derived(new Map(layout.rows.map((row, i) => [row.id, i])));
 	const currentIndex = $derived(order.get(currentStep) ?? 0);
 	const currentRow = $derived(layout.rows[currentIndex]);
-	// An arrow to travel, because what stays with one lifeline and time going by have nothing to carry.
+	const hiddenRows = $derived(
+		new Set(eyes ? frame.rows.filter((row) => !sees(row, eyes)).map((row) => row.id) : [])
+	);
+	const eyesName = $derived(frame.lanes.find((lane) => lane.id === eyes)?.name);
+	const eyesHold = (artifact: ArtifactId) => !eyes || (holdings[eyes] ?? []).includes(artifact);
+	// An arrow to travel, because what stays with one lifeline and time going by have nothing to carry,
+	// and nothing goes by for someone who was not part of it.
 	const travelling = $derived(
-		layout.rows.find((row) => row.id === sending && row.kind !== 'time' && !row.self)?.id ?? null
+		layout.rows.find(
+			(row) => row.id === sending && row.kind !== 'time' && !row.self && !hiddenRows.has(row.id)
+		)?.id ?? null
 	);
 	const carries = (step: string) =>
 		frame.chips.some((chip) => chip.step === step && chip.artifact && !chip.leaving);
@@ -140,8 +153,13 @@
 		return index === currentIndex ? 'current' : index < currentIndex ? 'past' : 'future';
 	}
 
-	const heldText = (ids: readonly ArtifactId[]) =>
-		ids.length ? ids.map((id) => artifacts[id].label).join(', ') : 'nothing yet';
+	function heldText(lane: string, ids: readonly ArtifactId[]) {
+		const shown = lane === eyes ? ids : ids.filter(eyesHold);
+		const hidden = ids.length - shown.length;
+		if (hidden)
+			return `${shown.map((id) => artifacts[id].label).join(', ')} ${hidden} hidden`.trim();
+		return shown.length ? shown.map((id) => artifacts[id].label).join(', ') : 'nothing yet';
+	}
 	const activate = (event: KeyboardEvent, then: () => void) => {
 		if (event.key !== 'Enter' && event.key !== ' ') return;
 		event.preventDefault();
@@ -171,6 +189,7 @@
 					class="lane-head"
 					class:fresh={fresh.has(lane.id)}
 					class:lit={lit?.lifeline === lane.id}
+					class:eyes={eyes === lane.id}
 					class:active={currentRow && (lane.id === currentRow.from || lane.id === currentRow.to)}
 					style:opacity={lane.opacity}
 					data-lifeline={lane.leaving ? undefined : lane.id}
@@ -184,7 +203,8 @@
 					}}
 					onkeydown={(event) => activate(event, () => onexplainlifeline?.(lane.id))}
 				>
-					<desc id={`seen-${lane.id}`}>Has seen: {heldText(holdings[lane.id] ?? [])}.</desc>
+					<desc id={`seen-${lane.id}`}>Has seen: {heldText(lane.id, holdings[lane.id] ?? [])}.</desc
+					>
 					<rect x={-lane.headWidth / 2} y="5" width={lane.headWidth} height="46" rx="8" />
 					{#if lane.headWidth >= FULL_HEAD_WIDTH}
 						<path class="icon" d={ICONS[lane.icon]} transform="translate(-65 16) scale(0.95)" />
@@ -196,24 +216,36 @@
 					{/if}
 					{#if !lane.leaving}
 						{#each layHeld(holdings[lane.id] ?? [], frame.heldWidth) as chip (chip.artifact)}
-							<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
+							{#if lane.id !== eyes && !eyesHold(chip.artifact)}
+								<rect
+									class="bar"
+									data-hidden-held
+									x={chip.x}
+									y={chip.y}
+									width={chip.width}
+									height="16"
+									rx="8"
+								/>
+							{:else}
+								<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
 							     the lifeline's own explanation, which lists these as buttons. -->
-							<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-							<g
-								class="held"
-								class:landing={travelling && landing.has(`${lane.id}:${chip.artifact}`)}
-								data-artifact={chip.artifact}
-								data-held={`${lane.id}:${chip.artifact}`}
-								onclick={(event) => {
-									event.stopPropagation();
-									onexplainartifact?.(chip.artifact);
-								}}
-							>
-								<rect x={chip.x} y={chip.y} width={chip.width} height="16" rx="8" />
-								<text x={chip.x + chip.width / 2} y={chip.y + 11.5} text-anchor="middle">
-									{chip.text}
-								</text>
-							</g>
+								<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+								<g
+									class="held"
+									class:landing={travelling && landing.has(`${lane.id}:${chip.artifact}`)}
+									data-artifact={chip.artifact}
+									data-held={`${lane.id}:${chip.artifact}`}
+									onclick={(event) => {
+										event.stopPropagation();
+										onexplainartifact?.(chip.artifact);
+									}}
+								>
+									<rect x={chip.x} y={chip.y} width={chip.width} height="16" rx="8" />
+									<text x={chip.x + chip.width / 2} y={chip.y + 11.5} text-anchor="middle">
+										{chip.text}
+									</text>
+								</g>
+							{/if}
 						{/each}
 					{/if}
 				</g>
@@ -263,6 +295,7 @@
 					class:fresh={fresh.has(row.id)}
 					class:lit={lit?.step === row.id}
 					class:sending={travelling === row.id}
+					class:unseen={hiddenRows.has(row.id)}
 					style:opacity={row.opacity}
 					data-step={row.leaving ? undefined : row.id}
 					data-state={state}
@@ -282,7 +315,9 @@
 						}
 					}}
 				>
-					<desc id={`route-${row.id}`}>{row.route}</desc>
+					<desc id={`route-${row.id}`}>
+						{hiddenRows.has(row.id) ? `${eyesName} was not part of this.` : row.route}
+					</desc>
 					{#if row.kind === 'time'}
 						<!-- A gap in every line, which is how a sequence diagram says that time went by. -->
 						<rect
@@ -328,37 +363,65 @@
 						<text y="3.7" text-anchor="middle">{row.number}</text>
 					</g>
 					<!-- The spaces are for anything reading this, because lines are only places on a screen. -->
-					<text class="label" style:--words={row.words}>
+					{#if hiddenRows.has(row.id)}
 						{#each row.lines as line, l (l)}
-							<tspan x={line.x} y={line.y} text-anchor={line.anchor}>{`${line.text} `}</tspan>
+							{@const span = lineSpan(line)}
+							<rect
+								class="bar"
+								style:--words={row.words}
+								x={span.left}
+								y={line.y - 10}
+								width={span.width}
+								height="12"
+								rx="2"
+							/>
 						{/each}
-					</text>
+					{:else}
+						<text class="label" style:--words={row.words}>
+							{#each row.lines as line, l (l)}
+								<tspan x={line.x} y={line.y} text-anchor={line.anchor}>{`${line.text} `}</tspan>
+							{/each}
+						</text>
+					{/if}
 				</g>
 			{/each}
 
 			{#each frame.chips as chip (chip.id)}
 				{@const state = rowState(chip.step)}
-				<!-- A chip with no token in it is not a button, so the role depends on the chip. -->
-				<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-				<g
-					class={`chip ${state}`}
-					class:fresh={fresh.has(chip.id) || fresh.has(chip.step)}
-					class:sending={travelling === chip.step}
-					style:opacity={chip.opacity}
-					data-chip={chip.leaving ? undefined : chip.id}
-					data-artifact={chip.artifact}
-					role={chip.artifact ? 'button' : undefined}
-					tabindex={chip.artifact ? -1 : undefined}
-					onclick={() => {
-						if (chip.artifact && !chip.leaving) onexplainartifact?.(chip.artifact);
-					}}
-					onkeydown={(event) => {
-						if (chip.artifact) activate(event, () => onexplainartifact?.(chip.artifact!));
-					}}
-				>
-					<rect x={chip.x} y={chip.y} width={chip.width} height="18" rx="9" />
-					<text x={chip.x + chip.width / 2} y={chip.y + 13} text-anchor="middle">{chip.text}</text>
-				</g>
+				{#if hiddenRows.has(chip.step)}
+					<rect
+						class={`bar chip-bar ${state}`}
+						style:opacity={chip.opacity}
+						x={chip.x}
+						y={chip.y}
+						width={chip.width}
+						height="18"
+						rx="9"
+					/>
+				{:else}
+					<!-- A chip with no token in it is not a button, so the role depends on the chip. -->
+					<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+					<g
+						class={`chip ${state}`}
+						class:fresh={fresh.has(chip.id) || fresh.has(chip.step)}
+						class:sending={travelling === chip.step}
+						style:opacity={chip.opacity}
+						data-chip={chip.leaving ? undefined : chip.id}
+						data-artifact={chip.artifact}
+						role={chip.artifact ? 'button' : undefined}
+						tabindex={chip.artifact ? -1 : undefined}
+						onclick={() => {
+							if (chip.artifact && !chip.leaving) onexplainartifact?.(chip.artifact);
+						}}
+						onkeydown={(event) => {
+							if (chip.artifact) activate(event, () => onexplainartifact?.(chip.artifact!));
+						}}
+					>
+						<rect x={chip.x} y={chip.y} width={chip.width} height="18" rx="9" />
+						<text x={chip.x + chip.width / 2} y={chip.y + 13} text-anchor="middle">{chip.text}</text
+						>
+					</g>
+				{/if}
 			{/each}
 		</svg>
 	</div>
@@ -877,5 +940,38 @@
 
 	.chip.future:not(.fresh) {
 		opacity: 0 !important;
+	}
+
+	/* What someone never saw, which is how much there was and nothing of what it said. */
+	.bar {
+		fill: var(--line);
+		opacity: var(--words, 1);
+		pointer-events: none;
+	}
+
+	.row.future .bar,
+	.chip-bar.future {
+		opacity: 0 !important;
+	}
+
+	.row.unseen line,
+	.row.unseen path,
+	.row.unseen polygon {
+		opacity: 0.18;
+	}
+
+	.row.unseen .number circle {
+		fill: var(--bg);
+		stroke: var(--line);
+		stroke-width: 1;
+	}
+
+	.row.unseen .number text {
+		fill: var(--muted);
+	}
+
+	.lane-head.eyes > rect {
+		stroke: var(--fg);
+		stroke-width: 2;
 	}
 </style>

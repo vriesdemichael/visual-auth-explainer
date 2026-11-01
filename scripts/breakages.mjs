@@ -413,6 +413,38 @@ export const breakages = [
 		to: 'held'
 	},
 
+	// Through one party's eyes.
+	{
+		name: 'eyes: a redacted message keeps its values',
+		file: 'src/lib/recordings/wire.ts',
+		from: 'return { before: line.before, hidden: line.value.length, after: line.after };',
+		to: 'return line;'
+	},
+	{
+		name: 'eyes: what a party saw comes with what it did not',
+		file: 'src/lib/recordings/wire.ts',
+		from: 'step !== null && seesStep(step) && soFar(step)',
+		to: 'step !== null && soFar(step)'
+	},
+	{
+		name: 'eyes: a party sees messages it was not part of',
+		file: 'src/lib/flow/eyes.ts',
+		from: "step.kind === 'time' || step.from === party || step.to === party",
+		to: 'true'
+	},
+	{
+		name: 'eyes: a party is kept when a setting takes it off the diagram',
+		file: 'src/lib/flow/state.ts',
+		from: 'return { state: { ...state, settings, step, eyes: onTheDiagram(view, state.eyes) }, resets };',
+		to: 'return { state: { ...state, settings, step }, resets };'
+	},
+	{
+		name: 'eyes: a question is still answered as someone else',
+		file: 'src/lib/map/nodes.ts',
+		from: '(of.eyes ?? null) === state.eyes &&\n',
+		to: ''
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',

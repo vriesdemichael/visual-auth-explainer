@@ -19,6 +19,9 @@
 		seeIt?: string | null;
 		/** It is about the server, which someone can leave out. */
 		onleaveout?: (() => void) | null;
+		/** It is about a party, whose view can be shown, and whether it is. */
+		onseeonly?: (() => void) | null;
+		seeingOnly?: boolean;
 		onexplainartifact?: (id: ArtifactId) => void;
 		onopensource?: (ref: SourceRef) => void;
 		onclose: () => void;
@@ -35,6 +38,8 @@
 		onpart,
 		seeIt = null,
 		onleaveout = null,
+		onseeonly = null,
+		seeingOnly = false,
 		onexplainartifact,
 		onopensource,
 		onclose
@@ -71,6 +76,13 @@
 		<p class="seen">
 			<button type="button" class="chip" data-testid="leave-out-server" onclick={onleaveout}>
 				Leave out what is only about Keycloak
+			</button>
+		</p>
+	{/if}
+	{#if onseeonly}
+		<p class="seen">
+			<button type="button" class="chip" data-testid="see-only" onclick={onseeonly}>
+				{seeingOnly ? 'See everything again' : 'See only what this one saw'}
 			</button>
 		</p>
 	{/if}

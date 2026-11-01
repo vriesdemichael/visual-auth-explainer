@@ -7,6 +7,7 @@
 		jwtsIn,
 		originOf,
 		rawLines,
+		redactedLines,
 		type Line,
 		type RunValue
 	} from '#lib/recordings/wire.ts';
@@ -20,12 +21,28 @@
 		/** Notes on this step, for what in the access token each one is about. */
 		notes?: readonly Note[];
 		serverNamed?: boolean;
+		/** Whoever this is shown as was not part of this message. */
+		redacted?: boolean;
 	}
 
-	let { step, message, trace, numberOf, onstep, notes = [], serverNamed = true }: Props = $props();
+	let {
+		step,
+		message,
+		trace,
+		numberOf,
+		onstep,
+		notes = [],
+		serverNamed = true,
+		redacted = false
+	}: Props = $props();
 
 	const LONG = 40;
-	const lines = $derived(rawLines(message, { serverNamed }));
+	const MOST_BLACKED_OUT = 44;
+	const lines = $derived(
+		redacted
+			? redactedLines(rawLines(message, { serverNamed }))
+			: rawLines(message, { serverNamed })
+	);
 	const jwts = $derived(jwtsIn(lines));
 	const origin = (line: Line) => originOf(line, step.id, trace);
 	let opened = $state<Record<string, boolean>>({});
@@ -54,7 +71,13 @@
 		{@const from = origin(line)}
 		<div class="line">
 			<span data-line
-				>{line.before}{#if line.value !== undefined}{#if line.value.length > LONG}<button
+				>{line.before}{#if line.hidden !== undefined}<span
+						class="blacked"
+						data-hidden={line.hidden}
+						role="img"
+						aria-label="Hidden"
+						style:width={`${Math.min(line.hidden, MOST_BLACKED_OUT)}ch`}
+					></span>{:else if line.value !== undefined}{#if line.value.length > LONG}<button
 							type="button"
 							class="value long"
 							class:open={opened[i]}
@@ -136,6 +159,15 @@
 		min-height: 1.5em;
 		white-space: pre-wrap;
 		word-break: break-all;
+	}
+
+	.blacked {
+		display: inline-block;
+		max-width: 100%;
+		height: 0.9em;
+		border-radius: 2px;
+		background: var(--muted);
+		vertical-align: -0.05em;
 	}
 
 	.value {

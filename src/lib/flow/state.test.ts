@@ -47,7 +47,8 @@ describe('the URL', () => {
 						source: null,
 						explained: null,
 						serverNotes: true,
-						settingsHidden: false
+						settingsHidden: false,
+						eyes: null
 					};
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
 				}
@@ -76,7 +77,8 @@ describe('the URL', () => {
 							source: onOff ? { id: source, setting: 'pkce', section: null } : null,
 							explained,
 							serverNotes: onOff,
-							settingsHidden: !onOff
+							settingsHidden: !onOff,
+							eyes: onOff ? 'browser' : null
 						};
 						expect(parseState(base, 'flow', serializeState(base, state))).toEqual(state);
 					}

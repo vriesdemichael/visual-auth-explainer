@@ -23,6 +23,8 @@
 		intro?: string | null;
 		/** Why this part of the flow is here, on the step that starts it. */
 		partWhy?: string | null;
+		/** Who this is being shown as, when they were not part of this step. */
+		unseenBy?: string | null;
 		change?: ViewDiff | null;
 		resets?: readonly Reset[];
 		links?: readonly Link[];
@@ -56,6 +58,7 @@
 		mode = 'advanced',
 		intro = null,
 		partWhy = null,
+		unseenBy = null,
 		change = null,
 		resets = [],
 		links = [],
@@ -187,76 +190,88 @@
 				{nameOf(step.from)} to {nameOf(step.to)}
 			{/if}
 		</p>
-		<h2 class="title">{simple ? step.plain : step.label}</h2>
-		{#if sayPlainly}
-			<p class="plain">{step.plain}</p>
-		{/if}
-		<p><Worded segments={worded[1]} {onterm} /></p>
-		{#if step.inPractice}
-			<p class="practice" data-testid="step-practice">
-				<strong>In practice.</strong>
-				<Worded segments={worded[2]} {onterm} />
-				{#if step.practice.length}
-					<span class="examples" data-testid="step-practice-examples">
-						For example,
-						{#each step.practice as example, index (example.name)}
-							{#if index}, and{/if}
-							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- another site -->
-							<a href={example.url} target="_blank" rel="noreferrer">{example.name}</a>
-							{example.text}{/each}.
-					</span>
-				{/if}
-			</p>
-		{/if}
-		{#if step.kind !== 'time'}
-			<p class="channel" data-channel={step.channel} data-testid="step-channel">
-				<strong>{channels[step.channel].label}.</strong>
-				{#if step.channel !== previousChannel}
-					<span data-testid="channel-why">{channels[step.channel].explains}</span>
-				{/if}
-			</p>
-		{/if}
-		{#if known && showKnown}
-			<p class="known" data-known={known.kind} data-testid="step-known">
-				{#if known.kind === 'recorded'}
-					Recorded on {known.date} from the demo app and API the recording uses, so this one says nothing
-					about {server}.
-				{:else if known.kind === 'copied'}
-					{known.text}
-				{:else if known.kind === 'other-settings'}
-					This message was recorded with other settings, not these.
-				{:else if known.kind === 'spec'}
-					From {known.source} only. The server it was recorded from did not do this.
+		{#if unseenBy}
+			<h2 class="title" data-testid="unseen">Not seen by {unseenBy}</h2>
+			<p>
+				{#if step.from === step.to}
+					It happens inside {nameOf(step.from)}, and nothing of it reaches {unseenBy}.
 				{:else}
-					Not checked against a real server yet.
+					It goes between {nameOf(step.from)} and {nameOf(step.to)}, and nothing in it reaches
+					{unseenBy}.
 				{/if}
 			</p>
-		{/if}
-		{#if step.causes.length}
-			<p class="cause">Here because of: {step.causes.map(labelOf).join(', ')}</p>
-		{/if}
-		{#if step.pitfall}
-			<details class="pitfall" data-testid="step-pitfall">
-				<summary>{step.pitfall.title}</summary>
-				<p><Worded segments={worded[3]} {onterm} /></p>
-			</details>
-		{/if}
-		{#if !simple}
-			{#each notes as note (note.id)}
-				<KeycloakNote {note} version={recordedIndex.keycloak} />
+		{:else}
+			<h2 class="title">{simple ? step.plain : step.label}</h2>
+			{#if sayPlainly}
+				<p class="plain">{step.plain}</p>
+			{/if}
+			<p><Worded segments={worded[1]} {onterm} /></p>
+			{#if step.inPractice}
+				<p class="practice" data-testid="step-practice">
+					<strong>In practice.</strong>
+					<Worded segments={worded[2]} {onterm} />
+					{#if step.practice.length}
+						<span class="examples" data-testid="step-practice-examples">
+							For example,
+							{#each step.practice as example, index (example.name)}
+								{#if index}, and{/if}
+								<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- another site -->
+								<a href={example.url} target="_blank" rel="noreferrer">{example.name}</a>
+								{example.text}{/each}.
+						</span>
+					{/if}
+				</p>
+			{/if}
+			{#if step.kind !== 'time'}
+				<p class="channel" data-channel={step.channel} data-testid="step-channel">
+					<strong>{channels[step.channel].label}.</strong>
+					{#if step.channel !== previousChannel}
+						<span data-testid="channel-why">{channels[step.channel].explains}</span>
+					{/if}
+				</p>
+			{/if}
+			{#if known && showKnown}
+				<p class="known" data-known={known.kind} data-testid="step-known">
+					{#if known.kind === 'recorded'}
+						Recorded on {known.date} from the demo app and API the recording uses, so this one says nothing
+						about {server}.
+					{:else if known.kind === 'copied'}
+						{known.text}
+					{:else if known.kind === 'other-settings'}
+						This message was recorded with other settings, not these.
+					{:else if known.kind === 'spec'}
+						From {known.source} only. The server it was recorded from did not do this.
+					{:else}
+						Not checked against a real server yet.
+					{/if}
+				</p>
+			{/if}
+			{#if step.causes.length}
+				<p class="cause">Here because of: {step.causes.map(labelOf).join(', ')}</p>
+			{/if}
+			{#if step.pitfall}
+				<details class="pitfall" data-testid="step-pitfall">
+					<summary>{step.pitfall.title}</summary>
+					<p><Worded segments={worded[3]} {onterm} /></p>
+				</details>
+			{/if}
+			{#if !simple}
+				{#each notes as note (note.id)}
+					<KeycloakNote {note} version={recordedIndex.keycloak} />
+				{/each}
+			{/if}
+			{#each links as link (link.href)}
+				<p>
+					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+					<a href={link.href} data-testid="step-link">{link.text}</a>
+				</p>
 			{/each}
 		{/if}
-		{#each links as link (link.href)}
-			<p>
-				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
-				<a href={link.href} data-testid="step-link">{link.text}</a>
-			</p>
-		{/each}
 	</div>
 
 	{@render wire?.()}
 
-	{#if simple && carried.length}
+	{#if simple && carried.length && !unseenBy}
 		<h3>What it carries</h3>
 		<ul class="carried" data-testid="step-carried">
 			{#each carried as id (id)}
@@ -288,7 +303,7 @@
 		{/if}
 	{/if}
 
-	{#if !simple && step.fields.length}
+	{#if !simple && step.fields.length && !unseenBy}
 		<h3>What it carries</h3>
 		<ul class="fields">
 			{#each step.fields as field (field.name)}
