@@ -18,7 +18,11 @@ import {
 	PUBLIC_CLIENT,
 	REDIRECT_URI,
 	UPSTREAM_REALM,
-	USERNAME
+	USERNAME,
+	API_CLIENT,
+	BACKCHANNEL_URL,
+	POST_LOGOUT_URI,
+	namesTheApi
 } from './keycloak.ts';
 
 const b64 = (value: string | Buffer) => Buffer.from(value).toString('base64url');
@@ -895,6 +899,153 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 			},
 			after: { max: 3, secondSawForm: gone.sawForm }
 		};
+
+		// What logging out ends and what it leaves. One app logs out, and another is told or is not.
+		await freshClient(admin, 'note-logout-one', {
+			attributes: { 'post.logout.redirect.uris': POST_LOGOUT_URI },
+			protocolMappers: [namesTheApi]
+		});
+		await freshClient(admin, 'note-logout-two', {
+			attributes: { 'backchannel.logout.url': BACKCHANNEL_URL }
+		});
+		await freshClient(admin, 'note-logout-quiet');
+		const base = `${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect`;
+		const tokensFrom = async (clientId: string, code: string) =>
+			(
+				await token(LOCAL_REALM, {
+					grant_type: 'authorization_code',
+					code,
+					redirect_uri: REDIRECT_URI,
+					client_id: clientId,
+					client_secret: CLIENT_SECRET
+				})
+			).json;
+		const refreshed = async (clientId: string, refreshToken: string) => {
+			const answer = await token(LOCAL_REALM, {
+				grant_type: 'refresh_token',
+				refresh_token: refreshToken,
+				client_id: clientId,
+				client_secret: CLIENT_SECRET
+			});
+			return {
+				status: answer.status,
+				error: answer.json.error ?? null,
+				description: answer.json.error_description ?? null
+			};
+		};
+		const activeFor = async (asker: string, accessToken: string) => {
+			const answer = await fetch(`${base}/token/introspect`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/x-www-form-urlencoded' },
+				body: new URLSearchParams({
+					token: accessToken,
+					client_id: asker,
+					client_secret: CLIENT_SECRET
+				}).toString()
+			});
+			return ((await answer.json()) as { active: boolean }).active;
+		};
+		const logoutAddress = (idToken: string, address: string) =>
+			`${base}/logout?${new URLSearchParams({
+				id_token_hint: idToken,
+				post_logout_redirect_uri: address,
+				state: 'kept'
+			})}`;
+
+		const twoApps = await browser.newContext();
+		const logsOut = await tokensFrom(
+			'note-logout-one',
+			(await visit(twoApps, 'note-logout-one')).code
+		);
+		const isTold = await tokensFrom(
+			'note-logout-two',
+			(await visit(twoApps, 'note-logout-two')).code
+		);
+		const bearer = { authorization: `Bearer ${logsOut.access_token}` };
+		const named = await activeFor(API_CLIENT, logsOut.access_token);
+		const notNamed = await activeFor('note-logout-one', logsOut.access_token);
+		const onlyTheAppForgets = await visit(twoApps, 'note-logout-one');
+
+		const logoutPage = await twoApps.newPage();
+		const notRegistered = await logoutPage.goto(
+			logoutAddress(logsOut.id_token, `${APP}/elsewhere`)
+		);
+		const refused = {
+			status: notRegistered?.status(),
+			saysInvalidRedirect: (await logoutPage.locator('body').innerText()).includes(
+				'Invalid redirect uri'
+			)
+		};
+		demo.logoutTokens.length = 0;
+		await logoutPage.goto(logoutAddress(logsOut.id_token, POST_LOGOUT_URI));
+		await logoutPage.getByRole('heading', { name: 'Logged out' }).waitFor();
+		const backAt = new URL(logoutPage.url());
+		await logoutPage.close();
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		const told = [...demo.logoutTokens];
+
+		const userinfoAddress = `${base}/userinfo`;
+		const secondsLeft = Number(claimsOf(logsOut.access_token).exp) - Date.now() / 1000;
+		answers.loggingOut = {
+			onlyTheAppForgets: { nextLoginSawForm: onlyTheAppForgets.sawForm },
+			withAnIdToken: {
+				backAtTheApp: backAt.pathname === '/bye',
+				state: backAt.searchParams.get('state')
+			},
+			after: {
+				tokenNotExpired: secondsLeft > 0,
+				demoApi: (await statusOf(`${API}/resource`, bearer)).status,
+				userinfo: (await statusOf(userinfoAddress, bearer)).status,
+				otherAppUserinfo: (
+					await statusOf(userinfoAddress, { authorization: `Bearer ${isTold.access_token}` })
+				).status,
+				refresh: await refreshed('note-logout-one', logsOut.refresh_token),
+				otherAppRefresh: await refreshed('note-logout-two', isTold.refresh_token),
+				otherAppNextLoginSawForm: (await visit(twoApps, 'note-logout-two', {}, false)).sawForm
+			}
+		};
+		answers.whoMayAsk = {
+			before: { asker: 'not named in the token', active: notNamed },
+			after: { asker: 'named in the token', active: named },
+			afterALogout: { active: await activeFor(API_CLIENT, logsOut.access_token) }
+		};
+		answers.postLogoutAddress = {
+			before: refused,
+			after: { backAtTheApp: backAt.pathname === '/bye' }
+		};
+		await twoApps.close();
+
+		// With nothing registered, an app is not told.
+		const noAddress = await browser.newContext();
+		const logsOutAgain = await tokensFrom(
+			'note-logout-one',
+			(await visit(noAddress, 'note-logout-one')).code
+		);
+		await visit(noAddress, 'note-logout-quiet');
+		demo.logoutTokens.length = 0;
+		const quietPage = await noAddress.newPage();
+		await quietPage.goto(logoutAddress(logsOutAgain.id_token, POST_LOGOUT_URI));
+		await quietPage.getByRole('heading', { name: 'Logged out' }).waitFor();
+		await new Promise((resolve) => setTimeout(resolve, 500));
+		answers.backchannelLogoutUrl = {
+			before: { delivered: demo.logoutTokens.length },
+			after: {
+				delivered: told.length,
+				hasTheEvent: Boolean(told[0] && claimsOf(told[0]).events),
+				aud: told[0] ? claimsOf(told[0]).aud : null
+			}
+		};
+		await noAddress.close();
+
+		// And with no ID token, it has to ask.
+		const noHint = await browser.newContext();
+		await visit(noHint, 'note-logout-one');
+		const askPage = await noHint.newPage();
+		await askPage.goto(`${base}/logout`);
+		(answers.loggingOut as Record<string, unknown>).withNoIdToken = {
+			asks: (await askPage.locator('body').innerText()).includes('Do you want to log out')
+		};
+		await noHint.close();
 	}
 
 	// What is a refresh token worth once a new one has come back? RFC 9700 section 2.2.2 wants a

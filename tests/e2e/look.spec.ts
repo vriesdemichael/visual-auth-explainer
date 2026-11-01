@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 import { open, pressRow } from './helpers.ts';
 
 const row = (page: import('@playwright/test').Page, id: string) =>
@@ -216,4 +216,75 @@ test.describe('nothing an automated check can find', () => {
 			}
 		});
 	}
+});
+
+test.describe('the rail, which stops repeating itself (#63)', () => {
+	const sentences = (page: Page) => page.locator('[data-testid="setting-about"]:visible');
+
+	test('says what never changes only when it is asked', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await expect(sentences(page)).toHaveCount(0);
+		const words = (await page.locator('aside.settings').innerText()).split(/\s+/);
+		expect(words.length).toBeLessThan(45);
+	});
+
+	test('says it while someone is on it, and while the setting is on', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await page.locator('[data-setting="pkce"] input').focus();
+		await expect(sentences(page)).toHaveCount(1);
+		await page.locator('[data-setting="pkce"] input').check();
+		await page.locator('[data-setting="pkce"] input').blur();
+		await expect(sentences(page)).toHaveCount(1);
+		await expect(page.locator('[data-setting="pkce"]')).toContainText('The app proves');
+	});
+
+	test('still has the same words behind its Why', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await page.locator('[data-why="pkce"]').click();
+		await expect(page.getByTestId('explanation')).toContainText('The app proves it started');
+	});
+
+	test('tells a screen reader either way', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await expect(page.locator('[data-setting="pkce"]')).toHaveAttribute(
+			'aria-describedby',
+			'about-pkce'
+		);
+	});
+});
+
+test.describe('the diagram, where one thing stands out (#63)', () => {
+	test('fills in the number of the current step, and no other', async ({ page }) => {
+		await open(page, 'step=callback');
+		const filled = (step: string) =>
+			page
+				.locator(`[data-step="${step}"] .number circle`)
+				.evaluate((circle) => getComputedStyle(circle).fill);
+		const background = await page
+			.locator('.heads-band')
+			.evaluate((band) => getComputedStyle(band).backgroundColor);
+		expect(await filled('callback')).not.toBe(background);
+		expect(await filled('authorize')).toBe(background);
+	});
+
+	test('has no band under the heads, and gets a line when something is scrolled under them', async ({
+		page
+	}) => {
+		await page.setViewportSize({ width: 1280, height: 520 });
+		await open(page, 'oidc=1');
+		const band = page.locator('.heads-band');
+		await expect(band).not.toHaveClass(/scrolled/);
+		await page.locator('.scroller').evaluate((scroller) => {
+			scroller.scrollTop = 100;
+		});
+		await expect(band).toHaveClass(/scrolled/);
+	});
+
+	test('keeps the words of a message together however they wrap', async ({ page }) => {
+		await page.setViewportSize({ width: 1024, height: 700 });
+		await open(page, 'mode=simple&sso=1&step=second-authorize');
+		await expect(page.locator('[data-step="second-authorize"]')).toContainText(
+			'The browser asks to log in, and its session goes along'
+		);
+	});
 });

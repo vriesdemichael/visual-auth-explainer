@@ -5,6 +5,8 @@ export type SourceId =
 	| 'rfc9449'
 	| 'rfc9700'
 	| 'oidc-core'
+	| 'oidc-rp-logout'
+	| 'oidc-backchannel-logout'
 	| 'keycloak-brokering'
 	| 'keycloak-stored-tokens';
 
@@ -26,7 +28,7 @@ export interface SourceRef {
 	why: string;
 }
 
-/** Summaries checked against each document on 2026-10-31. */
+/** Summaries checked against each document on 2026-10-31, and the logout ones on 2026-11-01. */
 export const sources: Record<SourceId, SourceDef> = {
 	rfc6749: {
 		label: 'RFC 6749',
@@ -80,6 +82,22 @@ export const sources: Record<SourceId, SourceDef> = {
 		summary:
 			'An identity layer on top of OAuth 2.0. It lets an app verify who logged in, based on the login at the authorization server, and get basic profile information about them. It adds the ID token and the UserInfo endpoint.',
 		url: 'https://openid.net/specs/openid-connect-core-1_0.html'
+	},
+	'oidc-rp-logout': {
+		label: 'RP-Initiated Logout 1.0',
+		title: 'OpenID Connect RP-Initiated Logout 1.0',
+		status: 'Final specification, September 2022. OpenID Foundation.',
+		summary:
+			'How an app asks the identity provider to log a user out, by sending the browser to its end session address. The ID token that says who is logging out is recommended, and without one the server has to ask the user. It only sends the browser back to an address registered exactly. It says nothing about access or refresh tokens.',
+		url: 'https://openid.net/specs/openid-connect-rpinitiated-1_0.html'
+	},
+	'oidc-backchannel-logout': {
+		label: 'Back-Channel Logout 1.0',
+		title: 'OpenID Connect Back-Channel Logout 1.0, with errata set 1',
+		status: 'Final specification, December 2023. OpenID Foundation.',
+		summary:
+			'How an identity provider tells an app directly that a session has ended, with a signed logout token and no browser involved. The app clears what it holds for that session and answers 200. Refresh tokens from that session should go, unless they are for offline access, and access tokens are not mentioned.',
+		url: 'https://openid.net/specs/openid-connect-backchannel-1_0.html'
 	},
 	'keycloak-brokering': {
 		label: 'Keycloak docs: identity brokering',

@@ -70,5 +70,22 @@
 	"second-redirect-with-code",
 	"second-callback",
 	"second-token-request",
-	"second-token-response"
+	"second-token-response",
+	"logout-start",
+	"app-forgets",
+	"logout-redirect",
+	"end-session",
+	"session-ended",
+	"backchannel-logout",
+	"backchannel-response",
+	"logout-redirect-back",
+	"logged-out",
+	"token-after-logout",
+	"token-after-logout-response",
+	"asks-after-logout",
+	"introspect",
+	"introspect-response",
+	"asks-after-logout-response",
+	"refresh-after-logout",
+	"refresh-after-logout-response"
 ]

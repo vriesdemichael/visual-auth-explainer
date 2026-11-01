@@ -22,36 +22,25 @@
 	--accent: light-dark(#3b37d6, #a5aeff);
 	--accent-soft: light-dark(#ecebff, #262a52);
 
-	/* What a setting just changed. */
-	--fresh: light-dark(#be185d, #f688bd);
-	--fresh-soft: light-dark(#fde8f1, #3a1a2b);
+	/* What a setting just changed, which is an outline that goes again and not a colour of its own. */
+	--fresh: light-dark(#141720, #eceef3);
+	--fresh-soft: light-dark(#f1f2f5, #2a2e36);
+
+	/* Someone who has no business here, and nothing else. */
+	--attacker: light-dark(#b42318, #ff9d8f);
 
 	/* How a message travels. */
 	--front: light-dark(#b45309, #f5a35c);
 	--back: light-dark(#0f766e, #4fd1c5);
 	--people: light-dark(#7a3fb5, #c79bf2);
 
-	/* What it carries. */
-	--password: light-dark(#b91c1c, #fb8a8a);
-	--password-soft: light-dark(#fdecec, #3b1a1a);
-	--code: light-dark(#926000, #f2c94c);
-	--code-soft: light-dark(#fdf6d8, #37300f);
-	--secret: light-dark(#9f1239, #fb7f99);
-	--secret-soft: light-dark(#ffe9ee, #3b1622);
-	--access: light-dark(#1d4ed8, #93b4ff);
-	--access-soft: light-dark(#e7eefe, #1a2647);
-	--identity: light-dark(#14763a, #4ade80);
-	--identity-soft: light-dark(#e5f6ea, #12301d);
-	--refresh: light-dark(#86198f, #e9a6f5);
-	--refresh-soft: light-dark(#fbeefc, #35173a);
-	--session: light-dark(#3730a3, #b3bcff);
-	--session-soft: light-dark(#eceafe, #1f1d4a);
-	--proof: light-dark(#0e7490, #38d6ee);
-	--proof-soft: light-dark(#e0f5f9, #0f2f37);
-	--upstream: light-dark(#4b5563, #aab2bf);
-	--upstream-soft: light-dark(#eceef1, #2a2e36);
-	--pkce: light-dark(#5f6800, #c3dc3c);
-	--pkce-soft: light-dark(#f3f6d6, #2b3010);
+	/* What it carries, in three quiet groups, because the chip already says what it is. */
+	--proves: light-dark(#8a3f4f, #e6b3bd);
+	--proves-soft: light-dark(#f8eef0, #33222a);
+	--grants: light-dark(#3f5b80, #b4c6de);
+	--grants-soft: light-dark(#edf1f7, #222a36);
+	--remembers: light-dark(#5a5f52, #c5c9b8);
+	--remembers-soft: light-dark(#f1f2ed, #2a2c25);
 
 	--sans: 'IBM Plex Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
 	--mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
@@ -71,56 +60,30 @@ body {
 }
 
 /* What each thing that gets passed around looks like, in the diagram and beside it. */
-[data-artifact='password'] {
-	--chip: var(--password);
-	--chip-soft: var(--password-soft);
-}
-
-[data-artifact='code'] {
-	--chip: var(--code);
-	--chip-soft: var(--code-soft);
-}
-
-[data-artifact='secret'] {
-	--chip: var(--secret);
-	--chip-soft: var(--secret-soft);
-}
-
-/* Two forms of one thing, so one colour. */
+/* What proves something. */
+[data-artifact='password'],
+[data-artifact='secret'],
 [data-artifact='verifier'],
-[data-artifact='challenge'] {
-	--chip: var(--pkce);
-	--chip-soft: var(--pkce-soft);
-}
-
-[data-artifact='access-token'] {
-	--chip: var(--access);
-	--chip-soft: var(--access-soft);
-}
-
-[data-artifact='id-token'] {
-	--chip: var(--identity);
-	--chip-soft: var(--identity-soft);
-}
-
-[data-artifact='refresh-token'] {
-	--chip: var(--refresh);
-	--chip-soft: var(--refresh-soft);
-}
-
-[data-artifact='session'] {
-	--chip: var(--session);
-	--chip-soft: var(--session-soft);
-}
-
+[data-artifact='challenge'],
 [data-artifact='proof'] {
-	--chip: var(--proof);
-	--chip-soft: var(--proof-soft);
+	--chip: var(--proves);
+	--chip-soft: var(--proves-soft);
 }
 
+/* What gets something. */
+[data-artifact='code'],
+[data-artifact='access-token'],
+[data-artifact='id-token'],
+[data-artifact='refresh-token'],
 [data-artifact='upstream-token'] {
-	--chip: var(--upstream);
-	--chip-soft: var(--upstream-soft);
+	--chip: var(--grants);
+	--chip-soft: var(--grants-soft);
+}
+
+/* What remembers. */
+[data-artifact='session'] {
+	--chip: var(--remembers);
+	--chip-soft: var(--remembers-soft);
 }
 
 .pending .workspace {

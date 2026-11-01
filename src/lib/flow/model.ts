@@ -96,6 +96,8 @@ export interface StepDef {
 	concept: Text;
 	group?: string;
 	pitfall?: PitfallDef;
+	/** What stops existing here, so that nobody holds it any more. */
+	ends?: readonly ArtifactId[];
 	/** What this means for someone building an app: who writes this part, and what is left to them. */
 	inPractice?: Text;
 	/** What is true of real libraries, so that a line about what they do has something behind it. */
@@ -177,6 +179,7 @@ export interface Step {
 	concept: string;
 	group?: string;
 	pitfall?: Pitfall;
+	ends: readonly ArtifactId[];
 	inPractice?: string;
 	practice: readonly PracticeExample[];
 	links: readonly StepLink[];
@@ -230,6 +233,7 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 			from: step.from,
 			to: step.to,
 			kind: step.kind,
+			ends: step.ends ?? [],
 			channel: channelOf(flow, step),
 			plain: resolveText(step.plain, settings),
 			label: resolveText(step.label, settings),
@@ -287,6 +291,11 @@ export function holdingsAt(view: DiagramView, stepId: string): Record<string, Ar
 			if (!artifact) continue;
 			see(step.from, artifact);
 			see(step.to, artifact);
+		}
+		for (const artifact of step.ends) {
+			for (const line of Object.keys(held)) {
+				held[line] = held[line].filter((seen) => seen !== artifact);
+			}
 		}
 		if (step.id === stepId) break;
 	}

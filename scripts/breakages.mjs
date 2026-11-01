@@ -36,6 +36,32 @@ export const breakages = [
 		to: 'works, which is what PKCE stops.'
 	},
 
+	// Logging out.
+	{
+		name: 'logout: the session stays',
+		file: AC,
+		from: "ends: ['session'],",
+		to: ''
+	},
+	{
+		name: 'logout: the token is said to stop working everywhere',
+		file: AC,
+		from: "plain: 'It still works',\n\t\t\tlabel: '200 with the resource',\n\t\t\tconcept:\n\t\t\t\t'Its signature",
+		to: "plain: 'It still works',\n\t\t\tlabel: '401 invalid_token',\n\t\t\tconcept:\n\t\t\t\t'Its signature"
+	},
+	{
+		name: 'logout: the API that asks is said to take it',
+		file: AC,
+		from: "plain: 'The API refuses',\n\t\t\tlabel: '401 invalid_token',",
+		to: "plain: 'The API refuses',\n\t\t\tlabel: '200 with the resource',"
+	},
+	{
+		name: 'logout: the note says the other app stays logged in',
+		file: NOTES,
+		from: 'otherAppNextLoginSawForm: true',
+		to: 'otherAppNextLoginSawForm: false'
+	},
+
 	// A second app.
 	{
 		name: 'sso: the app is said to have the session',
@@ -58,8 +84,40 @@ export const breakages = [
 	{
 		name: 'sso: the cookie goes along with no session',
 		file: AC,
-		from: "note: 'Sent to this address, and to nowhere else',\n\t\t\t\t\tartifact: 'session',\n\t\t\t\t\twhen: secondGetsACode",
-		to: "note: 'Sent to this address, and to nowhere else',\n\t\t\t\t\tartifact: 'session'"
+		from: "note: 'Sent to the identity provider, and nowhere else',\n\t\t\t\t\tartifact: 'session',\n\t\t\t\t\twhen: secondGetsACode",
+		to: "note: 'Sent to the identity provider, and nowhere else',\n\t\t\t\t\tartifact: 'session'"
+	},
+
+	// The calm look.
+	{
+		name: 'look: a label is let run past its arrow',
+		file: LAYOUT,
+		from: ': Math.abs(x2 - x1) - NUMBER_ROOM * 2;',
+		to: ': 10000;'
+	},
+	{
+		name: 'look: chips are drawn over the words',
+		file: LAYOUT,
+		from: 'let x = start + line.textWidth + (line.text && line.chips.length ? LABEL_TO_CHIP : 0);',
+		to: 'let x = start;'
+	},
+	{
+		name: 'look: a mode switch moves rows',
+		file: LAYOUT,
+		from: 'return Math.max(...counts);',
+		to: 'return simple ? counts[0] : counts[1];'
+	},
+	{
+		name: 'look: another hue creeps in',
+		file: 'src/app.css',
+		from: '--remembers: light-dark(#5a5f52, #c5c9b8);',
+		to: '--remembers: light-dark(#5a5f52, #c5c9b8);\n\t--louder: light-dark(#ff0000, #ff0000);'
+	},
+	{
+		name: 'look: what just changed gets a colour of its own again',
+		file: 'src/app.css',
+		from: '--fresh: light-dark(#141720, #eceef3);',
+		to: '--fresh: light-dark(#be185d, #f688bd);'
 	},
 
 	// A refresh token.

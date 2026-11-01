@@ -289,6 +289,35 @@ export const mapTracks: readonly MapTrack[] = [
 			],
 			[
 				node({
+					id: 'what-log-out-does',
+					answer:
+						'The identity provider ends its session, so the next login asks again. The app has to forget the user too, as a session of its own. An access token keeps working at any API that does not ask, and a refresh token from that session usually stops.',
+					title: 'What does log out actually do?',
+					summary: 'Two sessions end, if you ask for both, and an access token keeps working.',
+					preset: 'logout',
+					step: 'session-ended'
+				}),
+				node({
+					id: 'token-after-logout',
+					answer:
+						'It depends who checks. An API that only looks at the token takes it until it expires. One that asks the identity provider gets whatever that provider says, which on the server tried here was no, and a refresh was refused too.',
+					title: 'I logged out. Does the token still work?',
+					summary: 'The same token, and two answers.',
+					preset: 'logout',
+					step: 'token-after-logout-response'
+				}),
+				node({
+					id: 'logged-out-of-other-apps',
+					answer:
+						'Of the identity provider, yes, so their next login asks again and their refresh tokens usually stop working. An app that registered an address is told right away. Any other keeps them logged in until it next asks.',
+					title: 'Am I logged out of my other apps too?',
+					summary: 'They lose the session they relied on, and may not know yet.',
+					preset: 'logout-two-apps',
+					step: 'backchannel-logout'
+				})
+			],
+			[
+				node({
 					id: 'web-app',
 					answer:
 						'It can keep a secret, so that is how it proves which app it is. OpenID Connect tells it who logged in, and PKCE protects the code as well.',

@@ -51,14 +51,11 @@ const pairs: readonly (readonly [string, string, number])[] = [
 	['people', 'accent-soft', SHAPE],
 	['on-tone', 'people', TEXT],
 	['on-tone', 'muted', TEXT],
-	['password', 'password-soft', TEXT],
-	['code', 'code-soft', TEXT],
-	['secret', 'secret-soft', TEXT],
-	['access', 'access-soft', TEXT],
-	['identity', 'identity-soft', TEXT],
-	['proof', 'proof-soft', TEXT],
-	['upstream', 'upstream-soft', TEXT],
-	['pkce', 'pkce-soft', TEXT]
+	['attacker', 'bg', TEXT],
+	['attacker', 'raised', TEXT],
+	['proves', 'proves-soft', TEXT],
+	['grants', 'grants-soft', TEXT],
+	['remembers', 'remembers-soft', TEXT]
 ];
 
 describe('colours (ADR-014)', () => {
@@ -76,6 +73,37 @@ describe('colours (ADR-014)', () => {
 			const ratio = contrast(all[front][theme], all[back][theme]);
 			expect(ratio, `${all[front][theme]} on ${all[back][theme]}`).toBeGreaterThanOrEqual(needed);
 		});
+	});
+
+	it('stay within a budget, because one thing should stand out at a time (#63)', () => {
+		const neutral = new Set([
+			'bg',
+			'panel',
+			'raised',
+			'fg',
+			'muted',
+			'line',
+			'strong-line',
+			'on-tone'
+		]);
+		const hues = Object.keys(all).filter((name) => !name.endsWith('-soft') && !neutral.has(name));
+		expect(hues.sort()).toEqual(
+			[
+				'accent',
+				'front',
+				'back',
+				'people',
+				'attacker',
+				'fresh',
+				'proves',
+				'grants',
+				'remembers'
+			].sort()
+		);
+	});
+
+	it('say what just changed without a hue of its own', () => {
+		expect(all.fresh).toEqual(all.fg);
 	});
 
 	it('exist for every thing that gets passed around', () => {

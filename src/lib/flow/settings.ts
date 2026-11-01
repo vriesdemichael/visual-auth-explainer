@@ -15,6 +15,7 @@ export interface Settings {
 	reuse: 'keeps' | 'ends';
 	sso: boolean;
 	ssoAsks: 'remembered' | 'insists' | 'fresh';
+	logout: boolean;
 }
 
 export type SettingId = keyof Settings;
@@ -440,6 +441,38 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 				requires: { when: is('oidc', true), because: 'prompt is part of OpenID Connect.' }
 			}
 		]
+	},
+	logout: {
+		kind: 'toggle',
+		label: 'Log out',
+		param: 'logout',
+		default: false,
+		summary: 'The user logs out, and what ends is not everything.',
+		why: 'Logging out ends a session. An access token already handed out does not know that, so whether it still works depends on who checks it.',
+		sources: [
+			{
+				source: 'oidc-rp-logout',
+				why: 'How an app sends the browser to log out. Section 2 says the server has to ask the user if it gets no ID token. It says nothing about access or refresh tokens.'
+			},
+			{
+				source: 'oidc-backchannel-logout',
+				why: 'How the identity provider tells other apps directly. Section 2.7 says refresh tokens from that session should go, and does not mention access tokens.'
+			}
+		],
+		requires: {
+			when: all(
+				is('oidc', true),
+				is('binding', 'bearer'),
+				is('broker', false),
+				is('attacker', false),
+				is('consent', false),
+				is('apiToken', 'good'),
+				is('refresh', false),
+				is('ssoAsks', 'remembered')
+			),
+			because: 'It is part of OpenID Connect, and this shows the plain case.',
+			sayWhenBlocked: true
+		}
 	}
 };
 

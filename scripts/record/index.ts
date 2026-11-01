@@ -68,8 +68,16 @@ function classifyRequest(url: URL): string | null {
 	if (forSecond && path.startsWith(`/realms/${LOCAL_REALM}/login-actions/authenticate`)) {
 		return 'second-submit-credentials';
 	}
-	if (url.origin === APP)
-		return path === '/' ? 'open-app' : path === '/callback' ? 'callback' : null;
+	if (url.origin === APP) {
+		const steps: Record<string, string> = {
+			'/': 'open-app',
+			'/callback': 'callback',
+			'/logout': 'logout-start',
+			'/bye': 'logged-out'
+		};
+		return steps[path] ?? null;
+	}
+	if (path.endsWith('/protocol/openid-connect/logout')) return 'end-session';
 	if (path === `/realms/${LOCAL_REALM}/protocol/openid-connect/auth`) return 'authorize';
 	if (path === `/realms/${BROKERED_REALM}/protocol/openid-connect/auth`) return 'authorize';
 	if (path === `/realms/${UPSTREAM_REALM}/protocol/openid-connect/auth`)
@@ -95,7 +103,11 @@ function classifyResponse(url: URL, status: number, location: string | null): st
 	) {
 		return 'second-login-page';
 	}
-	if (url.origin === APP) return url.pathname === '/' ? 'redirect-to-idp' : null;
+	if (url.origin === APP) {
+		const steps: Record<string, string> = { '/': 'redirect-to-idp', '/logout': 'logout-redirect' };
+		return steps[url.pathname] ?? null;
+	}
+	if (url.pathname.endsWith('/protocol/openid-connect/logout')) return 'logout-redirect-back';
 	if (location?.startsWith(REDIRECT_URI)) return 'redirect-with-code';
 	if (location?.includes(`/realms/${UPSTREAM_REALM}/protocol/openid-connect/auth`)) {
 		return 'redirect-to-upstream';
@@ -202,6 +214,10 @@ async function login(browser: Browser, run: Run) {
 	const outcome = await page.locator('body').innerText();
 	if (outcome.includes('Failed')) throw new Error(`Login failed: ${outcome}`);
 	if (run.settings.sso) await logInToSecondApp(browser, context, run, cookies);
+	if (run.settings.logout) {
+		await page.goto(`${APP}/logout`);
+		await page.getByRole('heading', { name: 'Logged out' }).waitFor();
+	}
 	await Promise.all(cookies);
 	await context.close();
 }
