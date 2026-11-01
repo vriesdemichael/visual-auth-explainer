@@ -97,7 +97,10 @@
 		a new one.
 	</p>
 	<CopyBlock text={commands.trade} label="the command that trades the code" />
-	<p>The answer has your access token, which you can compare with the one on the diagram.</p>
+	<p>
+		The answer has your access token, the same shape as the recorded one on the diagram, with your
+		own values.
+	</p>
 
 	{#if commands.who}
 		<h2>4. Ask who logged in</h2>
