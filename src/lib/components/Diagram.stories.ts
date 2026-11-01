@@ -58,6 +58,17 @@ export const ARefusalOnItsWay: Story = {
 	}
 };
 
+export const FollowingTheCode: Story = {
+	args: {
+		currentStep: 'authorize',
+		followed: {
+			steps: new Set(['redirect-with-code', 'callback', 'token-request']),
+			forms: ['code']
+		},
+		holdings: holdingsAt(evaluate(flow, defaultSettings), 'authorize')
+	}
+};
+
 export const SeenAsTheBrowser: Story = {
 	args: {
 		currentStep: 'token-response',

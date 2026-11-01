@@ -20,6 +20,14 @@ export const ALifelineThatHasSeenThings: Story = {
 	args: { seen: ['secret', 'password', 'code'], onseeonly: () => {} }
 };
 
+export const SomethingToFollow: Story = {
+	args: { title: 'code', onfollow: () => {} }
+};
+
+export const SomethingBeingFollowed: Story = {
+	args: { title: 'code', onfollow: () => {}, following: true }
+};
+
 export const ALifelineWhoseViewIsShown: Story = {
 	args: { seen: ['secret', 'password', 'code'], onseeonly: () => {}, seeingOnly: true }
 };

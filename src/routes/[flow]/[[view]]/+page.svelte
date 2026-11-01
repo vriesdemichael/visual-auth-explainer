@@ -137,6 +137,7 @@
 	animate={settled}
 	question={question?.title ?? null}
 	answer={question?.answer ?? null}
+	questionFollows={question?.follows ?? null}
 	{leftQuestion}
 	{onward}
 	homeHref={resolve('/') + ((question ?? here) ? `?at=${(question ?? here)?.id}` : '')}

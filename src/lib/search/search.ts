@@ -62,7 +62,8 @@ function stateAt(
 		explained,
 		serverNotes: true,
 		settingsHidden: false,
-		eyes: null
+		eyes: null,
+		follow: null
 	};
 }
 

@@ -27,6 +27,10 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
+export const FollowingTheCode: Story = {
+	args: { state: parseState(base, 'flow', 'follow=code&step=callback') }
+};
+
 export const SeenAsTheBrowser: Story = {
 	args: { state: parseState(base, 'flow', 'eyes=browser&step=token-response') }
 };

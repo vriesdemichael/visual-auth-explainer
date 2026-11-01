@@ -8,6 +8,8 @@ Motion is for what changed, and nothing else moves. Next and Execute send a mess
 
 Seen as one party, what it never saw is a muted bar as wide as the words were, with the arrow nearly gone, and the words themselves are not on the page. A bar has no hue of its own, because it says only that something was there.
 
+Following one thing lights up its path and quiets the rest, with no hue of its own either. Its path ahead is spelled out, because someone asked for exactly that, and it is the one other place than a setting's change where what is ahead gets words.
+
 A step shows what has happened and no more. Every message has a number. Up to the current step it has a label and its chips. Ahead it is a faint arrow with its number, and its label appears on pointing at it or when a setting has just changed it. So text is either readable or absent, never faded. That faint arrow is below the 3:1 WCAG 1.4.11 asks of what someone needs, on purpose: it is a preview and not a thing to read, its number is AA, and a stronger one would compete with the current step, which the maintainer has asked to stand out alone.
 
 A message says how it travels: through the browser, direct, or between people. Credentials and tokens are chips on the message, on the line of its label, and that label wraps rather than overrun its arrow. A test holds that in every combination. Under each lifeline are chips for what it has seen so far, which `holdingsAt` works out from the fields on the steps and is never written by hand, so it cannot disagree with the flow. The heads keep room for the most they will hold at any step, so stepping never moves a row.

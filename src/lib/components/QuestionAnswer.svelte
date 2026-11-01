@@ -8,9 +8,19 @@
 		serverNamed?: boolean;
 		/** Goes back to where the flow starts, when someone is not there already. */
 		onrewind?: (() => void) | null;
+		/** What to follow through the flow, when its path is the answer. */
+		follows?: string | null;
+		onfollow?: () => void;
 	}
 
-	let { answer, onrewind = null, onterm, serverNamed = true }: Props = $props();
+	let {
+		answer,
+		onrewind = null,
+		onterm,
+		serverNamed = true,
+		follows = null,
+		onfollow
+	}: Props = $props();
 	const segments = $derived(markTerms([answer], { serverNamed })[0]);
 </script>
 
@@ -19,6 +29,11 @@
 	{#if onrewind}
 		<button type="button" class="rewind" data-testid="how-we-got-here" onclick={onrewind}>
 			See how we got here
+		</button>
+	{/if}
+	{#if follows}
+		<button type="button" class="rewind" data-testid="follow-answer" onclick={onfollow}>
+			Follow the {follows} through the flow
 		</button>
 	{/if}
 </section>
@@ -37,6 +52,7 @@
 	}
 
 	.rewind {
+		display: block;
 		margin-top: 6px;
 		padding: 0;
 		border: 0;

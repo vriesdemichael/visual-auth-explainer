@@ -1,3 +1,4 @@
+import { pathOf } from '#lib/flow/follow.ts';
 import { diagramParts, READING, terms, type Term, type TermPlace } from '#lib/flow/glossary.ts';
 import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 import { evaluate, type BaseFlow, type DiagramView } from '#lib/flow/model.ts';
@@ -21,7 +22,12 @@ export interface Explaining {
 	aboutTheServer?: boolean;
 	/** The party this is about, whose view can be shown. */
 	party?: string;
+	/** What this is about, when there is a path to follow. */
+	follows?: ArtifactId;
 }
+
+const followable = (view: DiagramView, artifact: ArtifactId) =>
+	pathOf(view, artifact).length ? artifact : undefined;
 
 export function explanationOf(
 	state: AppState,
@@ -49,7 +55,8 @@ export function explanationOf(
 			text: artifacts[explained.id].explains,
 			seenBy: view.lifelines
 				.filter((line) => holdings[line.id]?.includes(explained.id))
-				.map((line) => (simple ? line.plainName : line.name))
+				.map((line) => (simple ? line.plainName : line.name)),
+			follows: followable(view, explained.id)
 		};
 	}
 	if (explained?.kind === 'term') {
@@ -67,7 +74,8 @@ export function explanationOf(
 						.map((line) => (simple ? line.plainName : line.name))
 				: undefined,
 			parts: reading ? diagramParts : undefined,
-			aboutTheServer: term.id === 'keycloak'
+			aboutTheServer: term.id === 'keycloak',
+			follows: term.artifact ? followable(view, term.artifact) : undefined
 		};
 	}
 	if (explained?.kind === 'setting') {
