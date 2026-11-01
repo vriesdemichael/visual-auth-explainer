@@ -149,7 +149,10 @@
 				role="button"
 				tabindex={lane.leaving ? -1 : 0}
 				aria-describedby={`seen-${lane.id}`}
-				onclick={() => onexplainlifeline?.(lane.id)}
+				onclick={() => {
+					// On its way out, so there is nothing left to explain.
+					if (!lane.leaving) onexplainlifeline?.(lane.id);
+				}}
 				onkeydown={(event) => activate(event, () => onexplainlifeline?.(lane.id))}
 			>
 				<desc id={`seen-${lane.id}`}>Has seen: {heldText(holdings[lane.id] ?? [])}.</desc>
@@ -226,7 +229,10 @@
 					tabindex={row.leaving ? -1 : 0}
 					aria-describedby={`route-${row.id}`}
 					aria-current={state === 'current' ? 'step' : undefined}
-					onclick={() => onselect?.(row.id)}
+					onclick={() => {
+						// On its way out, so it is not a step any more.
+						if (!row.leaving) onselect?.(row.id);
+					}}
 					onkeydown={(event) => {
 						if (event.key === 'Enter' || event.key === ' ') {
 							event.preventDefault();
@@ -301,7 +307,7 @@
 					role={chip.artifact ? 'button' : undefined}
 					tabindex={chip.artifact ? -1 : undefined}
 					onclick={() => {
-						if (chip.artifact) onexplainartifact?.(chip.artifact);
+						if (chip.artifact && !chip.leaving) onexplainartifact?.(chip.artifact);
 					}}
 					onkeydown={(event) => {
 						if (chip.artifact) activate(event, () => onexplainartifact?.(chip.artifact!));
@@ -595,9 +601,10 @@
 		--row: var(--fresh);
 	}
 
-	.row.fresh line,
-	.row.fresh path,
-	.row.fresh polygon {
+	/* What is ahead stays only a shape, even when it is new, because it has not happened yet. */
+	.row.fresh:not(.future) line,
+	.row.fresh:not(.future) path,
+	.row.fresh:not(.future) polygon {
 		opacity: 1;
 	}
 

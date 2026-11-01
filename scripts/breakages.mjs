@@ -176,6 +176,26 @@ export const breakages = [
 		to: '\n'
 	},
 
+	// What the screen says after moving.
+	{
+		name: 'changes: Back is explained with the setting flipped before it',
+		file: 'src/lib/flow/changes.ts',
+		from: 'return move.byFlip ? { ...last, diff: move.diff } : { ...NOTHING_CHANGED, diff: move.diff };',
+		to: 'return { ...last, diff: move.diff };'
+	},
+	{
+		name: 'changes: what changed stays while stepping',
+		file: 'src/lib/flow/changes.ts',
+		from: 'if (move.diagramChanged || (nothing && move.stepChanged)) return NOTHING_CHANGED;',
+		to: 'if (move.diagramChanged) return NOTHING_CHANGED;'
+	},
+	{
+		name: 'changes: a switch for the other diagram is offered anyway',
+		file: 'src/lib/flow/changes.ts',
+		from: '!possible.some((flipped) => changesInPlainWords(here, settings, flipped)) &&',
+		to: 'false &&'
+	},
+
 	// The map.
 	{
 		name: 'map: the next question skips one',

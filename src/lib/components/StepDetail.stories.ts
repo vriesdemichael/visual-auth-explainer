@@ -103,6 +103,11 @@ export const AfterAChangeSayingWhy: Story = {
 	args: { mode: 'simple', change: diffViews(view(), view({ oidc: true })), changed: 'oidc' }
 };
 
+/** After Back or a link there is a difference to name, and nobody just flipped anything. */
+export const AfterBackWithNoWhy: Story = {
+	args: { change: diffViews(view({ oidc: true }), view({})) }
+};
+
 export const WithALinkToTheOtherDiagram: Story = {
 	args: { links: [{ text: 'See where the redirect URI was registered', href: '#' }] }
 };

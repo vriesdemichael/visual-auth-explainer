@@ -13,25 +13,20 @@
 	import { freshIds } from '#lib/diagram/fresh.ts';
 	import { layoutDiagram } from '#lib/diagram/layout.ts';
 	import {
-		diffViews,
-		changesInPlainWords,
-		evaluate,
-		settingsUsedBy,
-		holdingsAt,
-		isEmptyDiff,
-		type BaseFlow,
-		type DiagramId,
-		type ViewDiff
-	} from '#lib/flow/model.ts';
+		afterFlip,
+		afterMove,
+		NOTHING_CHANGED,
+		settingsNotHere,
+		type LastChange
+	} from '#lib/flow/changes.ts';
 	import {
-		change as changeSetting,
-		defaultSettings,
-		settingDefs,
-		simpleSettingIds,
-		type Reset,
-		type SettingId,
-		type Settings
-	} from '#lib/flow/settings.ts';
+		diffViews,
+		evaluate,
+		holdingsAt,
+		type BaseFlow,
+		type DiagramId
+	} from '#lib/flow/model.ts';
+	import { settingDefs, type SettingId, type Settings } from '#lib/flow/settings.ts';
 	import {
 		nextStep,
 		previousStep,
@@ -90,24 +85,29 @@
 	}: Props = $props();
 
 	const flow = $derived(base.diagrams[appState.diagram]);
-	const view = $derived(evaluate(flow, appState.settings));
+	// Every navigation makes a new state, and stepping should not count as the settings changing,
+	// because a new view is what makes the diagram animate.
+	const settingsKey = $derived(JSON.stringify(appState.settings));
+	const view = $derived.by(() => {
+		const diagram = flow;
+		void settingsKey;
+		return evaluate(
+			diagram,
+			untrack(() => appState.settings)
+		);
+	});
+	const mode = $derived(appState.mode);
 	const steps = $derived(view.steps);
-	const layout = $derived(layoutDiagram(view, appState.mode));
+	const layout = $derived(layoutDiagram(view, mode));
 	const position = $derived(steps.findIndex((step) => step.id === appState.step));
 	const current = $derived(steps[position]);
 	const holdings = $derived(holdingsAt(view, appState.step));
 	const channelsHere = $derived([...new Set(steps.map((step) => step.channel))]);
 	const origin = $derived(provenance(base, flow, appState.settings));
 
-	// What the last change of settings did. Stays until the visitor moves on, so it can be read.
-	interface LastChange {
-		diff: ViewDiff | null;
-		resets: Reset[];
-		elsewhere: boolean;
-		setting: SettingId | null;
-	}
-	const NOTHING_CHANGED: LastChange = { diff: null, resets: [], elsewhere: false, setting: null };
 	let last = $state.raw<LastChange>(NOTHING_CHANGED);
+	// Set by flipping a setting, until the screen has moved to what that asked for.
+	let flipping: Settings | null = null;
 	let previousView = untrack(() => view);
 	let previousStepId = untrack(() => appState.step);
 	let previousDiagram = untrack(() => appState.diagram);
@@ -117,13 +117,14 @@
 		const stepId = appState.step;
 		const diagram = appState.diagram;
 		untrack(() => {
-			const diff = diffViews(previousView, nextView);
-			if (diagram !== previousDiagram || (isEmptyDiff(diff) && stepId !== previousStepId)) {
-				last = NOTHING_CHANGED;
-			} else if (!isEmptyDiff(diff) && animate) {
-				// Opening a link also moves from the prerendered default state, but changes nothing.
-				last = { ...last, diff };
-			}
+			last = afterMove(last, {
+				diff: diffViews(previousView, nextView),
+				stepChanged: stepId !== previousStepId,
+				diagramChanged: diagram !== previousDiagram,
+				ready: animate,
+				byFlip: flipping !== null && JSON.stringify(flipping) === settingsKey
+			});
+			flipping = null;
 			previousView = nextView;
 			previousStepId = stepId;
 			previousDiagram = diagram;
@@ -157,21 +158,8 @@
 			: null
 	);
 
-	// A switch that visibly does nothing here, because it is about the other diagram, reads as broken.
-	// So someone new is only offered the ones that do something, along with any they have left on.
 	const notHere = $derived(
-		appState.mode === 'simple'
-			? simpleSettingIds.filter((id) => {
-					if (appState.settings[id] !== defaultSettings[id]) return false;
-					const flipped = changeSetting(appState.settings, id, !appState.settings[id] as never);
-					// One that cannot be turned on just now only says why where it could do something.
-					if (flipped.settings[id] === appState.settings[id]) return !settingsUsedBy(flow).has(id);
-					return (
-						!changesInPlainWords(flow, appState.settings, flipped.settings) &&
-						changesInPlainWords(base.diagrams[otherDiagram], appState.settings, flipped.settings)
-					);
-				})
-			: []
+		mode === 'simple' ? settingsNotHere(base, appState.diagram, appState.settings) : []
 	);
 	const settingsElsewhere = $derived({
 		text: otherDiagram === 'flow' ? 'user flow' : 'setup',
@@ -180,18 +168,16 @@
 
 	function setSetting<K extends SettingId>(id: K, value: Settings[K]) {
 		const result = withSetting(base, appState, id, value);
-		const other = base.diagrams[otherDiagram];
-		const before = appState.settings;
-		const after = result.state.settings;
-		const elsewhere =
-			isEmptyDiff(diffViews(evaluate(flow, before), evaluate(flow, after))) &&
-			!isEmptyDiff(diffViews(evaluate(other, before), evaluate(other, after)));
-		last = {
-			diff: elsewhere ? null : last.diff,
-			resets: result.resets,
-			elsewhere,
-			setting: id
-		};
+		last = afterFlip(
+			last,
+			id,
+			flow,
+			base.diagrams[otherDiagram],
+			appState.settings,
+			result.state.settings,
+			result.resets
+		);
+		flipping = result.state.settings;
 		onnavigate(result.state, 'push');
 	}
 
@@ -278,7 +264,10 @@
 
 	// The answer stays marked until someone moves on. A link to the step just shows the step.
 	let executed = $state<{ from: string; to: string } | null>(null);
-	const answerTo = $derived(executed?.to === appState.step ? executed.from : null);
+	// Only while that step is still there, which a setting changed since may have ended.
+	const answerTo = $derived(
+		executed?.to === appState.step && numberOf(executed.from) !== null ? executed.from : null
+	);
 	function execute() {
 		if (!answer) return;
 		executed = { from: appState.step, to: answer };
@@ -311,7 +300,8 @@
 	});
 
 	function onkeydown(event: KeyboardEvent) {
-		if (event.altKey || event.ctrlKey || event.metaKey) return;
+		// With a modifier these belong to the browser, such as Alt+Left and Shift+End.
+		if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 		if (event.key === 'Escape' && appState.source) {
 			closeSource();
 			return;
