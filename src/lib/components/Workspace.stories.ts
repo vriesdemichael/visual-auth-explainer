@@ -54,3 +54,19 @@ export const WithASourceOpen: Story = {
 export const ASecondBaseFlow: Story = {
 	args: { base: secondFlow, state: parseState(secondFlow, 'flow', '') }
 };
+
+export const WithTheSettingsOutOfTheWay: Story = {
+	args: { state: parseState(base, 'flow', 'settings=off&step=token-request') }
+};
+
+export const AnsweringAQuestion: Story = {
+	args: {
+		question: 'How does an app get access?',
+		state: parseState(base, 'flow', 'step=api-response'),
+		onward: {
+			title: 'How does an app know who logged in?',
+			summary: 'Access is not identity, which is what OpenID Connect adds.',
+			href: '#next'
+		}
+	}
+};

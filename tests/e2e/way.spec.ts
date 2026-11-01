@@ -42,10 +42,33 @@ test.describe('the question someone came with', () => {
 		await openNode(page, 'what-is-in-my-token');
 		await page.getByTestId('next').click();
 		await page.getByRole('link', { name: 'Map', exact: true }).click();
-		await expect(page.getByTestId('node-what-is-in-my-token')).toHaveAttribute(
-			'aria-current',
-			'location'
-		);
+		const marked = page.getByTestId('node-what-is-in-my-token');
+		await expect(marked).toHaveAttribute('aria-current', 'location');
+		await expect(marked).toBeInViewport();
+	});
+
+	test('survives a reload, and being stepped back to where it started', async ({ page }) => {
+		await openNode(page, 'pkce');
+		await page.getByTestId('next').click();
+		await expect(page).toHaveURL(/step=redirect-to-idp/);
+		await page.reload();
+		await page.locator('.workspace[data-ready="true"]').waitFor();
+		await expect(title(page)).toHaveText('How does PKCE work?');
+		await page.keyboard.press('Home');
+		await expect(page).toHaveURL(/step=open-app/);
+		await page.reload();
+		await page.locator('.workspace[data-ready="true"]').waitFor();
+		await expect(page.locator('[data-state="current"]')).toHaveAttribute('data-step', 'open-app');
+	});
+
+	test('survives switching mode and reloading, whichever mode it opens in', async ({ page }) => {
+		await openNode(page, 'redirect-uri-error');
+		await page.locator('[data-mode="simple"]').click();
+		await expect(page).toHaveURL(/mode=simple/);
+		await page.reload();
+		await page.locator('.workspace[data-ready="true"]').waitFor();
+		await expect(page.locator('[data-mode="simple"]')).toHaveAttribute('aria-pressed', 'true');
+		await expect(title(page)).toHaveText('Why do I get Invalid parameter: redirect_uri?');
 	});
 
 	test('is not made up for a link that did not come from the map', async ({ page }) => {
@@ -146,6 +169,20 @@ test.describe('someone told to add login', () => {
 	test('is not told about their app on a step that has nothing to do with it', async ({ page }) => {
 		await open(page, 'mode=simple&step=login-page');
 		await expect(page.getByTestId('step-practice')).toHaveCount(0);
+	});
+});
+
+test.describe('someone who asks why not just send the token', () => {
+	test('has that question, and gets the answer at the step that matters', async ({ page }) => {
+		await openNode(page, 'why-a-code');
+		await expect(page.locator('[data-state="current"]')).toHaveAttribute(
+			'data-step',
+			'redirect-with-code'
+		);
+		await expect(page.getByTestId('step-detail')).toContainText('so it cannot be a token yet');
+		const pitfall = page.getByTestId('step-pitfall');
+		await pitfall.locator('summary').click();
+		await expect(pitfall).toContainText('implicit flow');
 	});
 });
 

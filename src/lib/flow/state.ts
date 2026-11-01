@@ -42,10 +42,13 @@ export interface AppState {
 	explained: Explained | null;
 	/** Whether to show what is specific to the server this was recorded from (ADR-015). */
 	serverNotes: boolean;
+	/** The settings put out of the way, to give the diagram the room, such as on a projector. */
+	settingsHidden: boolean;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
 const SERVER_NOTES_PARAM = 'keycloak';
+const SETTINGS_PANEL_PARAM = 'settings';
 
 const diagramOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
 const viewOf = (base: BaseFlow, state: AppState) =>
@@ -115,7 +118,8 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 		step: resolveStep(flow, evaluate(flow, settings), params.get('step')),
 		source: parseSource(params),
 		explained: parseExplained(base, diagram, params.get('explain')),
-		serverNotes: params.get(SERVER_NOTES_PARAM) !== 'off'
+		serverNotes: params.get(SERVER_NOTES_PARAM) !== 'off',
+		settingsHidden: params.get(SETTINGS_PANEL_PARAM) === 'off'
 	};
 }
 
@@ -136,6 +140,15 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	}
 	if (state.explained) params.set('explain', `${state.explained.kind}.${state.explained.id}`);
 	if (!state.serverNotes) params.set(SERVER_NOTES_PARAM, 'off');
+	if (state.settingsHidden) params.set(SETTINGS_PANEL_PARAM, 'off');
+	return params.toString();
+}
+
+/** The same, on the address of a node, where what the node starts from would apply otherwise. */
+export function serializeOnNode(base: BaseFlow, state: AppState): string {
+	const params = new URLSearchParams(serializeState(base, state));
+	params.set('mode', state.mode);
+	params.set('step', state.step);
 	return params.toString();
 }
 
@@ -150,7 +163,8 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		step: resolveStep(flow, evaluate(flow, merged), null),
 		source: null,
 		explained: null,
-		serverNotes: true
+		serverNotes: true,
+		settingsHidden: false
 	});
 }
 
@@ -191,6 +205,10 @@ export function withMode(state: AppState, mode: Mode): AppState {
 export function withServerNotes(state: AppState, serverNotes: boolean): AppState {
 	const closes = !serverNotes && state.source && isVendorSource(state.source.id);
 	return { ...state, serverNotes, source: closes ? null : state.source };
+}
+
+export function withSettingsHidden(state: AppState, settingsHidden: boolean): AppState {
+	return { ...state, settingsHidden };
 }
 
 export function withExplained(state: AppState, explained: Explained | null): AppState {

@@ -468,6 +468,10 @@ export const authorizationCode: DiagramDef = {
 			label: '302 back with a code',
 			concept:
 				'The identity provider sends the browser back to the app with a short-lived, one-time code. This goes through the browser, where it can be seen, so it cannot be a token yet.',
+			pitfall: {
+				title: 'Why not send the token here?',
+				text: 'That is the implicit flow, and it is what apps in a browser used to do. The token then sits in an address, where history, logs and other pages can get at it, and it cannot be tied to the app that asked. Current advice is not to use it, though you will still see it offered.'
+			},
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query' },

@@ -99,6 +99,10 @@
 							checked={settings[id] === option.value}
 							disabled={blocked !== undefined}
 							onchange={() => set(id, option.value)}
+							onclick={(event) => {
+								// A click has made the choice, so the arrow keys go back to moving through the steps.
+								if (event.detail > 0) event.currentTarget.blur();
+							}}
 						/>
 						{option.label}
 						{#if blocked}<small>{blocked}</small>{/if}

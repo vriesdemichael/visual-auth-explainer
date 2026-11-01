@@ -5,7 +5,7 @@
 	import { page } from '$app/state';
 	import Workspace from '#lib/components/Workspace.svelte';
 	import { flows } from '#lib/flow/index.ts';
-	import { parseState, serializeState, type AppState } from '#lib/flow/state.ts';
+	import { parseState, serializeOnNode, serializeState, type AppState } from '#lib/flow/state.ts';
 	import {
 		nextQuestion,
 		nodeMatching,
@@ -76,6 +76,12 @@
 	);
 
 	function hrefFor(state: AppState) {
+		// The address of the question, for as long as the question still holds, so a reload or a link
+		// keeps it.
+		if (question && stillAnswers(question, state)) {
+			const node = resolve('/[flow]/[[view]]', { flow: base.id, view: question.id });
+			return `${node}?${serializeOnNode(base, state)}`;
+		}
 		const search = serializeState(base, state);
 		const view = state.diagram === 'setup' ? 'setup' : undefined;
 		return resolve('/[flow]/[[view]]', { flow: base.id, view }) + (search ? `?${search}` : '');

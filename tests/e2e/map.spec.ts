@@ -127,12 +127,14 @@ test.describe('the address of a node', () => {
 });
 
 test.describe('leaving a node', () => {
-	test('stepping moves to an address that still says exactly where you are', async ({ page }) => {
+	test('stepping keeps the address of the question, and says exactly where you are', async ({
+		page
+	}) => {
 		await page.goto(pathOf('stolen-code'));
 		await page.locator('.workspace[data-ready="true"]').waitFor();
 		await page.getByTestId('next').click();
 		await expect(page).toHaveURL(
-			/authorization-code\/\?client=public&attacker=1&step=attacker-token-request/
+			/authorization-code\/stolen-code\/\?.*step=attacker-token-request/
 		);
 		await page.reload();
 		await page.locator('.workspace[data-ready="true"]').waitFor();
@@ -140,6 +142,7 @@ test.describe('leaving a node', () => {
 			'data-step',
 			'attacker-token-request'
 		);
+		await expect(page.getByTestId('title')).toHaveText('What if someone steals the code?');
 	});
 
 	test('flipping a setting by hand has an address, with or without a node', async ({ page }) => {

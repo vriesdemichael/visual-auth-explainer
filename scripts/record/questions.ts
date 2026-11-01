@@ -237,6 +237,38 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 	}
 
 	{
+		// The way that did send the token through the browser, and whether it is still there.
+		const client = await freshClient(admin, 'note-implicit');
+		const ask = async () => {
+			const answer = await fetch(
+				`${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/auth?${new URLSearchParams({
+					response_type: 'token',
+					client_id: 'note-implicit',
+					redirect_uri: REDIRECT_URI,
+					state: random()
+				})}`,
+				{ redirect: 'manual' }
+			);
+			await answer.text();
+			const location = answer.headers.get('location') ?? '';
+			return { status: answer.status, allowed: answer.status === 200 && !location };
+		};
+		const before = await ask();
+		await change(client, { implicitFlowEnabled: true });
+		const discovery = await fetch(
+			`${KEYCLOAK}/realms/${LOCAL_REALM}/.well-known/openid-configuration`
+		);
+		const { response_types_supported: types } = (await discovery.json()) as {
+			response_types_supported: string[];
+		};
+		answers.implicitFlow = {
+			serverLists: types.includes('token'),
+			before,
+			after: await ask()
+		};
+	}
+
+	{
 		// A public client in a page calls the token endpoint from that page, so the browser has a say.
 		// Created through this API with none, a client copies them from its redirect URIs. In the
 		// console it starts with the list empty, so that is what this starts from.

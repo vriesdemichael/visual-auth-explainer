@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
+	import { afterNavigate } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import LearningMap from '#lib/components/LearningMap.svelte';
@@ -14,7 +15,7 @@
 
 	const current = $derived(mounted ? page.url.searchParams.get('at') : null);
 	const DESCRIPTION =
-		'OAuth and OpenID Connect on one living diagram, with its messages recorded from a real server. Pick a question and follow it, one message at a time.';
+		'OAuth and OpenID Connect on one living diagram, with its messages recorded from a real Keycloak. The protocol is the same on other providers. Pick a question and follow it, one message at a time.';
 	const sharing = sharingTags({
 		title: 'Visual auth explainer',
 		description: DESCRIPTION,
@@ -22,8 +23,9 @@
 	});
 	const hrefOf = (node: MapNode) => resolve('/[flow]/[[view]]', { flow: node.flow, view: node.id });
 
-	$effect(() => {
-		if (!current) return;
+	// After the navigation, which otherwise puts the page back at the top.
+	afterNavigate(async () => {
+		await tick();
 		document.querySelector('[aria-current="location"]')?.scrollIntoView({ block: 'center' });
 	});
 </script>
@@ -39,8 +41,9 @@
 <main data-ready={mounted}>
 	<h1>Visual auth explainer</h1>
 	<p class="lead">
-		OAuth and OpenID Connect on one living diagram, with its messages recorded from a real server.
-		Pick a question and follow it, one message at a time. New to this? Start with the first one.
+		OAuth and OpenID Connect on one living diagram, with its messages recorded from a real Keycloak.
+		The protocol is the same on other providers. Pick a question and follow it, one message at a
+		time. New to this? Start with the first one.
 	</p>
 	<LearningMap tracks={mapTracks} {hrefOf} {current} />
 </main>
