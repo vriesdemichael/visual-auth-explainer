@@ -87,6 +87,9 @@
 			One real run against {serverNamed ? `Keycloak ${recording.keycloak}` : 'a real server'}, on {recording.recordedAt},
 			on one machine and so over plain HTTP, with throwaway values. Anywhere else all of this has to
 			be HTTPS. Only the headers that matter here were kept.
+			{#if recording.settings.clientType === 'public'}
+				The app here was a server standing in for one in a page or on a phone.
+			{/if}
 			{#if !serverNamed}
 				Names such as realms, and claims such as realm_access, are that server's own.
 			{/if}

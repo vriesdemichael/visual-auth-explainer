@@ -365,7 +365,7 @@
 					{#if question}{flow.title}.{/if} Based on {origin.specs.join(', ')}.
 				{/if}
 				{#if origin.recorded}
-					Recorded from
+					{origin.onlyItsHttp ? 'Its HTTP was recorded from' : 'Recorded from'}
 					{#if !appState.serverNotes}
 						a real server
 					{:else if appState.mode === 'simple'}

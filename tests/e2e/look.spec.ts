@@ -143,6 +143,24 @@ test.describe('how we know', () => {
 	test('a step with nothing on the wire makes no claim', async ({ page }) => {
 		await open(page, '', 'setup');
 		await expect(page.getByTestId('step-known')).toHaveCount(0);
+		await expect(page.getByTestId('provenance')).toContainText('Its HTTP was recorded from');
+	});
+
+	test('it says when the app was a server standing in for one in a page', async ({ page }) => {
+		await open(page, 'client=public&step=token-response');
+		await expect(page.getByTestId('payload-origin')).toContainText('standing in');
+		await open(page, 'step=token-response');
+		await expect(page.getByTestId('payload-origin')).not.toContainText('standing in');
+	});
+
+	test('a line about what libraries do names some', async ({ page }) => {
+		await open(page, 'step=callback');
+		const examples = page.getByTestId('step-practice-examples');
+		await expect(examples).toContainText('passport-oauth2');
+		await expect(examples.getByRole('link', { name: 'Spring Security' })).toHaveAttribute(
+			'href',
+			/^https:\/\/github\.com/
+		);
 	});
 
 	test('the screen names its specs and the server it was checked against', async ({ page }) => {

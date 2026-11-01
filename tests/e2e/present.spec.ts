@@ -71,9 +71,7 @@ test.describe('someone on another provider', () => {
 
 	test('is told on the home screen that this is not only about one product', async ({ page }) => {
 		await page.goto('./');
-		await expect(page.locator('.lead').first()).toContainText(
-			'The protocol is the same on other providers'
-		);
+		await expect(page.locator('.lead').first()).toContainText('The specs are the same elsewhere');
 	});
 
 	test('is told what in a message is the server’s own', async ({ page }) => {

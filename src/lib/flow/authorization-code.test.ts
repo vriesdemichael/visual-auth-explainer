@@ -10,7 +10,9 @@ import {
 	type Settings
 } from '#lib/flow/settings.ts';
 import shippedStepIds from '#lib/flow/shipped-step-ids.json';
+import questions from '../../../static/recordings/authorization-code/questions.json';
 
+const { answers } = questions;
 const view = (settings: Partial<Settings> = {}) =>
 	evaluate(flow, { ...defaultSettings, ...settings });
 const diff = (before: Partial<Settings>, after: Partial<Settings>) =>
@@ -369,6 +371,31 @@ describe('DPoP', () => {
 		expect(steps.indexOf('token-request')).toBeLessThan(steps.indexOf('nonce-challenge'));
 		expect(steps.indexOf('token-request-retry')).toBeLessThan(steps.indexOf('token-response'));
 	});
+
+	it('does not promise what only an API that checks the proof delivers', () => {
+		const dpop = view({ binding: 'dpop' }).steps;
+		const said = (id: string) => dpop.find((step) => step.id === id);
+		expect(said('generate-key')?.concept).toContain('at an API that checks the proof');
+		expect(said('token-response')?.inPractice).toContain('At an API that checks the proof');
+	});
+
+	it('does not say that whoever has the code gets the tokens, when the login named the key', () => {
+		const settings = { binding: 'dpop', clientType: 'public' } as const;
+		const said = (id: string) => view(settings).steps.find((step) => step.id === id);
+		expect(said('token-request')?.pitfall?.text).toContain('refuses the code');
+		expect(said('token-request')?.pitfall?.text).not.toContain('gets the tokens');
+		expect(said('token-request')?.concept).not.toContain('anyone holding the code');
+		expect(said('callback')?.concept).not.toContain('all anyone needs');
+		// The answers behind that, and the case it does not cover.
+		expect(answers.interceptedCode.withDpop).toMatchObject({
+			namedKeyNoProof: { status: 400 },
+			namedKeyOtherProof: { status: 400 },
+			namedKeyRightProof: { status: 200 },
+			noNamedKeyTheirOwnProof: { status: 200 },
+			requiredTheirOwnProof: { status: 200 }
+		});
+		expect(said('token-request')?.pitfall?.text).toContain('a key of their own');
+	});
 });
 
 describe('PKCE', () => {
@@ -534,6 +561,46 @@ describe('an attacker', () => {
 			/plain case/
 		);
 		expect(unavailable('attacker', true, { ...defaultSettings, broker: true })).not.toBeNull();
+	});
+
+	describe('says what really happens, in simple mode too, for each protection', () => {
+		const publicClient = { clientType: 'public' } as const;
+		const withSecret = { clientType: 'confidential' } as const;
+		const request = (settings: Partial<Settings>) =>
+			on(settings).steps.find((step) => step.id === 'attacker-token-request');
+
+		it.each([
+			[publicClient, false, 'They get the tokens'],
+			[publicClient, true, 'Refused: they have no verifier'],
+			[withSecret, false, 'Refused: they have no secret'],
+			[withSecret, true, 'Refused: they have no secret']
+		] as const)('%o with PKCE %s: %s', (client, pkce, plain) => {
+			expect(answer({ ...client, pkce })?.plain).toBe(plain);
+		});
+
+		it('matches what a real server answered, each way', () => {
+			expect(answers.interceptedCode.publicWithoutPkce.gotTokens).toBe(true);
+			expect(answers.interceptedCode.publicWithPkceNoVerifier.gotTokens).toBe(false);
+			expect(answers.interceptedCode.confidentialNoPkceNoSecret.gotTokens).toBe(false);
+		});
+
+		it('does not call their request the same as the real app when it lacks the verifier', () => {
+			const said = request({ ...publicClient, pkce: true })?.concept;
+			expect(said).toContain('without the verifier');
+			expect(said).not.toContain('nothing marks');
+			expect(request({ ...publicClient, pkce: false })?.concept).toContain('nothing marks');
+		});
+
+		it('does not say the real app can be used against PKCE', () => {
+			const said = answer({ ...withSecret, pkce: true })?.concept;
+			expect(said).toContain('gets them nothing');
+			expect(said).not.toContain('which is what PKCE stops');
+			expect(answer({ ...withSecret, pkce: false })?.concept).toContain('which is what PKCE stops');
+			expect(answers.interceptedCode.confidentialWithPkceSecretButWrongVerifier).toMatchObject({
+				gotTokens: false,
+				theRealAppAfterwards: { status: 400 }
+			});
+		});
 	});
 });
 

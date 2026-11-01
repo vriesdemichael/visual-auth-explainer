@@ -176,6 +176,16 @@
 			<p class="practice" data-testid="step-practice">
 				<strong>In practice.</strong>
 				{step.inPractice}
+				{#if step.practice.length}
+					<span class="examples" data-testid="step-practice-examples">
+						For example,
+						{#each step.practice as example, index (example.name)}
+							{#if index}, and{/if}
+							<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- another site -->
+							<a href={example.url} target="_blank" rel="noreferrer">{example.name}</a>
+							{example.text}{/each}.
+					</span>
+				{/if}
 			</p>
 		{/if}
 		<p class="channel" data-channel={step.channel} data-testid="step-channel">

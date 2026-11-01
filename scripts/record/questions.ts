@@ -29,7 +29,7 @@ function proofKey() {
 	const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
 	const { kty, crv, x, y } = publicKey.export({ format: 'jwk' }) as Record<string, string>;
 	const jwk = { crv, kty, x, y };
-	return (method: string, url: string, extra: Record<string, string> = {}) => {
+	const prove = (method: string, url: string, extra: Record<string, string> = {}) => {
 		const signing = `${b64(JSON.stringify({ typ: 'dpop+jwt', alg: 'ES256', jwk }))}.${b64(
 			JSON.stringify({
 				jti: random(),
@@ -45,6 +45,7 @@ function proofKey() {
 		});
 		return `${signing}.${signature.toString('base64url')}`;
 	};
+	return Object.assign(prove, { thumbprint: sha256(JSON.stringify(jwk)) });
 }
 
 /** Logs in through a real browser and hands back the code, without the demo app finishing the job. */
@@ -318,14 +319,19 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 
 	{
 		const client = await freshClient(admin, 'note-consent');
-		const logIn = async (answer?: 'accept' | 'cancel') => {
+		const logIn = async (
+			answer?: 'accept' | 'cancel',
+			clientId = 'note-consent',
+			scope?: string
+		) => {
 			const context = await browser.newContext();
 			const page = await context.newPage();
 			const query = new URLSearchParams({
 				response_type: 'code',
-				client_id: 'note-consent',
+				client_id: clientId,
 				redirect_uri: REDIRECT_URI,
-				state: random()
+				state: random(),
+				...(scope ? { scope } : {})
 			});
 			demo.lastCode = '';
 			await page.goto(`${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/auth?${query}`);
@@ -344,15 +350,16 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 			const landed = new URL(page.url());
 			await context.close();
 			const code = demo.lastCode;
-			const tokens = code
-				? await token(LOCAL_REALM, {
-						grant_type: 'authorization_code',
-						code,
-						redirect_uri: REDIRECT_URI,
-						client_id: 'note-consent',
-						client_secret: CLIENT_SECRET
-					})
-				: null;
+			const tokens =
+				code && clientId === 'note-consent'
+					? await token(LOCAL_REALM, {
+							grant_type: 'authorization_code',
+							code,
+							redirect_uri: REDIRECT_URI,
+							client_id: 'note-consent',
+							client_secret: CLIENT_SECRET
+						})
+					: null;
 			const claims = tokens?.json.access_token ? claimsOf(tokens.json.access_token) : null;
 			return {
 				asked,
@@ -368,6 +375,16 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 		const declined = await logIn('cancel');
 		const agreed = await logIn('accept');
 		const again = await logIn();
+		const noSecret = await freshClient(admin, 'note-consent-public', { publicClient: true });
+		await change(noSecret, { consentRequired: true });
+		const onPublic = async (scope?: string) => {
+			const { asked, lists } = await logIn('accept', 'note-consent-public', scope);
+			return { asked, lists };
+		};
+		const first = await onPublic();
+		const second = await onPublic();
+		const withANewScope = await onPublic('phone');
+		const withThatScopeAgain = await onPublic('phone');
 		answers.consentRequired = {
 			before: { asked: before.asked, audience: before.audience, hasRoles: before.hasRoles },
 			after: {
@@ -378,7 +395,8 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 				gotCode: Boolean(agreed.code),
 				secondLoginAsked: again.asked,
 				whenDeclined: declined.error
-			}
+			},
+			onAPublicClient: { first, second, withANewScope, withThatScopeAgain }
 		};
 	}
 
@@ -405,6 +423,13 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 				gotCode: Boolean(after.code),
 				says: new URL(after.landed).searchParams.get('error_description')
 			}
+		};
+		const withSecret = await freshClient(admin, 'note-pkce-secret');
+		await change(withSecret, { attributes: { 'pkce.code.challenge.method': 'S256' } });
+		const refused = await codeFor(browser, demo, LOCAL_REALM, 'note-pkce-secret');
+		answers.requirePkceWithASecret = {
+			gotCode: Boolean(refused.code),
+			says: new URL(refused.landed).searchParams.get('error_description')
 		};
 	}
 
@@ -444,9 +469,19 @@ async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 			config: { 'included.custom.audience': 'my-api', 'access.token.claim': 'true' }
 		});
 		const after = await tokensFor(browser, demo, 'note-audience');
+		const noRoles = await freshClient(admin, 'note-audience-roles');
+		const defaults = await admin.call<{ id: string; name: string }[]>(
+			'GET',
+			`${onClient(noRoles)}/default-client-scopes`
+		);
+		for (const scope of defaults.filter(({ name }) => name === 'roles')) {
+			await admin.call('DELETE', `${onClient(noRoles)}/default-client-scopes/${scope.id}`);
+		}
+		const withoutRoles = await tokensFor(browser, demo, 'note-audience-roles');
 		answers.audience = {
 			before: { ...said(claimsOf(before.json.access_token).aud), demoApi: demoApi.status },
-			after: said(claimsOf(after.json.access_token).aud)
+			after: said(claimsOf(after.json.access_token).aud),
+			withoutTheRolesScope: { aud: claimsOf(withoutRoles.json.access_token).aud ?? null }
 		};
 	}
 
@@ -530,13 +565,14 @@ async function behindTheBrokeringNotes(browser: Browser, demo: Demo, admin: Admi
 	await setProvider({});
 
 	// Last, because it changes the login for everything after it, and the server stops after this.
-	const authorize = async () => {
+	const authorize = async (extra: Record<string, string> = {}) => {
 		const answer = await fetch(
 			`${KEYCLOAK}/realms/${BROKERED_REALM}/protocol/openid-connect/auth?${new URLSearchParams({
 				response_type: 'code',
 				client_id: CONFIDENTIAL_CLIENT,
 				redirect_uri: REDIRECT_URI,
-				state: random()
+				state: random(),
+				...extra
 			})}`,
 			{ redirect: 'manual' }
 		);
@@ -554,6 +590,7 @@ async function behindTheBrokeringNotes(browser: Browser, demo: Demo, admin: Admi
 		`/realms/${BROKERED_REALM}/authentication/config/${redirector?.authenticationConfig}`
 	);
 	const notRedirecting = await authorize();
+	const withHint = await authorize({ kc_idp_hint: UPSTREAM_REALM });
 
 	return {
 		storeTokens: {
@@ -566,7 +603,7 @@ async function behindTheBrokeringNotes(browser: Browser, demo: Demo, admin: Admi
 			before,
 			after: readableOff
 		},
-		brokerRedirector: { before: redirecting, after: notRedirecting }
+		brokerRedirector: { before: redirecting, after: notRedirecting, withHint }
 	};
 }
 
@@ -681,6 +718,52 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 				...secret,
 				code_verifier: random() + random()
 			})
+		};
+	}
+
+	// The same theft with DPoP. A login can name the app's key with dpop_jkt (RFC 9449 section 10).
+	{
+		const url = `${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/token`;
+		const appKey = proofKey();
+		const theirKey = proofKey();
+		const named = { dpop_jkt: appKey.thumbprint };
+		const tryIt = async (extra: Record<string, string>, key?: ReturnType<typeof proofKey>) => {
+			const { code } = await codeFor(browser, demo, LOCAL_REALM, PUBLIC_CLIENT, extra);
+			const result = await token(
+				LOCAL_REALM,
+				{
+					grant_type: 'authorization_code',
+					code,
+					redirect_uri: REDIRECT_URI,
+					client_id: PUBLIC_CLIENT
+				},
+				key ? { dpop: key('POST', url) } : {}
+			);
+			return {
+				status: result.status,
+				error: result.json.error ?? null,
+				description: result.json.error_description ?? null,
+				tokenType: result.json.token_type ?? null
+			};
+		};
+		const withDpop = {
+			namedKeyNoProof: await tryIt(named),
+			namedKeyOtherProof: await tryIt(named, theirKey),
+			namedKeyRightProof: await tryIt(named, appKey),
+			noNamedKeyNoProof: await tryIt({}),
+			noNamedKeyTheirOwnProof: await tryIt({}, theirKey)
+		};
+		const required = { 'dpop.bound.access.tokens': 'true' };
+		await admin.setClientAttributes(LOCAL_REALM, PUBLIC_CLIENT, required);
+		const requiredNoProof = await tryIt({});
+		const requiredTheirOwnProof = await tryIt({}, theirKey);
+		await admin.setClientAttributes(LOCAL_REALM, PUBLIC_CLIENT, {
+			'dpop.bound.access.tokens': 'false'
+		});
+		(answers.interceptedCode as Record<string, unknown>).withDpop = {
+			...withDpop,
+			requiredNoProof,
+			requiredTheirOwnProof
 		};
 	}
 
@@ -863,7 +946,25 @@ export async function questionsWithApiV2(browser: Browser, demo: Demo, admin: Ad
 		'external.token.enabled': 'true'
 	});
 
+	const onProvider = `/realms/${BROKERED_REALM}/identity-provider/instances/${UPSTREAM_REALM}`;
+	const stored = async (storeToken: boolean, inSession: boolean) => {
+		const provider = await admin.call<{ config: Record<string, string> }>('GET', onProvider);
+		await admin.call('PUT', onProvider, {
+			...provider,
+			storeToken,
+			config: { ...provider.config, storeTokenInSession: String(inSession) }
+		});
+		return (await asked()).status;
+	};
+	const storeTokensOnApiV2 = {
+		neither: await stored(false, false),
+		inSessionOnly: await stored(false, true),
+		inDatabaseOnly: await stored(true, false),
+		both: await stored(true, true)
+	};
+
 	return {
+		storeTokensOnApiV2,
 		allowExternalTokens: {
 			before: { status: allowed.status },
 			after: { status: notAllowed.status, says: notAllowed.body }

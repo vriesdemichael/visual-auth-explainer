@@ -222,3 +222,18 @@ Separate searches confirmed the two closest tools and what they are for:
 
 - **IdentiFlows:** [Auth0's announcement](https://auth0.com/blog/introducing-identiflows-a-visual-reference-for-identity-flows/) describes per-flow pages with an intro, a sequence diagram and a step-by-step breakdown. It calls this an early release and asks for feedback. An earlier copy of the post said Client Credentials, Device Authorization and WebAuthn were coming soon. The first two have since shipped, so WebAuthn may be next.
 - **AuthPlayground:** [Ping's docs](https://developer.pingidentity.com/identity-for-ai/protocols/authplayground-cimd.html) confirm it is a simulated environment with no external IdP. Ping also describes a "Full Cross-Domain Access" flow that chains PAR, RAR, PKCE, DPoP and token exchange across seven steps. **That is the nearest thing to composition found**, but it is a fixed chain the reader cannot change.
+
+## What a stolen code gets with DPoP, and other corrections
+
+Tried on Keycloak 26.8.1 on 2026-11-01, because a claims audit doubted what the screen said. The answers are in `questions.json`, and a test holds the words to them.
+
+- **Public client, no PKCE, a login that named the key with `dpop_jkt`:** no proof gets a 400 "DPoP Proof missing", another key's proof a 400 "DPoP Proof public key thumbprint does not match dpop_jkt", and the right key a 200. So "whoever intercepted the code gets the tokens" was false here.
+- **The same, with no `dpop_jkt`:** no proof gets a 200 and a Bearer token, and the thief's own key a 200 and a DPoP token.
+- **The same, with Require DPoP bound tokens on:** no proof gets a 400, and the thief's own key still gets a 200. So that setting alone does not protect a code.
+- **Consent required on a public client:** remembered just as on a confidential one. Asked again only for a new scope, listing only that scope, and then not again.
+- **Require PKCE on a client with a secret:** a login with no challenge gets no code, with "Missing parameter: code_challenge_method".
+- **A default client's audience:** without the default `roles` client scope the access token has no `aud` at all, so `account` comes from that scope and not from an Audience mapper.
+- **API V2, what has to be on for the app to get the stored token:** neither Store tokens nor Store token in session gets a 400, and either one or both gets a 200.
+- **`kc_idp_hint`:** with no default provider set on the Identity Provider Redirector, this still goes straight to the other provider.
+
+What libraries do was read at their source the same day, and the claims and links are in `src/lib/flow/libraries.ts` and on the steps. Worth knowing: passport-oauth2 only compares `state` with `state: true`, and throws if PKCE is on without it. Auth.js has PKCE on by default and checks `state` only when configured to. Spring Security compares `state` unasked. oauth4webapi leaves the ID token's signature to a separate call, because OIDC Core allows skipping it for a token that came straight over TLS. AWS API Gateway's JWT authorizer lists no proof among what it checks, so a DPoP token sent as Bearer would pass its checks.

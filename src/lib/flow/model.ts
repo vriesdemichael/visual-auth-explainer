@@ -73,6 +73,16 @@ export interface ExecuteDef {
 	when?: Condition;
 }
 
+/** A library or gateway someone can look at, and what it does about a step. */
+export interface PracticeExample {
+	name: string;
+	url: string;
+	/** Whether it does what the line says, or leaves it to whoever uses it. */
+	does: boolean;
+	text: string;
+	when?: Condition;
+}
+
 export interface StepDef {
 	id: string;
 	from: string;
@@ -86,6 +96,8 @@ export interface StepDef {
 	pitfall?: PitfallDef;
 	/** What this means for someone building an app: who writes this part, and what is left to them. */
 	inPractice?: Text;
+	/** What is true of real libraries, so that a line about what they do has something behind it. */
+	practice?: readonly PracticeExample[];
 	links?: readonly StepLink[];
 	fields?: readonly FieldDef[];
 	execute?: ExecuteDef;
@@ -164,6 +176,7 @@ export interface Step {
 	group?: string;
 	pitfall?: Pitfall;
 	inPractice?: string;
+	practice: readonly PracticeExample[];
 	links: readonly StepLink[];
 	fields: Field[];
 	/** The step with the answer, when executing this one adds something. */
@@ -222,6 +235,7 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 			group: step.group,
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
 			inPractice: step.inPractice && resolveText(step.inPractice, settings),
+			practice: (step.practice ?? []).filter((example) => present(example.when, settings)),
 			links: step.links ?? [],
 			execute:
 				step.execute && present(step.execute.when, settings) ? step.execute.answer : undefined,

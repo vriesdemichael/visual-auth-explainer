@@ -215,7 +215,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'binding',
 		default: 'bearer',
 		summary: 'Whether holding the token is enough, or the app must also prove it holds a key.',
-		why: 'Whoever holds a bearer token can use it, so a token that leaks is as good as the real thing.DPoP ties the token to a key that never leaves the app, so a stolen token alone gets nobody in. Code running inside the app can still use the key while it is there.',
+		why: 'Whoever holds a bearer token can use it, so a token that leaks is as good as the real thing. DPoP ties the token to a key that never leaves the app, so at an API that checks the proof a stolen token alone gets nobody in. Code running inside the app can still use the key while it is there.',
 		sources: [
 			{ source: 'rfc6750', why: 'This is the Bearer option: holding the token is enough.' },
 			{

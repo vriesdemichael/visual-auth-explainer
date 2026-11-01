@@ -140,6 +140,25 @@ describe('the notes', () => {
 		expect(text({ clientType: 'public' })).toMatch(/^Off/);
 	});
 
+	it('say what a real server did about stored tokens on API V2', () => {
+		const text = notesFor('authorization-code', 'store-upstream-tokens', {
+			...defaultSettings,
+			broker: true,
+			upstreamTokens: 'v2'
+		}).find((note) => note.id === 'store-tokens')?.text;
+		expect(text).toContain('Store token in session');
+		expect(answers.storeTokensOnApiV2).toEqual({
+			neither: 400,
+			inSessionOnly: 200,
+			inDatabaseOnly: 200,
+			both: 200
+		});
+	});
+
+	it('say what a real server did when Require PKCE is on for a client with a secret', () => {
+		expect(answers.requirePkceWithASecret).toMatchObject({ gotCode: false });
+	});
+
 	describe.each(noteDefs.map((note) => [note.id, note] as const))('%s', (_, note) => {
 		it('is backed by what a real server did', () => {
 			expect(answers[note.backedBy.question]).toMatchObject(note.backedBy.shows);
