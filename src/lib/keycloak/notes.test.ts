@@ -151,7 +151,10 @@ describe('the notes', () => {
 
 		it('says where it is, and a real admin console has it there', () => {
 			if (!note.place) {
-				expect(note.serverOption || note.id === 'no-dpop-nonce').toBeTruthy();
+				// Two are about what the server does, with nothing in the console to change it.
+				expect(
+					Boolean(note.serverOption) || ['no-dpop-nonce', 'code-used-twice'].includes(note.id)
+				).toBe(true);
 				return;
 			}
 			const seen = (answers.console as Record<string, { missing: string[] }>)[note.id];

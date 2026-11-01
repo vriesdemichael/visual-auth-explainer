@@ -16,12 +16,11 @@ import {
 	BROKERED_REALM,
 	CLIENT_SECRET,
 	CONFIDENTIAL_CLIENT,
-	CONSENT_CLIENT,
 	KEYCLOAK,
 	LOCAL_REALM,
 	PASSWORD,
-	PUBLIC_CLIENT,
 	REDIRECT_URI,
+	setUpFor,
 	setUpRealms,
 	startKeycloak,
 	stopKeycloak,
@@ -130,11 +129,7 @@ function runFor(settings: Settings): Run {
 	return {
 		settings,
 		realm: settings.broker ? BROKERED_REALM : LOCAL_REALM,
-		clientId: settings.consent
-			? CONSENT_CLIENT
-			: settings.clientType === 'public'
-				? PUBLIC_CLIENT
-				: CONFIDENTIAL_CLIENT,
+		clientId: CONFIDENTIAL_CLIENT,
 		clientSecret: settings.clientType === 'public' ? null : CLIENT_SECRET,
 		messages: []
 	};
@@ -148,15 +143,10 @@ async function record(
 ) {
 	const settings = normalize({ ...defaultSettings, ...preset.settings }).settings;
 	const run = runFor(settings);
+	await setUpFor(admin, run.realm, settings);
 
 	// Setup's one HTTP exchange. Everything else in setup is people, or the admin calls in keycloak.ts.
-	const name = settings.oidc ? 'openid-configuration' : 'oauth-authorization-server';
-	const url = `${KEYCLOAK}/realms/${run.realm}/.well-known/${name}`;
-	run.messages.push(requestMessage('discover', 'GET', url, {}));
-	const answer = await fetch(url);
-	run.messages.push(
-		responseMessage('discovery-document', answer.status, answer.headers, await answer.text())
-	);
+	await demo.discover(run);
 
 	await admin.forgetBrokeredUsers();
 	demo.current = run;
@@ -239,6 +229,13 @@ async function main() {
 					messages: run.messages
 				});
 			}
+			const forQuestions = {
+				clientType: 'confidential',
+				consent: false,
+				upstreamTokens: features.length ? 'v2' : 'v1'
+			} as const;
+			await setUpFor(admin, LOCAL_REALM, forQuestions);
+			await setUpFor(admin, BROKERED_REALM, forQuestions);
 			Object.assign(inConsole, await lookInConsole(browser, admin, features));
 			Object.assign(answers, await questions(browser, demo, admin));
 			if (!features.length) {

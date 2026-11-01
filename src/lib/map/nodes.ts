@@ -198,7 +198,8 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'browser-app',
 					title: 'An app that runs in the browser',
-					summary: 'No secret to keep, so PKCE does the work.',
+					summary:
+						'No secret to keep, so PKCE does the work. Recorded from a server standing in for it.',
 					mode: 'advanced',
 					preset: 'browser-app',
 					step: 'token-request'

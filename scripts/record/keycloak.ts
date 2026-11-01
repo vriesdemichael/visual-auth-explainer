@@ -1,6 +1,7 @@
 // A throwaway Keycloak in a container, set up the way someone would through its admin API. Nothing
 // here is a real credential: the realms, users and secrets exist only for this run.
 import { execFileSync } from 'node:child_process';
+import type { Settings } from '#lib/flow/settings.ts';
 
 export const KEYCLOAK_PORT = 18080;
 export const KEYCLOAK = `http://localhost:${KEYCLOAK_PORT}`;
@@ -15,13 +16,15 @@ export const UPSTREAM_REALM = 'upstream';
 export const CONFIDENTIAL_CLIENT = 'demo-app';
 export const PUBLIC_CLIENT = 'demo-public';
 export const PKCE_CLIENT = 'demo-public-pkce';
-export const CONSENT_CLIENT = 'demo-consent';
 export const CLIENT_SECRET = 'throwaway-client-secret';
 export const BROKER_CLIENT = 'demo-broker';
 export const BROKER_SECRET = 'throwaway-broker-secret';
 export const USERNAME = 'alice';
 export const PASSWORD = 'throwaway-password';
 export const REDIRECT_URI = `${APP}/callback`;
+// A default client's access token names this and nothing else, and the recordings use one (ADR-005).
+// A real API expects its own name, which takes the Audience mapper, as the note on that step says.
+export const API_AUDIENCE = 'account';
 
 const CONTAINER = 'visual-auth-explainer-keycloak';
 export const ADMIN_PASSWORD = 'throwaway-admin';
@@ -162,17 +165,7 @@ export async function setUpRealms(admin: Admin) {
 	await admin.call(
 		'POST',
 		`/realms/${LOCAL_REALM}/clients`,
-		client(CONFIDENTIAL_CLIENT, confidential)
-	);
-	await admin.call(
-		'POST',
-		`/realms/${LOCAL_REALM}/clients`,
 		client(PUBLIC_CLIENT, { publicClient: true })
-	);
-	await admin.call(
-		'POST',
-		`/realms/${LOCAL_REALM}/clients`,
-		client(CONSENT_CLIENT, { ...confidential, consentRequired: true })
 	);
 	await admin.call(
 		'POST',
@@ -194,18 +187,6 @@ export async function setUpRealms(admin: Admin) {
 		redirectUris: [`${KEYCLOAK}/realms/${BROKERED_REALM}/broker/${UPSTREAM_REALM}/endpoint`]
 	});
 
-	await admin.call(
-		'POST',
-		`/realms/${BROKERED_REALM}/clients`,
-		client(CONFIDENTIAL_CLIENT, {
-			...confidential,
-			attributes: {
-				'external.token.enabled': 'true',
-				'external.token.idp': UPSTREAM_REALM
-			}
-		})
-	);
-
 	// The calls Keycloak makes to the upstream go through the proxy, so they can be recorded too.
 	const upstream = `realms/${UPSTREAM_REALM}/protocol/openid-connect`;
 	await admin.call('POST', `/realms/${BROKERED_REALM}/identity-provider/instances`, {
@@ -213,8 +194,6 @@ export async function setUpRealms(admin: Admin) {
 		providerId: 'oidc',
 		enabled: true,
 		trustEmail: true,
-		storeToken: true,
-		addReadTokenRoleOnCreate: true,
 		config: {
 			authorizationUrl: `${KEYCLOAK}/${upstream}/auth`,
 			tokenUrl: `${PROXY_FROM_CONTAINER}/${upstream}/token`,
@@ -243,4 +222,60 @@ export async function setUpRealms(admin: Admin) {
 		`/realms/${BROKERED_REALM}/authentication/executions/${redirector.id}/config`,
 		{ alias: 'straight-to-upstream', config: { defaultProvider: UPSTREAM_REALM } }
 	);
+
+	await setUpFor(admin, LOCAL_REALM, defaultsForQuestions);
+	await setUpFor(admin, BROKERED_REALM, defaultsForQuestions);
+}
+
+/** What the questions start from: an app with a secret, and stored tokens it can read. */
+const defaultsForQuestions: Pick<Settings, 'clientType' | 'consent' | 'upstreamTokens'> = {
+	clientType: 'confidential',
+	consent: false,
+	upstreamTokens: 'v1'
+};
+
+/**
+ * The client a run uses, made new, and the provider set the way these settings say. So nothing
+ * carries over from another run, such as an answer to the consent question, and a setting that is
+ * off really is off, on a client and a provider that are otherwise on their defaults (ADR-005).
+ */
+export async function setUpFor(
+	admin: Admin,
+	realm: string,
+	settings: Pick<Settings, 'clientType' | 'consent' | 'upstreamTokens'>
+) {
+	const onClients = `/realms/${realm}/clients`;
+	const [old] = await admin.call<{ id: string }[]>(
+		'GET',
+		`${onClients}?clientId=${CONFIDENTIAL_CLIENT}`
+	);
+	if (old) await admin.call('DELETE', `${onClients}/${old.id}`);
+	await admin.call(
+		'POST',
+		onClients,
+		client(CONFIDENTIAL_CLIENT, {
+			...(settings.clientType === 'public' ? { publicClient: true } : confidential),
+			// Set when a client is created through this API, this also turns off Full scope allowed, and
+			// the token has no roles and no audience. Turned on afterwards, as anyone does it in the
+			// console, it changes nothing in the token (questions.json).
+			...(settings.consent ? { consentRequired: true, fullScopeAllowed: true } : {}),
+			...(settings.upstreamTokens === 'v2'
+				? {
+						attributes: {
+							'external.token.enabled': 'true',
+							'external.token.idp': UPSTREAM_REALM
+						}
+					}
+				: {})
+		})
+	);
+
+	if (realm !== BROKERED_REALM) return;
+	const onProvider = `/realms/${BROKERED_REALM}/identity-provider/instances/${UPSTREAM_REALM}`;
+	const provider = await admin.call<object>('GET', onProvider);
+	await admin.call('PUT', onProvider, {
+		...provider,
+		storeToken: settings.upstreamTokens !== 'off',
+		addReadTokenRoleOnCreate: settings.upstreamTokens === 'v1'
+	});
 }

@@ -161,6 +161,8 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 		expect(wrong).toEqual([]);
 	});
 
+	const basicAuthOf = (secret: string) => Buffer.from(`demo-app:${secret}`).toString('base64');
+
 	// The chips under each lifeline are the most prominent claim on the screen, so hold them to it.
 	it('shows each credential and token exactly where the diagram says it goes', () => {
 		const valueIn = (step: string, name: string) => {
@@ -187,7 +189,8 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			return Object.entries(values).flatMap(([artifact, value]) => {
 				if (!value) return [];
 				const claimed = step.fields.some((field) => field.artifact === artifact);
-				const there = text.includes(value);
+				const there =
+					text.includes(value) || (artifact === 'secret' && text.includes(basicAuthOf(value)));
 				return claimed === there
 					? []
 					: [`${step.id}: ${artifact} ${there ? 'is there' : 'is not there'}`];

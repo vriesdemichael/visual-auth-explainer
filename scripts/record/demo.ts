@@ -1,23 +1,19 @@
 // A real little app and API, doing what the diagram says an app and an API do, and writing down
 // everything that crosses the wire while they do it.
-import {
-	createHash,
-	createPublicKey,
-	generateKeyPairSync,
-	randomBytes,
-	sign,
-	verify,
-	type KeyObject
-} from 'node:crypto';
+import { generateKeyPairSync, randomBytes, sign, type KeyObject } from 'node:crypto';
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { Settings } from '#lib/flow/settings.ts';
 import type { RecordedMessage } from '#lib/recordings/format.ts';
+import { accessTokenProblem, idTokenProblem, sha256, type Jwk } from './checks.ts';
 import {
 	API,
+	API_AUDIENCE,
 	APP,
+	BROKERED_REALM,
 	CLIENT_SECRET,
 	CONFIDENTIAL_CLIENT,
 	KEYCLOAK,
+	LOCAL_REALM,
 	PROXY_PORT,
 	REDIRECT_URI,
 	UPSTREAM_REALM
@@ -28,7 +24,6 @@ const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 const random = () => randomBytes(16).toString('base64url');
 const b64 = (value: string | Buffer) => Buffer.from(value).toString('base64url');
-const sha256 = (value: string) => createHash('sha256').update(value).digest('base64url');
 
 const KEPT_REQUEST_HEADERS = ['authorization', 'content-type', 'dpop', 'accept'];
 const KEPT_RESPONSE_HEADERS = ['location', 'content-type', 'www-authenticate', 'dpop-nonce'];
@@ -167,6 +162,22 @@ async function call(
 
 const jsonOf = <T>(text: string) => JSON.parse(text) as T;
 
+/** What the app learns from the issuer it was given, which is the last step of setup. */
+interface Discovered {
+	issuer: string;
+	authorization_endpoint: string;
+	token_endpoint: string;
+	userinfo_endpoint?: string;
+	jwks_uri: string;
+}
+
+const keysAt = async (jwksUri: string) =>
+	((await (await fetch(jwksUri)).json()) as { keys: Jwk[] }).keys;
+
+/** How a client that can keep a secret says who it is (RFC 6749 section 2.3.1). */
+const basicAuth = (id: string, secret: string) =>
+	`Basic ${Buffer.from(`${encodeURIComponent(id)}:${encodeURIComponent(secret)}`).toString('base64')}`;
+
 interface Tokens {
 	access_token: string;
 	id_token?: string;
@@ -179,17 +190,29 @@ export class Demo {
 	/** The code from a login that was not part of a run, for trying things out with it. */
 	lastCode = '';
 	#servers: Server[] = [];
+	#discovered: Discovered | null = null;
 	#state = '';
+	#nonce: string | null = null;
 	#key: ProofKey | null = null;
 	#verifier: string | null = null;
+	#seenProofs = new Set<string>();
 
 	get #run() {
 		if (!this.current) throw new Error('No run in progress');
 		return this.current;
 	}
 
-	#endpoint(path: string) {
-		return `${KEYCLOAK}/realms/${this.#run.realm}/protocol/openid-connect/${path}`;
+	get #server() {
+		if (!this.#discovered) throw new Error('The app has not looked up its identity provider');
+		return this.#discovered;
+	}
+
+	/** The one thing the app is told is the issuer. Everything else it asks for. */
+	async discover(run: Run) {
+		const name = run.settings.oidc ? 'openid-configuration' : 'oauth-authorization-server';
+		const url = `${KEYCLOAK}/realms/${run.realm}/.well-known/${name}`;
+		const answer = await call(run, ['discover', 'discovery-document'], 'GET', url);
+		this.#discovered = jsonOf<Discovered>(answer.text);
 	}
 
 	/** Bearer or DPoP, whichever the setting says. A proof is tied to the token it is sent with. */
@@ -207,18 +230,18 @@ export class Demo {
 		steps: [string, string] = ['token-request', 'token-response']
 	) {
 		const run = this.#run;
-		const url = this.#endpoint('token');
+		const url = this.#server.token_endpoint;
 		const body: Record<string, string> = {
 			grant_type: 'authorization_code',
 			code,
-			redirect_uri: REDIRECT_URI,
-			client_id: run.clientId
+			redirect_uri: REDIRECT_URI
 		};
-		if (run.clientSecret) body.client_secret = run.clientSecret;
+		if (!run.clientSecret) body.client_id = run.clientId;
 		if (this.#verifier) body.code_verifier = this.#verifier;
-		const headers: Record<string, string> = this.#key
-			? { dpop: this.#key.proof('POST', url, nonce ? { nonce } : {}) }
-			: {};
+		const headers: Record<string, string> = {
+			...(run.clientSecret ? { authorization: basicAuth(run.clientId, run.clientSecret) } : {}),
+			...(this.#key ? { dpop: this.#key.proof('POST', url, nonce ? { nonce } : {}) } : {})
+		};
 		return call(run, steps, 'POST', url, headers, body);
 	}
 
@@ -227,7 +250,7 @@ export class Demo {
 		const run = this.#run;
 		const own: Run = { ...run, messages: [] };
 		own.messages.push({ ...stolenFrom, step: 'attacker-steals-code' });
-		const url = this.#endpoint('token');
+		const url = this.#server.token_endpoint;
 		const result = await call(
 			own,
 			['attacker-token-request', 'attacker-token-response'],
@@ -279,7 +302,16 @@ export class Demo {
 		if (!tokens.access_token) throw new Error(`No token: ${result.text}`);
 
 		if (settings.oidc) {
-			const url = this.#endpoint('userinfo');
+			const problem = idTokenProblem(tokens.id_token, {
+				issuer: this.#server.issuer,
+				clientId: run.clientId,
+				nonce: this.#nonce,
+				keys: await keysAt(this.#server.jwks_uri)
+			});
+			if (problem) throw new Error(`The ID token: ${problem}`);
+
+			const url = this.#server.userinfo_endpoint;
+			if (!url) throw new Error('The identity provider names no UserInfo endpoint');
 			await call(
 				run,
 				['userinfo-request', 'userinfo-response'],
@@ -290,13 +322,14 @@ export class Demo {
 		}
 
 		const resource = `${API}/resource`;
-		await call(
+		const answer = await call(
 			run,
 			['api-request', 'api-response'],
 			'GET',
 			resource,
 			this.#authorization('GET', resource, tokens.access_token)
 		);
+		if (answer.status !== 200) throw new Error(`The API refused: ${answer.text}`);
 
 		if (settings.upstreamTokens !== 'off') await this.#storedToken(tokens.access_token);
 		return 'Logged in';
@@ -340,22 +373,23 @@ export class Demo {
 				this.#state = random();
 				this.#key = settings.binding === 'dpop' ? new ProofKey() : null;
 				this.#verifier = settings.pkce ? random() + random() : null;
+				this.#nonce = settings.oidc ? random() : null;
 				const query = new URLSearchParams({
 					response_type: 'code',
 					client_id: run.clientId,
 					redirect_uri: REDIRECT_URI,
 					state: this.#state
 				});
-				if (settings.oidc) {
+				if (this.#nonce) {
 					query.set('scope', 'openid');
-					query.set('nonce', random());
+					query.set('nonce', this.#nonce);
 				}
 				if (this.#key) query.set('dpop_jkt', this.#key.thumbprint);
 				if (this.#verifier) {
 					query.set('code_challenge', sha256(this.#verifier));
 					query.set('code_challenge_method', 'S256');
 				}
-				response.writeHead(302, { location: `${this.#endpoint('auth')}?${query}` });
+				response.writeHead(302, { location: `${this.#server.authorization_endpoint}?${query}` });
 				response.end();
 				return;
 			}
@@ -364,6 +398,11 @@ export class Demo {
 					this.lastCode = url.searchParams.get('code') ?? '';
 					response.writeHead(200, { 'content-type': 'text/html' });
 					response.end('<h1>Done</h1>');
+					return;
+				}
+				if (url.searchParams.get('state') !== this.#state) {
+					response.writeHead(400, { 'content-type': 'text/html' });
+					response.end('<h1>Failed</h1><p>An answer to something this app did not ask.</p>');
 					return;
 				}
 				try {
@@ -381,49 +420,33 @@ export class Demo {
 			response.end();
 		});
 
-		// Checks the token the way a real API would, so a 200 from it means something.
+		// A 200 from here has to mean it looked, because the diagram says it does.
 		const api = createServer(async (request, response) => {
-			const [scheme, token] = (request.headers.authorization ?? '').split(' ');
-			const fail = (status: number, message: string) => {
-				response.writeHead(status, {
-					'content-type': 'application/json',
-					'www-authenticate': `${scheme || 'Bearer'} error="invalid_token"`
-				});
-				response.end(JSON.stringify({ error: message }));
-			};
-			try {
-				const [header, payload, signature] = token.split('.');
-				const { kid } = JSON.parse(Buffer.from(header, 'base64url').toString());
-				const claims = JSON.parse(Buffer.from(payload, 'base64url').toString());
-				const { keys } = (await (
-					await fetch(`${claims.iss}/protocol/openid-connect/certs`)
-				).json()) as {
-					keys: { kid: string }[];
-				};
-				const key = createPublicKey({
-					key: keys.find((candidate) => candidate.kid === kid) as never,
-					format: 'jwk'
-				});
-				const valid = verify(
-					'sha256',
-					Buffer.from(`${header}.${payload}`),
-					key,
-					Buffer.from(signature, 'base64url')
-				);
-				if (!valid) return fail(401, 'bad signature');
-				if (claims.exp * 1000 < Date.now()) return fail(401, 'expired');
-				if (claims.cnf?.jkt) {
-					const proof = String(request.headers.dpop ?? '');
-					const proofHeader = JSON.parse(Buffer.from(proof.split('.')[0], 'base64url').toString());
-					const { crv, kty, x, y } = proofHeader.jwk;
-					const thumbprint = sha256(JSON.stringify({ crv, kty, x, y }));
-					if (thumbprint !== claims.cnf.jkt) return fail(401, 'proof from the wrong key');
+			const problem = await accessTokenProblem(
+				{
+					authorization: request.headers.authorization,
+					dpop: request.headers.dpop as string | undefined,
+					method: request.method ?? 'GET',
+					url: `${API}${request.url}`
+				},
+				{
+					issuers: [LOCAL_REALM, BROKERED_REALM].map((realm) => `${KEYCLOAK}/realms/${realm}`),
+					audience: API_AUDIENCE,
+					keysOf: (issuer) => keysAt(`${issuer}/protocol/openid-connect/certs`),
+					seenProofs: this.#seenProofs
 				}
-				response.writeHead(200, { 'content-type': 'application/json' });
-				response.end(JSON.stringify({ resource: 'something only this user may see' }));
-			} catch (error) {
-				fail(401, String(error));
+			);
+			if (problem) {
+				const scheme = (request.headers.authorization ?? '').split(' ')[0] || 'Bearer';
+				response.writeHead(401, {
+					'content-type': 'application/json',
+					'www-authenticate': `${scheme} error="invalid_token"`
+				});
+				response.end(JSON.stringify({ error: problem }));
+				return;
 			}
+			response.writeHead(200, { 'content-type': 'application/json' });
+			response.end(JSON.stringify({ resource: 'something only this user may see' }));
 		});
 
 		// Keycloak's calls to the upstream IdP pass through here on their way to the same Keycloak.
