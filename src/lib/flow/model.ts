@@ -59,13 +59,11 @@ export interface StepLink {
 export interface PitfallDef {
 	title: string;
 	text: Text;
-	keycloak?: Text;
 }
 
 export interface Pitfall {
 	title: string;
 	text: string;
-	keycloak?: string;
 }
 
 /** This step sends something, and what comes back is used later, so running it adds something. */
@@ -162,7 +160,7 @@ export interface FlowView {
 	groups: GroupDef[];
 }
 
-function resolve(text: Text, settings: Settings): string {
+export function resolveText(text: Text, settings: Settings): string {
 	if (typeof text === 'string') return text;
 	const match = text.find((c) => !c.when || holds(c.when, settings));
 	if (!match) throw new Error(`No text case holds: ${JSON.stringify(text)}`);
@@ -170,11 +168,7 @@ function resolve(text: Text, settings: Settings): string {
 }
 
 function resolvePitfall(pitfall: PitfallDef, settings: Settings): Pitfall {
-	return {
-		title: pitfall.title,
-		text: resolve(pitfall.text, settings),
-		keycloak: pitfall.keycloak && resolve(pitfall.keycloak, settings)
-	};
+	return { title: pitfall.title, text: resolveText(pitfall.text, settings) };
 }
 
 const present = (when: Condition | undefined, settings: Settings) => !when || holds(when, settings);
@@ -196,9 +190,9 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			to: step.to,
 			kind: step.kind,
 			channel: channelOf(flow, step),
-			plain: resolve(step.plain, settings),
-			label: resolve(step.label, settings),
-			concept: resolve(step.concept, settings),
+			plain: resolveText(step.plain, settings),
+			label: resolveText(step.label, settings),
+			concept: resolveText(step.concept, settings),
 			group: step.group,
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
 			links: step.links ?? [],
@@ -227,7 +221,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 				plainName: lifeline.plainName,
 				plainRole: lifeline.plainRole,
 				name: lifeline.name,
-				role: resolve(lifeline.role, settings),
+				role: resolveText(lifeline.role, settings),
 				concept: lifeline.concept,
 				icon: lifeline.icon,
 				startsWith: (lifeline.startsWith ?? [])

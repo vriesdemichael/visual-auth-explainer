@@ -176,7 +176,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'nonce',
 		default: false,
 		summary: 'The server rejects the first proof, to limit how long a proof can be used.',
-		why: 'Someone who gets at the app for a moment could make proofs now and use them much later. A nonce from the server has to be in the proof, so a proof made in advance is no use. Keycloak did not ask for one when this was recorded.',
+		why: 'Someone who gets at the app for a moment could make proofs now and use them much later. A nonce from the server has to be in the proof, so a proof made in advance is no use.',
 		sources: [
 			{
 				source: 'rfc9449',

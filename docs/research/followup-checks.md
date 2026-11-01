@@ -106,7 +106,7 @@ Checked on 2026-10-31, because the maintainer asked for an RFC to open in the ap
 
 ## What a real Keycloak does
 
-Recorded on 2026-10-31 with `pnpm record`, against `quay.io/keycloak/keycloak:26.8.1` in `start-dev`, with real logins through a headless browser. The answers are in `static/recordings/authorization-code/questions.json`, and each one came from a real request.
+Recorded on 2026-11-01 with `pnpm record`, against `quay.io/keycloak/keycloak:26.8.1` in `start-dev`, with real logins through a headless browser. The answers are in `static/recordings/authorization-code/questions.json`, and each one came from a real request.
 
 | Question | Answer |
 |---|---|
@@ -124,13 +124,31 @@ Recorded on 2026-10-31 with `pnpm record`, against `quay.io/keycloak/keycloak:26
 | What does a server say about the feature flags the settings name? | `dpop` and `identity-brokering-api:v1` are `DEFAULT` and on, and `identity-brokering-api:v2` is `DISABLED_BY_DEFAULT` and off, from `/admin/serverinfo`. The server does not call V1 deprecated, and the 26.8.1 docs do, so a badge says which is which. `pnpm record --check` fails when these change |
 | What does a wrong redirect URI do? | 400 with `Invalid parameter: redirect_uri`, and no redirect |
 
+What changing a setting on a real server does, each one a real login before and after. These are what the Keycloak notes rest on, and the admin console was walked on the same version to see that each setting is where a note says.
+
+| Setting, and where | Before | After |
+|---|---|---|
+| **Valid redirect URIs**, Settings, Access settings | Address not listed: 400, `Invalid parameter: redirect_uri` | Listed: 200 and the login page |
+| **Client authentication**, Settings, Capability config | On, no secret: 401 `unauthorized_client` | Off: 200 and tokens |
+| **Require PKCE**, Settings, Capability config | Off, no challenge: a code | On: no code, and the error `Missing parameter: code_challenge_method` |
+| **Require DPoP bound tokens**, Settings, Capability config | Off, no proof: 200 and a Bearer token | On: 400 `invalid_request` |
+| Default **Client scopes** | `profile` and `email` on: the token has a name and an email address | Both off: neither, and `scope` is empty |
+| **Audience** mapper, in the client's dedicated scope | `aud` is `account` | `aud` is `["my-api", "account"]` |
+| **Access Token Lifespan**, Advanced, Advanced settings | `expires_in` 300 | Set to 60: `expires_in` 60 |
+| **Store tokens**, on the identity provider | On: the app gets the token | Off: 400 `does not support this operation` |
+| **Stored tokens readable**, on the identity provider | On: the app gets the token | Off, for a new user: 403 `not authorized to retrieve tokens` |
+| **Allow retrieve external tokens**, Settings, Capability config, only with API V2 on | On: 200 | Off: 403 `Client not allowed to retrieve token for the provider` |
+| A default provider on the **Identity Provider Redirector** | Set: 303 straight on to the other provider | Unset: 200 and Keycloak's own login page |
+
+Reading the real console also corrected two things written from memory. The switch is called **Require PKCE**, because "PKCE Method" is only in the messages file, and **Require DPoP bound tokens** is under Capability config, not Advanced.
+
 What else the recordings changed or showed:
 
 - **The token response carries more than the diagram said:** `expires_in`, `refresh_token` and `scope` are there on a default client, so the diagram has them now. `refresh_expires_in`, `not-before-policy` and `session_state` are Keycloak's own, so the protocol layer leaves them out.
 - **The redirects carry `iss`,** which the diagram left out. `session_state` is Keycloak's own again.
 - **Who sees what holds.** Tokens never went through the browser in any named state, and the password only went to whichever server did the login. A test now holds every token chip to the recordings.
 - **Keycloak adds hops the diagram does not draw:** `/broker/{alias}/login` before the redirect to the upstream, and `first-broker-login` and `after-first-broker-login` after a first brokered login. They are in the recordings with no step, because they say nothing about the protocol.
-- **A default client's access token names `account` as its audience,** not the API it is going to be sent to. The step that says the API checks the token is "for this API" needs care, and the Keycloak notes in #9 should explain it.
+- **A default client's access token names `account` as its audience,** not the API it is going to be sent to. So an API that checks the audience refuses it until someone adds an Audience mapper, which a Keycloak note now says.
 - **A brokered login sends the browser straight to the upstream only because the recorder sets that up,** with the identity provider redirector. By default, Keycloak shows its own login page with a button for the upstream. The diagram shows the first, because that is the case where the app really does not notice.
 
 ## What the content has and has not been checked against

@@ -166,15 +166,12 @@ test.describe('why it matters', () => {
 		await expect(page.getByTestId('change-why')).toHaveCount(0);
 	});
 
-	test('the redirect URI check explains what a mismatch does, with the real error', async ({
-		page
-	}) => {
+	test('the redirect URI check explains what a mismatch does', async ({ page }) => {
 		await visit(page, `${FLOW_PATH}?step=authorize`);
 		const pitfall = page.getByTestId('step-pitfall');
 		await expect(pitfall).toContainText('What if the address does not match?');
 		await pitfall.locator('summary').click();
 		await expect(pitfall).toContainText('must not send the browser anywhere');
-		await expect(pitfall).toContainText('Invalid parameter: redirect_uri');
 	});
 
 	test('setup says what each side has to learn', async ({ page }) => {

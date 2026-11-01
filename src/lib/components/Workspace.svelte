@@ -29,6 +29,7 @@
 		withDiagram,
 		withExplained,
 		withMode,
+		withServerNotes,
 		withSetting,
 		withSourceClosed,
 		withSourceOpen,
@@ -44,7 +45,8 @@
 		recordingFor,
 		settingsOf
 	} from '#lib/recordings/known.ts';
-	import { sources } from '#lib/sources/sources.ts';
+	import { notesFor } from '#lib/keycloak/notes.ts';
+	import { isVendorSource, sources } from '#lib/sources/sources.ts';
 
 	interface Props {
 		base: BaseFlow;
@@ -182,7 +184,7 @@
 			return {
 				title: appState.mode === 'simple' ? (def.simple?.label ?? def.label) : def.label,
 				text: def.why,
-				sources: def.sources
+				sources: def.sources.filter((ref) => appState.serverNotes || !isVendorSource(ref.source))
 			};
 		}
 		return null;
@@ -313,7 +315,8 @@
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
 		/>
 		<p class="status" data-testid="provenance">
-			Prototype. Based on {origin.specs.join(', ')}. Recorded from Keycloak {origin.keycloak} on
+			Prototype. Based on {origin.specs.join(', ')}. Recorded from
+			{appState.serverNotes ? `Keycloak ${origin.keycloak}` : 'a real server'} on
 			{origin.date}.
 		</p>
 	</header>
@@ -323,6 +326,8 @@
 			settings={appState.settings}
 			mode={appState.mode}
 			onchange={setSetting}
+			serverNotes={appState.serverNotes}
+			onservernotes={(on) => onnavigate(withServerNotes(appState, on), 'push')}
 			onexplain={(id) => explain({ kind: 'setting', id })}
 			onopensource={(setting, ref) => onnavigate(withSourceOpen(appState, setting, ref), 'push')}
 		/>
@@ -370,6 +375,8 @@
 			{elsewhere}
 			changed={changedSetting}
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
+			notes={appState.serverNotes ? notesFor(current.id, appState.settings) : []}
+			serverNamed={appState.serverNotes}
 		>
 			{#snippet wire()}
 				{#if onWire}
@@ -381,6 +388,7 @@
 						{answerTo}
 						{numberOf}
 						onstep={goToStep}
+						serverNamed={appState.serverNotes}
 					/>
 				{/if}
 			{/snippet}

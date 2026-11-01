@@ -124,8 +124,245 @@ async function dpopBoundBrokeredToken(browser: Browser, demo: Demo, admin: Admin
 
 const brokerTokenUrl = `${KEYCLOAK}/realms/${BROKERED_REALM}/broker/${UPSTREAM_REALM}/token`;
 
-export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Admin) {
+const claimsOf = (jwt: string) =>
+	JSON.parse(Buffer.from(jwt.split('.')[1], 'base64url').toString()) as Record<string, unknown>;
+
+interface Client {
+	id: string;
+	attributes?: Record<string, string>;
+}
+
+/** A client of its own for each try, so changing a setting cannot disturb anything else. */
+async function freshClient(admin: Admin, clientId: string, extra: object = {}) {
+	await admin.call('POST', `/realms/${LOCAL_REALM}/clients`, {
+		clientId,
+		enabled: true,
+		standardFlowEnabled: true,
+		redirectUris: [REDIRECT_URI],
+		publicClient: false,
+		clientAuthenticatorType: 'client-secret',
+		secret: CLIENT_SECRET,
+		...extra
+	});
+	const [client] = await admin.call<Client[]>(
+		'GET',
+		`/realms/${LOCAL_REALM}/clients?clientId=${clientId}`
+	);
+	return client;
+}
+
+const tokensFor = async (
+	browser: Browser,
+	demo: Demo,
+	clientId: string,
+	send: Record<string, string> = { client_secret: CLIENT_SECRET }
+) => {
+	const { code } = await codeFor(browser, demo, LOCAL_REALM, clientId);
+	return token(LOCAL_REALM, {
+		grant_type: 'authorization_code',
+		code,
+		redirect_uri: REDIRECT_URI,
+		client_id: clientId,
+		...send
+	});
+};
+
+/**
+ * What each Keycloak note says: change the setting, and see the behaviour change. Each answer is
+ * what the server did before and after, on a real login.
+ */
+async function behindTheNotes(browser: Browser, demo: Demo, admin: Admin) {
 	const answers: Record<string, unknown> = {};
+	const onClient = (client: Client) => `/realms/${LOCAL_REALM}/clients/${client.id}`;
+	const change = (client: Client, changes: object) =>
+		admin.call('PUT', onClient(client), { ...client, ...changes });
+
+	{
+		const client = await freshClient(admin, 'note-redirect');
+		const elsewhere = `${APP}/elsewhere`;
+		const ask = async () => {
+			const answer = await fetch(
+				`${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/auth?${new URLSearchParams({
+					response_type: 'code',
+					client_id: 'note-redirect',
+					redirect_uri: elsewhere,
+					state: random()
+				})}`,
+				{ redirect: 'manual' }
+			);
+			const text = await answer.text();
+			return { status: answer.status, says: text.match(/Invalid parameter[^<]*/)?.[0] ?? null };
+		};
+		const before = await ask();
+		await change(client, { redirectUris: [REDIRECT_URI, elsewhere] });
+		answers.validRedirectUris = { before, after: await ask() };
+	}
+
+	{
+		const client = await freshClient(admin, 'note-type');
+		const noSecret = {};
+		const before = await tokensFor(browser, demo, 'note-type', noSecret);
+		await change(client, { publicClient: true });
+		const after = await tokensFor(browser, demo, 'note-type', noSecret);
+		answers.clientAuthentication = {
+			before: { status: before.status, error: before.json.error },
+			after: { status: after.status, gotTokens: 'access_token' in after.json }
+		};
+	}
+
+	{
+		const client = await freshClient(admin, 'note-pkce', { publicClient: true });
+		const before = await codeFor(browser, demo, LOCAL_REALM, 'note-pkce');
+		await change(client, { attributes: { 'pkce.code.challenge.method': 'S256' } });
+		const after = await codeFor(browser, demo, LOCAL_REALM, 'note-pkce');
+		answers.requirePkce = {
+			before: { gotCode: Boolean(before.code) },
+			after: {
+				gotCode: Boolean(after.code),
+				says: new URL(after.landed).searchParams.get('error_description')
+			}
+		};
+	}
+
+	{
+		const client = await freshClient(admin, 'note-scopes');
+		const said = (claims: Record<string, unknown>) => ({
+			hasName: 'name' in claims,
+			hasEmail: 'email' in claims,
+			scope: claims.scope
+		});
+		const before = await tokensFor(browser, demo, 'note-scopes');
+		const scopes = await admin.call<{ id: string; name: string }[]>(
+			'GET',
+			`${onClient(client)}/default-client-scopes`
+		);
+		for (const scope of scopes.filter(({ name }) => name === 'profile' || name === 'email')) {
+			await admin.call('DELETE', `${onClient(client)}/default-client-scopes/${scope.id}`);
+		}
+		const after = await tokensFor(browser, demo, 'note-scopes');
+		answers.clientScopes = {
+			before: said(claimsOf(before.json.access_token)),
+			after: said(claimsOf(after.json.access_token))
+		};
+	}
+
+	{
+		const client = await freshClient(admin, 'note-audience');
+		const said = (aud: unknown) => ({ aud, namesTheApi: [aud].flat().includes('my-api') });
+		const before = await tokensFor(browser, demo, 'note-audience');
+		await admin.call('POST', `${onClient(client)}/protocol-mappers/models`, {
+			name: 'my-api',
+			protocol: 'openid-connect',
+			protocolMapper: 'oidc-audience-mapper',
+			config: { 'included.custom.audience': 'my-api', 'access.token.claim': 'true' }
+		});
+		const after = await tokensFor(browser, demo, 'note-audience');
+		answers.audience = {
+			before: said(claimsOf(before.json.access_token).aud),
+			after: said(claimsOf(after.json.access_token).aud)
+		};
+	}
+
+	{
+		const client = await freshClient(admin, 'note-dpop');
+		const before = await tokensFor(browser, demo, 'note-dpop');
+		await change(client, { attributes: { 'dpop.bound.access.tokens': 'true' } });
+		const after = await tokensFor(browser, demo, 'note-dpop');
+		answers.requireDpop = {
+			before: { status: before.status, tokenType: before.json.token_type },
+			after: { status: after.status, error: after.json.error }
+		};
+	}
+
+	{
+		const client = await freshClient(admin, 'note-lifespan');
+		const before = await tokensFor(browser, demo, 'note-lifespan');
+		await change(client, { attributes: { 'access.token.lifespan': '60' } });
+		const after = await tokensFor(browser, demo, 'note-lifespan');
+		answers.tokenLifespan = {
+			before: { expiresIn: before.json.expires_in },
+			after: { expiresIn: after.json.expires_in }
+		};
+	}
+
+	{
+		const issuerOf = async (realm: string) => {
+			const answer = await fetch(`${KEYCLOAK}/realms/${realm}/.well-known/openid-configuration`);
+			return ((await answer.json()) as { issuer: string }).issuer;
+		};
+		const [local, brokered] = [await issuerOf(LOCAL_REALM), await issuerOf(BROKERED_REALM)];
+		answers.issuerPerRealm = {
+			issuers: [local, brokered],
+			realmsDiffer: local !== brokered,
+			endsWithRealm: local.endsWith(`/realms/${LOCAL_REALM}`)
+		};
+	}
+
+	return answers;
+}
+
+/** Whether the app can get the stored token, for a user who logs in for the first time now. */
+async function storedTokenStatus(browser: Browser, demo: Demo, admin: Admin) {
+	await admin.forgetBrokeredUsers();
+	const { code } = await codeFor(browser, demo, BROKERED_REALM, CONFIDENTIAL_CLIENT);
+	const result = await token(BROKERED_REALM, confidentialBody(code));
+	const answer = await statusOf(brokerTokenUrl, {
+		authorization: `Bearer ${result.json.access_token}`
+	});
+	return { status: answer.status, says: answer.body };
+}
+
+async function behindTheBrokeringNotes(browser: Browser, demo: Demo, admin: Admin) {
+	const onProvider = `/realms/${BROKERED_REALM}/identity-provider/instances/${UPSTREAM_REALM}`;
+	const provider = await admin.call<object>('GET', onProvider);
+	const setProvider = (changes: object) =>
+		admin.call('PUT', onProvider, { ...provider, ...changes });
+
+	const before = await storedTokenStatus(browser, demo, admin);
+	await setProvider({ storeToken: false });
+	const storeOff = await storedTokenStatus(browser, demo, admin);
+	await setProvider({ addReadTokenRoleOnCreate: false });
+	await setProvider({ storeToken: true, addReadTokenRoleOnCreate: false });
+	const readableOff = await storedTokenStatus(browser, demo, admin);
+	await setProvider({});
+
+	// Last, because it changes the login for everything after it, and the server stops after this.
+	const authorize = async () => {
+		const answer = await fetch(
+			`${KEYCLOAK}/realms/${BROKERED_REALM}/protocol/openid-connect/auth?${new URLSearchParams({
+				response_type: 'code',
+				client_id: CONFIDENTIAL_CLIENT,
+				redirect_uri: REDIRECT_URI,
+				state: random()
+			})}`,
+			{ redirect: 'manual' }
+		);
+		const location = answer.headers.get('location') ?? '';
+		return { status: answer.status, redirects: location.includes(`/broker/${UPSTREAM_REALM}/`) };
+	};
+	const redirecting = await authorize();
+	const executions = await admin.call<{ providerId?: string; authenticationConfig?: string }[]>(
+		'GET',
+		`/realms/${BROKERED_REALM}/authentication/flows/browser/executions`
+	);
+	const redirector = executions.find((e) => e.providerId === 'identity-provider-redirector');
+	await admin.call(
+		'DELETE',
+		`/realms/${BROKERED_REALM}/authentication/config/${redirector?.authenticationConfig}`
+	);
+	const notRedirecting = await authorize();
+
+	return {
+		storeTokens: { before, after: storeOff },
+		storedTokensReadable: { before, after: readableOff },
+		brokerRedirector: { before: redirecting, after: notRedirecting }
+	};
+}
+
+export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Admin) {
+	const answers: Record<string, unknown> = {
+		...(await behindTheNotes(browser, demo, admin))
+	};
 
 	// Does Keycloak ever ask for a DPoP nonce?
 	{
@@ -274,6 +511,7 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 		};
 	}
 
+	Object.assign(answers, await behindTheBrokeringNotes(browser, demo, admin));
 	return answers;
 }
 
@@ -296,7 +534,39 @@ export async function questionsWithApiV2(browser: Browser, demo: Demo, admin: Ad
 			})
 		);
 
+	// Whether this client may ask at all is a setting of the client.
+	const asked = async () => {
+		await admin.forgetBrokeredUsers();
+		const { code } = await codeFor(browser, demo, BROKERED_REALM, CONFIDENTIAL_CLIENT);
+		const result = await token(BROKERED_REALM, confidentialBody(code));
+		const answer = await fetch(brokerTokenUrl, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/x-www-form-urlencoded',
+				accept: 'application/json'
+			},
+			body: new URLSearchParams({
+				client_id: CONFIDENTIAL_CLIENT,
+				client_secret: CLIENT_SECRET,
+				token: result.json.access_token
+			}).toString()
+		});
+		return outcome(answer);
+	};
+	const allowed = await asked();
+	await admin.setClientAttributes(BROKERED_REALM, CONFIDENTIAL_CLIENT, {
+		'external.token.enabled': 'false'
+	});
+	const notAllowed = await asked();
+	await admin.setClientAttributes(BROKERED_REALM, CONFIDENTIAL_CLIENT, {
+		'external.token.enabled': 'true'
+	});
+
 	return {
+		allowExternalTokens: {
+			before: { status: allowed.status },
+			after: { status: notAllowed.status, says: notAllowed.body }
+		},
 		apiV2WithDpopToken: {
 			tokenType,
 			withoutProof: await post({}),

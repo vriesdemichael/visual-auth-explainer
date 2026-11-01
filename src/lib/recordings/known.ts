@@ -10,7 +10,7 @@ import {
 } from '#lib/flow/settings.ts';
 import type { RecordingIndex } from '#lib/recordings/format.ts';
 import recorded from '#lib/recordings/recorded.json' with { type: 'json' };
-import { sources, type SourceId } from '#lib/sources/sources.ts';
+import { isVendorSource, sources } from '#lib/sources/sources.ts';
 
 export const recordedIndex: RecordingIndex = recorded;
 
@@ -60,14 +60,12 @@ export function knownFrom(step: Step): Known | null {
 	return { kind: 'unchecked' };
 }
 
-const isSpec = (id: SourceId) => !id.startsWith('keycloak');
-
 /** The specs behind what is on screen, and which real server it was checked against, and when. */
 export function provenance(flow: FlowDef, settings: Settings) {
 	const fromSettings = settingIds
 		.filter((id) => settings[id] !== defaultSettings[id])
 		.flatMap((id) => settingDefs[id].sources.map((ref) => ref.source));
-	const specs = [...new Set([...flow.specs, ...fromSettings])].filter(isSpec);
+	const specs = [...new Set([...flow.specs, ...fromSettings])].filter((id) => !isVendorSource(id));
 	return {
 		specs: specs.map((id) => sources[id].label),
 		keycloak: recordedIndex.keycloak,

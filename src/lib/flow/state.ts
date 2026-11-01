@@ -17,7 +17,7 @@ import {
 	type Settings
 } from '#lib/flow/settings.ts';
 import { artifacts, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
-import { sources, type SourceId, type SourceRef } from '#lib/sources/sources.ts';
+import { isVendorSource, sources, type SourceId, type SourceRef } from '#lib/sources/sources.ts';
 
 /** A source someone opened from a setting, which is what says what it means here. */
 export interface OpenSource {
@@ -40,9 +40,12 @@ export interface AppState {
 	step: string;
 	source: OpenSource | null;
 	explained: Explained | null;
+	/** Whether to show what is specific to the server this was recorded from (ADR-015). */
+	serverNotes: boolean;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
+const SERVER_NOTES_PARAM = 'keycloak';
 
 const flowOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
 const viewOf = (base: BaseFlow, state: AppState) => evaluate(flowOf(base, state), state.settings);
@@ -77,6 +80,7 @@ function parseSource(params: URLSearchParams): OpenSource | null {
 	if (!setting) return null;
 	const ref = settingDefs[setting].sources.find((r) => r.source === params.get('source'));
 	if (!ref) return null;
+	if (isVendorSource(ref.source) && params.get(SERVER_NOTES_PARAM) === 'off') return null;
 	const section = sources[ref.source].textFile ? params.get('section') : null;
 	return { id: ref.source, setting, section };
 }
@@ -108,7 +112,8 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 		settings,
 		step: resolveStep(flow, evaluate(flow, settings), params.get('step')),
 		source: parseSource(params),
-		explained: parseExplained(base, diagram, params.get('explain'))
+		explained: parseExplained(base, diagram, params.get('explain')),
+		serverNotes: params.get(SERVER_NOTES_PARAM) !== 'off'
 	};
 }
 
@@ -128,6 +133,7 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 		if (state.source.section) params.set('section', state.source.section);
 	}
 	if (state.explained) params.set('explain', `${state.explained.kind}.${state.explained.id}`);
+	if (!state.serverNotes) params.set(SERVER_NOTES_PARAM, 'off');
 	return params.toString();
 }
 
@@ -141,7 +147,8 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		settings: merged,
 		step: resolveStep(flow, evaluate(flow, merged), null),
 		source: null,
-		explained: null
+		explained: null,
+		serverNotes: true
 	});
 }
 
@@ -176,6 +183,12 @@ export function withDiagram(
 
 export function withMode(state: AppState, mode: Mode): AppState {
 	return { ...state, mode };
+}
+
+/** Leaving them out closes one product's own docs as well, so nothing about it stays on screen. */
+export function withServerNotes(state: AppState, serverNotes: boolean): AppState {
+	const closes = !serverNotes && state.source && isVendorSource(state.source.id);
+	return { ...state, serverNotes, source: closes ? null : state.source };
 }
 
 export function withExplained(state: AppState, explained: Explained | null): AppState {

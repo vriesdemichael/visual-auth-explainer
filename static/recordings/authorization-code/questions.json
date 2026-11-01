@@ -1,7 +1,87 @@
 {
 	"keycloak": "26.8.1",
-	"recordedAt": "2026-10-31",
+	"recordedAt": "2026-11-01",
 	"answers": {
+		"validRedirectUris": {
+			"before": {
+				"status": 400,
+				"says": "Invalid parameter: redirect_uri"
+			},
+			"after": {
+				"status": 200,
+				"says": null
+			}
+		},
+		"clientAuthentication": {
+			"before": {
+				"status": 401,
+				"error": "unauthorized_client"
+			},
+			"after": {
+				"status": 200,
+				"gotTokens": true
+			}
+		},
+		"requirePkce": {
+			"before": {
+				"gotCode": true
+			},
+			"after": {
+				"gotCode": false,
+				"says": "Missing parameter: code_challenge_method"
+			}
+		},
+		"clientScopes": {
+			"before": {
+				"hasName": true,
+				"hasEmail": true,
+				"scope": "profile email"
+			},
+			"after": {
+				"hasName": false,
+				"hasEmail": false,
+				"scope": ""
+			}
+		},
+		"audience": {
+			"before": {
+				"aud": "account",
+				"namesTheApi": false
+			},
+			"after": {
+				"aud": [
+					"my-api",
+					"account"
+				],
+				"namesTheApi": true
+			}
+		},
+		"requireDpop": {
+			"before": {
+				"status": 200,
+				"tokenType": "Bearer"
+			},
+			"after": {
+				"status": 400,
+				"error": "invalid_request"
+			}
+		},
+		"tokenLifespan": {
+			"before": {
+				"expiresIn": 300
+			},
+			"after": {
+				"expiresIn": 60
+			}
+		},
+		"issuerPerRealm": {
+			"issuers": [
+				"http://localhost:18080/realms/demo",
+				"http://localhost:18080/realms/demo-brokered"
+			],
+			"realmsDiffer": true,
+			"endsWithRealm": true
+		},
 		"dpopNonce": {
 			"tokenStatus": 200,
 			"tokenType": "DPoP",
@@ -146,6 +226,45 @@
 				"body": ""
 			}
 		},
+		"storeTokens": {
+			"before": {
+				"status": 200,
+				"says": "a successful answer"
+			},
+			"after": {
+				"status": 400,
+				"says": "{\"errorMessage\":\"Identity Provider [upstream] does not support this operation.\"}"
+			}
+		},
+		"storedTokensReadable": {
+			"before": {
+				"status": 200,
+				"says": "a successful answer"
+			},
+			"after": {
+				"status": 403,
+				"says": "{\"errorMessage\":\"Client [demo-app] not authorized to retrieve tokens from identity provider [upstream].\"}"
+			}
+		},
+		"brokerRedirector": {
+			"before": {
+				"status": 303,
+				"redirects": true
+			},
+			"after": {
+				"status": 200,
+				"redirects": false
+			}
+		},
+		"allowExternalTokens": {
+			"before": {
+				"status": 200
+			},
+			"after": {
+				"status": 403,
+				"says": "{\"error\":\"invalid_client\",\"error_description\":\"Client not allowed to retrieve token for the provider\"}"
+			}
+		},
 		"apiV2WithDpopToken": {
 			"tokenType": "DPoP",
 			"withoutProof": {
@@ -163,6 +282,96 @@
 			"status": 400,
 			"wwwAuthenticate": null,
 			"body": "{\"errorMessage\":\"Identity Brokering API feature not enabled\"}"
+		},
+		"console": {
+			"valid-redirect-uris": {
+				"found": [
+					"Access settings",
+					"Valid redirect URIs"
+				],
+				"missing": []
+			},
+			"client-authentication": {
+				"found": [
+					"Capability config",
+					"Client authentication"
+				],
+				"missing": []
+			},
+			"require-pkce": {
+				"found": [
+					"Capability config",
+					"Require PKCE"
+				],
+				"missing": []
+			},
+			"intercepted-code": {
+				"found": [
+					"Capability config",
+					"Require PKCE"
+				],
+				"missing": []
+			},
+			"client-scopes": {
+				"found": [
+					"profile",
+					"email"
+				],
+				"missing": []
+			},
+			"token-lifespan": {
+				"found": [
+					"Advanced settings",
+					"Access Token Lifespan"
+				],
+				"missing": []
+			},
+			"audience": {
+				"found": [
+					"Audience"
+				],
+				"missing": []
+			},
+			"require-dpop": {
+				"found": [
+					"Capability config",
+					"Require DPoP bound tokens"
+				],
+				"missing": []
+			},
+			"issuer": {
+				"found": [
+					"Endpoints"
+				],
+				"missing": []
+			},
+			"broker-redirector": {
+				"found": [
+					"Identity Provider Redirector"
+				],
+				"missing": []
+			},
+			"store-tokens": {
+				"found": [
+					"Advanced settings",
+					"Store tokens"
+				],
+				"missing": []
+			},
+			"stored-tokens-readable": {
+				"found": [
+					"Advanced settings",
+					"Stored tokens readable"
+				],
+				"missing": []
+			},
+			"allow-external-tokens": {
+				"found": [
+					"Capability config",
+					"Allow retrieve external tokens"
+				],
+				"missing": []
+			}
 		}
 	}
 }

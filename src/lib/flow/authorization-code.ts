@@ -175,8 +175,7 @@ export const authorizationCode: FlowDef = {
 			],
 			pitfall: {
 				title: 'What if the address does not match?',
-				text: 'The identity provider has to stop and show an error, and must not send the browser anywhere. Otherwise an attacker could ask for the code to be sent to them, which is why the match has to be exact.',
-				keycloak: 'Keycloak answers with a 400 and the page says: Invalid parameter: redirect_uri.'
+				text: 'The identity provider has to stop and show an error, and must not send the browser anywhere. Otherwise an attacker could ask for the code to be sent to them, which is why the match has to be exact.'
 			},
 			links: [
 				{
@@ -470,19 +469,6 @@ export const authorizationCode: FlowDef = {
 					},
 					{
 						text: 'They cannot do this alone, because they do not have the secret. But they can hand the code to the real app from their own browser, so that it trades the code for them, and then they are in as the user. PKCE stops this as well.'
-					}
-				],
-				keycloak: [
-					{
-						when: pkce,
-						text: 'Keycloak answers 400 invalid_grant: PKCE code verifier not specified. That try also uses up the code, so the real app has to start the login again.'
-					},
-					{
-						when: confidential,
-						text: 'Without the secret, Keycloak answers 401 unauthorized_client. It only insists on PKCE when Require PKCE is on for the client.'
-					},
-					{
-						text: 'Keycloak allows this by default, and the real app then finds the code already used. Turning on Require PKCE for the client makes Keycloak refuse a login without it.'
 					}
 				]
 			},

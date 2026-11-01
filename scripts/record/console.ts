@@ -1,0 +1,78 @@
+// Goes through a real admin console, to see that each note says where a setting really is.
+import type { Browser, Page } from '@playwright/test';
+import { noteDefs, type ConsolePage } from '#lib/keycloak/notes.ts';
+import {
+	Admin,
+	ADMIN_PASSWORD,
+	BROKERED_REALM,
+	CONFIDENTIAL_CLIENT,
+	KEYCLOAK,
+	LOCAL_REALM,
+	UPSTREAM_REALM
+} from './keycloak.ts';
+
+const LOOK_FOR_MS = 8000;
+
+/** Whether these words are on the screen, as someone would read them. The page is still loading. */
+async function seen(page: Page, text: string) {
+	const until = Date.now() + LOOK_FOR_MS;
+	while (Date.now() < until) {
+		if ((await page.locator('body').innerText()).includes(text)) return true;
+		await page.waitForTimeout(250);
+	}
+	return false;
+}
+
+/** What each note says it can find, on the server this is, in the words of its console. */
+export async function lookInConsole(browser: Browser, admin: Admin, flagsOn: readonly string[]) {
+	const [client] = await admin.call<{ id: string }[]>(
+		'GET',
+		`/realms/${LOCAL_REALM}/clients?clientId=${CONFIDENTIAL_CLIENT}`
+	);
+	const root = `${KEYCLOAK}/admin/master/console/#`;
+	const onClient = `${root}/${LOCAL_REALM}/clients/${client.id}`;
+	const pages: Record<ConsolePage, string> = {
+		'client-settings': `${onClient}/settings`,
+		'client-advanced': `${onClient}/advanced`,
+		'client-scopes': `${onClient}/clientScopes`,
+		'client-dedicated-scope': `${onClient}/clientScopes/dedicated`,
+		'provider-settings': `${root}/${BROKERED_REALM}/identity-providers/oidc/${UPSTREAM_REALM}/settings`,
+		'realm-settings': `${root}/${LOCAL_REALM}/realm-settings`,
+		'browser-flow': `${root}/${BROKERED_REALM}/authentication`
+	};
+
+	const context = await browser.newContext({ viewport: { width: 1600, height: 1400 } });
+	const page = await context.newPage();
+	await page.goto(`${KEYCLOAK}/admin/master/console/`);
+	await page.fill('#username', 'admin');
+	await page.fill('#password', ADMIN_PASSWORD);
+	await page.click('#kc-login');
+	await page.getByRole('link', { name: 'Clients' }).first().waitFor({ timeout: 60_000 });
+
+	const found: Record<string, { found: string[]; missing: string[] }> = {};
+	for (const note of noteDefs) {
+		const { place } = note;
+		if (!place) continue;
+		const here = place.needsFlag ? flagsOn.includes(place.needsFlag) : flagsOn.length === 0;
+		if (!here) continue;
+		await page.goto(pages[place.page]);
+		await page.reload();
+		if (place.opens) {
+			const name = { name: place.opens, exact: true };
+			await page
+				.getByRole('link', name)
+				.or(page.getByRole('button', name))
+				.first()
+				.click({ timeout: LOOK_FOR_MS });
+		}
+		const looked = await Promise.all(
+			place.shows.map(async (text) => [text, await seen(page, text)] as const)
+		);
+		found[note.id] = {
+			found: looked.filter(([, there]) => there).map(([text]) => text),
+			missing: looked.filter(([, there]) => !there).map(([text]) => text)
+		};
+	}
+	await context.close();
+	return found;
+}

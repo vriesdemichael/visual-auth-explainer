@@ -23,7 +23,7 @@ export const PASSWORD = 'throwaway-password';
 export const REDIRECT_URI = `${APP}/callback`;
 
 const CONTAINER = 'visual-auth-explainer-keycloak';
-const ADMIN = 'throwaway-admin';
+export const ADMIN_PASSWORD = 'throwaway-admin';
 
 const docker = (...args: string[]) =>
 	execFileSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -49,7 +49,7 @@ export async function startKeycloak(version: string, features: readonly string[]
 		'--env',
 		'KC_BOOTSTRAP_ADMIN_USERNAME=admin',
 		'--env',
-		`KC_BOOTSTRAP_ADMIN_PASSWORD=${ADMIN}`,
+		`KC_BOOTSTRAP_ADMIN_PASSWORD=${ADMIN_PASSWORD}`,
 		`quay.io/keycloak/keycloak:${version}`,
 		'start-dev',
 		...(features.length ? [`--features=${features.join(',')}`] : [])
@@ -79,7 +79,7 @@ export class Admin {
 				grant_type: 'password',
 				client_id: 'admin-cli',
 				username: 'admin',
-				password: ADMIN
+				password: ADMIN_PASSWORD
 			})
 		});
 		if (!response.ok) throw new Error(`Admin login failed: ${response.status}`);

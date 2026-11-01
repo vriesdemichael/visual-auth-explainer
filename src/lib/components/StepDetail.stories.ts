@@ -4,6 +4,7 @@ import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { diffViews, evaluate } from '#lib/flow/model.ts';
 import { defaultSettings, type Settings } from '#lib/flow/settings.ts';
+import { notesFor } from '#lib/keycloak/notes.ts';
 
 const view = (settings: Partial<Settings> = {}) =>
 	evaluate(flow, { ...defaultSettings, ...settings });
@@ -26,6 +27,17 @@ export const Request: Story = {};
 
 export const WithFieldsFromSettings: Story = {
 	args: { step: stepIn('authorize', { oidc: true, binding: 'dpop' }) }
+};
+
+export const WithKeycloakNotes: Story = {
+	args: {
+		step: stepIn('token-request'),
+		notes: notesFor('token-request', defaultSettings)
+	}
+};
+
+export const NotNamingTheServer: Story = {
+	args: { step: stepIn('token-request'), serverNamed: false }
 };
 
 export const NoFields: Story = {

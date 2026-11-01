@@ -44,7 +44,8 @@ describe('the URL', () => {
 						settings,
 						step: step.id,
 						source: null,
-						explained: null
+						explained: null,
+						serverNotes: true
 					};
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
 				}
