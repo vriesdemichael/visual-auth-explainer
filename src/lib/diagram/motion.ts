@@ -23,6 +23,7 @@ export type FrameGroup = GroupLayout & Visibility;
 export interface Frame {
 	width: number;
 	height: number;
+	headHeight: number;
 	lanes: FrameLane[];
 	rows: FrameRow[];
 	chips: FrameChip[];
@@ -35,6 +36,7 @@ export function toFrame(layout: DiagramLayout): Frame {
 	return {
 		width: layout.width,
 		height: layout.height,
+		headHeight: layout.headHeight,
 		lanes: layout.lanes.map(settled),
 		rows: layout.rows.map(settled),
 		chips: layout.chips.map(settled),
@@ -85,6 +87,7 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 	return {
 		width: to.width,
 		height: lerp(from.height, to.height, moveAt(t)),
+		headHeight: lerp(from.headHeight, to.headHeight, moveAt(t)),
 		lanes: blend(from.lanes, to.lanes, t, (a, b, p) => ({
 			...b,
 			x: lerp(a.x, b.x, p),
