@@ -8,7 +8,9 @@ Motion is for what changed, and nothing else moves. Next and Execute send a mess
 
 Seen as one party, what it never saw is a muted bar as wide as the words were, with the arrow nearly gone, and the words themselves are not on the page. A bar has no hue of its own, because it says only that something was there.
 
-Following one thing lights up its path and quiets the rest, with no hue of its own either. Its path ahead is spelled out, because someone asked for exactly that, and it is the one other place than a setting's change where what is ahead gets words.
+Pointing at a setting or focusing it shows what it would do, with nothing about the state changed. What it would add is a ghost, lighter than what is there, with words where what is ahead has none, and what it would take away is struck through. Neither has a hue of its own. Steps being one ordered list means both states fit on one diagram with no working out, and rows move only as far as that needs.
+
+Following one thing lights up its path and quiets the rest, with no hue of its own either. Its path ahead is spelled out, because someone asked for exactly that, like a setting's change and a preview, the only other places where what is ahead gets words.
 
 A step shows what has happened and no more. Every message has a number. Up to the current step it has a label and its chips. Ahead it is a faint arrow with its number, and its label appears on pointing at it or when a setting has just changed it. So text is either readable or absent, never faded. That faint arrow is below the 3:1 WCAG 1.4.11 asks of what someone needs, on purpose: it is a preview and not a thing to read, its number is AA, and a stronger one would compete with the current step, which the maintainer has asked to stand out alone.
 

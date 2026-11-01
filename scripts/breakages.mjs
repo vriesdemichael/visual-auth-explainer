@@ -485,6 +485,26 @@ export const breakages = [
 		to: '\t\t\teyes: onTheDiagram(view, state.eyes)\n'
 	},
 
+	// What a setting would do.
+	{
+		name: 'preview: what would go is not shown',
+		file: 'src/lib/flow/preview.ts',
+		from: '?? a.find((item) => item.id === id) ?? []',
+		to: '?? []'
+	},
+	{
+		name: 'preview: what would come is not shown',
+		file: 'src/lib/flow/preview.ts',
+		from: 'b.find((item) => item.id === id) ?? a.find((item) => item.id === id) ?? []',
+		to: 'a.find((item) => item.id === id) ?? []'
+	},
+	{
+		name: 'preview: a message that changes in two ways counts twice',
+		file: 'src/lib/flow/preview.ts',
+		from: 'changed.size && `changes ${count(changed.size, ',
+		to: 'changed.size && `changes ${count(diff.addedFields.length + diff.removedFields.length + diff.rewordedSteps.length, '
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',

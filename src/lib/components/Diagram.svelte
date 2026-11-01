@@ -9,7 +9,13 @@
 		SELF_LOOP,
 		type DiagramLayout
 	} from '#lib/diagram/layout.ts';
-	import { interpolate, toFrame, TRANSITION_MS, type Frame } from '#lib/diagram/motion.ts';
+	import {
+		interpolate,
+		PREVIEW_MS,
+		toFrame,
+		TRANSITION_MS,
+		type Frame
+	} from '#lib/diagram/motion.ts';
 	import type { Lit } from '#lib/flow/explain.ts';
 	import { sees } from '#lib/flow/eyes.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
@@ -29,6 +35,10 @@
 		landing?: ReadonlySet<string>;
 		/** The one party whose view to show. What it never saw is not drawn, only how much there was. */
 		eyes?: string | null;
+		/** What a setting being pointed at would add and take away, without having done it. */
+		preview?: { adds: ReadonlySet<string>; removes: ReadonlySet<string> } | null;
+		/** Moving because of a preview, or back from one, which should not take a while. */
+		quick?: boolean;
 		/** The steps one thing goes through, and what forms it takes, to light up that path. */
 		followed?: { steps: ReadonlySet<string>; forms: readonly ArtifactId[] } | null;
 		onselect?: (step: string) => void;
@@ -46,6 +56,8 @@
 		sending = null,
 		landing = new Set(),
 		eyes = null,
+		preview = null,
+		quick = false,
 		followed = null,
 		onselect,
 		onexplainlifeline,
@@ -75,10 +87,11 @@
 			return;
 		}
 		let raf = 0;
+		const duration = untrack(() => quick) ? PREVIEW_MS : TRANSITION_MS;
 		const began = performance.now();
 		animating = true;
 		const tick = (now: number) => {
-			const t = Math.min(1, (now - began) / TRANSITION_MS);
+			const t = Math.min(1, (now - began) / duration);
 			frame = interpolate(start, target, t);
 			if (t < 1) raf = requestAnimationFrame(tick);
 			else animating = false;
@@ -193,6 +206,7 @@
 					class:fresh={fresh.has(lane.id)}
 					class:lit={lit?.lifeline === lane.id}
 					class:eyes={eyes === lane.id}
+					class:struck={preview?.removes.has(lane.id)}
 					class:active={currentRow && (lane.id === currentRow.from || lane.id === currentRow.to)}
 					style:opacity={lane.opacity}
 					data-lifeline={lane.leaving ? undefined : lane.id}
@@ -302,6 +316,8 @@
 					class:lit={lit?.step === row.id}
 					class:sending={travelling === row.id}
 					class:unseen={hiddenRows.has(row.id)}
+					class:ghost={preview?.adds.has(row.id)}
+					class:struck={preview?.removes.has(row.id)}
 					class:on-path={followed?.steps.has(row.id)}
 					class:off-path={followed && !followed.steps.has(row.id)}
 					style:opacity={row.opacity}
@@ -413,6 +429,7 @@
 						class={`chip ${state}`}
 						class:fresh={fresh.has(chip.id) || fresh.has(chip.step)}
 						class:sending={travelling === chip.step}
+						class:struck={preview?.removes.has(chip.step) || preview?.removes.has(chip.id)}
 						class:followed={followed?.steps.has(chip.step) &&
 							chip.artifact &&
 							followed.forms.includes(chip.artifact)}
@@ -957,6 +974,39 @@
 
 	.chip.future:not(.fresh) {
 		opacity: 0 !important;
+	}
+
+	/* What a setting would do, while someone points at it. A ghost is lighter than what is there and
+	   has words, where what is ahead has none. What would go is struck through. */
+	.row.ghost.fresh line,
+	.row.ghost.fresh path,
+	.row.ghost.fresh polygon {
+		opacity: 0.6;
+	}
+
+	.row.ghost .label {
+		opacity: var(--words, 1);
+	}
+
+	.row.struck line,
+	.row.struck path,
+	.row.struck polygon {
+		opacity: 0.3;
+	}
+
+	/* With no knock-out behind it, which would be painted over the words along with the line. */
+	.row.struck .label {
+		stroke: none;
+		opacity: var(--words, 1);
+		text-decoration: line-through;
+	}
+
+	.chip.struck {
+		opacity: 0.45 !important;
+	}
+
+	.lane-head.struck {
+		opacity: 0.45;
 	}
 
 	/* Following one thing: its path stays, ahead as well because that is what was asked for, and the

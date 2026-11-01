@@ -72,7 +72,9 @@ test.describe('for a screen reader', () => {
 
 	test('what a setting just changed is announced', async ({ page }) => {
 		await open(page);
-		const status = page.getByRole('status');
+		const status = page
+			.getByRole('complementary', { name: 'The current step' })
+			.getByRole('status');
 		await expect(status).toBeEmpty();
 		await page.locator('[data-setting="oidc"] input').check();
 		await expect(status).toContainText('What changed');
