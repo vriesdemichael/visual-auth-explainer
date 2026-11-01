@@ -110,6 +110,12 @@ export interface DiagramLayout {
 	height: number;
 	/** What it was laid out for, because a change of room should jump and a change of settings move. */
 	roomKey: string;
+	/**
+	 * What to look at, which is wider than the drawing when the window is, with the drawing in the
+	 * middle. So a band across a row reaches both sides, and there is nothing to scale up.
+	 */
+	viewX: number;
+	viewWidth: number;
 	/** How wide what a lifeline has seen can get, before it wraps. */
 	heldWidth: number;
 	/** Keeps room for all they will have seen by the end, so stepping moves nothing. */
@@ -275,6 +281,8 @@ export function layoutDiagram(
 		width,
 		height: cursor,
 		roomKey: room ? `${room.width}x${room.height}` : '',
+		viewX: Math.min(0, width - (room?.width ?? width)) / 2,
+		viewWidth: Math.max(width, room?.width ?? width),
 		heldWidth,
 		headHeight,
 		lanes,

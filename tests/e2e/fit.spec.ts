@@ -92,6 +92,30 @@ for (const [width, height] of SIZES) {
 	});
 }
 
+test.describe('the current step', () => {
+	test('has its band reach both sides of a big window, and its row can be pressed', async ({
+		page
+	}) => {
+		await openAt(page, 2560, 1440, 'mode=simple&step=authorize');
+		const band = await page
+			.locator('[data-state="current"] .hit')
+			.evaluate((hit) => hit.getBoundingClientRect().width);
+		const area = await page.locator('.scroller').evaluate((scroller) => scroller.clientWidth);
+		expect(band).toBeGreaterThanOrEqual(area - 1);
+		await page.locator('[data-step="token-request"]').click();
+		await expect(page.getByTestId('position')).toContainText('Step 8');
+	});
+});
+
+test.describe('showing what a setting added', () => {
+	test('brings it into view, in every browser', async ({ page }) => {
+		await openAt(page, 1280, 620, 'mode=advanced&step=api-response');
+		await page.getByRole('checkbox', { name: /PKCE/ }).click();
+		await page.getByTestId('change-show').click();
+		await expect(page.locator('[data-step="make-verifier"] .hit')).toBeInViewport();
+	});
+});
+
 test.describe('a bigger window', () => {
 	for (const [width, height] of [
 		[1440, 900],

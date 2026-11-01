@@ -104,6 +104,17 @@ describe('layout', () => {
 			expect(gap(800)).toBeGreaterThan(gap(600));
 		});
 
+		it('looks at the whole window, with the drawing in the middle of it', () => {
+			const view = evaluate(flow, defaultSettings);
+			const wide = layoutDiagram(view, 'simple', { width: 2000, height: 900 });
+			expect(wide.width).toBe(1240);
+			expect(wide.viewWidth).toBe(2000);
+			expect(wide.viewX).toBe(-380);
+			const narrow = layoutDiagram(view, 'simple', { width: 900, height: 900 });
+			expect(narrow.viewX).toBe(0);
+			expect(narrow.viewWidth).toBe(narrow.width);
+		});
+
 		it('says what room it was for, so that a change of room can jump', () => {
 			const view = evaluate(flow, defaultSettings);
 			expect(layoutDiagram(view, 'simple', { width: 900, height: 700 }).roomKey).toBe('900x700');

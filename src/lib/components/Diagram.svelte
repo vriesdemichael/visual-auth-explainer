@@ -141,8 +141,7 @@
 	<div class="heads-band">
 		<svg
 			class="heads"
-			style:--laid-out-for={`${frame.width}px`}
-			viewBox={`0 0 ${frame.width} ${frame.headHeight}`}
+			viewBox={`${frame.viewX} 0 ${frame.viewWidth} ${frame.headHeight}`}
 			role="group"
 			aria-label="Who takes part, and what each has seen so far"
 			data-testid="diagram-heads"
@@ -204,8 +203,7 @@
 	<div class="scroller" bind:this={scroller}>
 		<svg
 			class="body"
-			style:--laid-out-for={`${frame.width}px`}
-			viewBox={`0 0 ${frame.width} ${frame.height}`}
+			viewBox={`${frame.viewX} 0 ${frame.viewWidth} ${frame.height}`}
 			role="group"
 			aria-label="The messages in this diagram"
 		>
@@ -259,12 +257,11 @@
 					}}
 				>
 					<desc id={`route-${row.id}`}>{row.route}</desc>
-					<!-- Past the edges of the drawing, so the band reaches across however wide the window is. -->
 					<rect
 						class="hit"
-						x="-2000"
+						x={frame.viewX}
 						y={row.y - ROW_OFFSET}
-						width={frame.width + 4000}
+						width={frame.viewWidth}
 						height={row.band}
 					/>
 					{#if row.self}
@@ -354,13 +351,6 @@
 		min-height: 0;
 	}
 
-	/* Laid out for the width it has, so no wider than that, and no scaling up past it. */
-	.heads,
-	.body {
-		max-width: var(--laid-out-for);
-		margin-inline: auto;
-	}
-
 	.heads-band {
 		flex: none;
 		border-bottom: 1px solid var(--line);
@@ -383,7 +373,6 @@
 		display: block;
 		width: 100%;
 		height: auto;
-		overflow: visible;
 	}
 
 	text {
