@@ -59,9 +59,9 @@
 			"after": {
 				"asked": true,
 				"lists": [
-					"User profile",
 					"User roles",
-					"Email address"
+					"Email address",
+					"User profile"
 				],
 				"audience": "account",
 				"hasRoles": true,
@@ -73,9 +73,9 @@
 				"first": {
 					"asked": true,
 					"lists": [
-						"User profile",
 						"User roles",
-						"Email address"
+						"Email address",
+						"User profile"
 					]
 				},
 				"second": {
@@ -121,7 +121,7 @@
 			"before": {
 				"hasName": true,
 				"hasEmail": true,
-				"scope": "profile email"
+				"scope": "email profile"
 			},
 			"after": {
 				"hasName": false,
@@ -357,6 +357,53 @@
 				"wwwAuthenticate": "Bearer realm=\"demo\", error=\"insufficient_scope\", error_description=\"Missing openid scope\""
 			}
 		},
+		"refreshTokens": {
+			"accessTokenLifespan": 300,
+			"first": {
+				"expiresIn": 300,
+				"refreshExpiresIn": 1800
+			},
+			"refresh": {
+				"status": 200,
+				"cameBackNew": true
+			},
+			"withoutTheSecret": {
+				"status": 401,
+				"error": "unauthorized_client",
+				"description": "Invalid client or Invalid client credentials"
+			},
+			"pastItsLife": {
+				"userinfo": 401,
+				"thenARefresh": 200
+			}
+		},
+		"revokeRefreshToken": {
+			"before": {
+				"setting": false,
+				"oldAgain": {
+					"status": 200,
+					"error": null,
+					"description": null
+				},
+				"oldAgainWithNoSecret": {
+					"first": 200,
+					"again": 200
+				}
+			},
+			"after": {
+				"first": 200,
+				"oldAgain": {
+					"status": 400,
+					"error": "invalid_grant",
+					"description": "Maximum allowed refresh token reuse exceeded"
+				},
+				"newest": {
+					"status": 400,
+					"error": "invalid_grant",
+					"description": "Session doesn't have required client"
+				}
+			}
+		},
 		"stolenTokensAfterTheRealAppTried": {
 			"theRealApp": {
 				"status": 400,
@@ -552,6 +599,12 @@
 			"audience": {
 				"found": [
 					"Audience"
+				],
+				"missing": []
+			},
+			"revoke-refresh-token": {
+				"found": [
+					"Revoke Refresh Token"
 				],
 				"missing": []
 			},
