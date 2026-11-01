@@ -175,8 +175,8 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 				value: 'v2',
 				label: 'API V2',
 				requires: {
-					when: is('clientType', 'confidential'),
-					because: 'API V2 only accepts confidential clients.'
+					when: all(is('clientType', 'confidential'), is('binding', 'bearer')),
+					because: 'API V2 only works with a confidential client and a Bearer token.'
 				}
 			}
 		]

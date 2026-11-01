@@ -41,7 +41,7 @@ Other points:
 - **Defaults:** the pages read do not state the defaults of "Store Tokens" and "Stored Tokens Readable". The developer guide's wording implies they start off.
 - **"Stored Tokens Readable":** assigns the `read-token` role to newly imported users.
 - **History:** V2 arrived as a preview in 26.6.0, and in 26.7.0 it became supported and V1 was deprecated.
-- **Not settled by these pages:** whether enabling V2 turns V1 off.
+- **Whether enabling V2 turns V1 off:** the pages do not say. It does, as the next section records.
 
 ## SvelteKit as static files on GitHub Pages
 
@@ -104,21 +104,37 @@ Checked on 2026-10-31, because the maintainer asked for an RFC to open in the ap
 - **Sections:** a heading starts at the left margin and the table of contents is indented, so the sections can be found without touching the text. RFC 6749 has appendices numbered `A.1`, and RFC pages on rfc-editor.org have an anchor like `#section-8`.
 - **Other sources:** [OpenID Connect Core](https://openid.net/specs/openid-connect-core-1_0.html) is 427 KB of HTML whose notice allows reproduction for developing and implementing specifications. That does not obviously cover this, so it gets a summary and a link, as the Keycloak docs do.
 
-## What the step 0 content has and has not been checked against
+## What a real Keycloak does
 
-On 2026-10-31, for the content of the step 0 prototype. The prototype says on screen that most message shapes are unchecked.
+Recorded on 2026-11-01 with `pnpm record`, against `quay.io/keycloak/keycloak:26.8.1` in `start-dev`, with real logins through a headless browser. The answers are in `static/recordings/authorization-code/questions.json`, and each one came from a real request.
 
-- **Run on Keycloak 26.8.1:** only the OIDC toggle, and discovery at both paths, as recorded above.
-- **Read in RFC 9449:** the `DPoP` header, `token_type: DPoP`, `cnf.jkt`, `ath`, the optional `dpop_jkt`, and the nonce retry with `use_dpop_nonce` and `DPoP-Nonce`. The nonce is the server's choice, so the prototype makes it a setting and not part of DPoP itself.
-- **Read in Keycloak's docs, not run:** stored upstream tokens, as recorded above, and the outline of a brokered login.
-- **From general knowledge, not checked:** the steps inside the brokered login, and the concept texts.
+| Question | Answer |
+|---|---|
+| Does Keycloak ask for a DPoP nonce? | No. A token request with a proof and no nonce got a 200 and a `DPoP` token, with no `DPoP-Nonce` header. So the retry is marked as from the spec only |
+| Does a client need a setting to use DPoP? | No. A default client that sends a proof gets a bound token, and `dpop_jkt` on the authorization request is accepted |
+| Does UserInfo take a DPoP-bound token? | Yes, as `Authorization: DPoP` with a proof tied to that token. Without the proof, or as `Bearer`, it answers 401 |
+| Does API V1 take a DPoP-bound token? | Yes, as `Authorization: DPoP` with a proof. As `Bearer` it answers 400 `Invalid token`. **The prototype was wrong here** |
+| Does API V2 take a DPoP-bound token? | No. It answers 400 `invalid_token` with a proof and without one. **The prototype offered this, so the application no longer does** |
+| Does enabling API V2 turn V1 off? | Yes. V1 then answers 400 `Identity Brokering API feature not enabled`, which the docs do not say |
+| What does each API version hand over? | V1 hands over everything stored, including the upstream's ID and refresh tokens. V2 hands over only the access token, with `expires_in` and `issued_token_type` |
+| Is a public client without PKCE accepted? | Yes, by default. With `pkce.code.challenge.method` set to `S256` on the client, the app gets an error back at its redirect URI: `Missing parameter: code_challenge_method` |
+| What does a wrong redirect URI do? | 400 with `Invalid parameter: redirect_uri`, and no redirect |
 
-Questions the model raised, to answer against a real Keycloak before recording:
+What else the recordings changed or showed:
 
-- Does Keycloak ever ask for a DPoP nonce? If not, the nonce retry stays spec-only and needs saying so.
-- Does the broker token endpoint accept a DPoP-bound access token? The prototype shows `Authorization: Bearer` there whatever the token type, which may be wrong.
-- Does UserInfo take a DPoP-bound token the way the prototype shows?
-- Is a public client without PKCE accepted? The prototype offers it, and warns that PKCE is not modelled yet.
+- **The token response carries more than the diagram said:** `expires_in`, `refresh_token` and `scope` are there on a default client, so the diagram has them now. `refresh_expires_in`, `not-before-policy` and `session_state` are Keycloak's own, so the protocol layer leaves them out.
+- **The redirects carry `iss`,** which the diagram left out. `session_state` is Keycloak's own again.
+- **Who sees what holds.** Tokens never went through the browser in any named state, and the password only went to whichever server did the login. A test now holds every token chip to the recordings.
+- **Keycloak adds hops the diagram does not draw:** `/broker/{alias}/login` before the redirect to the upstream, and `first-broker-login` and `after-first-broker-login` after a first brokered login. They are in the recordings with no step, because they say nothing about the protocol.
+- **A default client's access token names `account` as its audience,** not the API it is going to be sent to. The step that says the API checks the token is "for this API" needs care, and the Keycloak notes in #9 should explain it.
+- **A brokered login sends the browser straight to the upstream only because the recorder sets that up,** with the identity provider redirector. By default, Keycloak shows its own login page with a button for the upstream. The diagram shows the first, because that is the case where the app really does not notice.
+
+## What the content has and has not been checked against
+
+- **Recorded on Keycloak 26.8.1:** every message on the wire, in all eight named states, apart from the nonce retry.
+- **Read in RFC 9449, not seen on Keycloak:** the nonce retry with `use_dpop_nonce` and `DPoP-Nonce`. The nonce is the server's choice, so it is a setting and not part of DPoP itself, and the application marks these messages.
+- **Not on the wire, so not recorded:** what people do in setup, which the recorder does through the admin API instead.
+- **From general knowledge, not checked:** the concept texts.
 
 ## The entry and the format
 

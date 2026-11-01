@@ -8,7 +8,7 @@ A field that differs from the base flow is shown on the message itself, and so i
 
 A base flow has two diagrams, the user flow and its setup, and each is one such list on the same engine. Setup is apart because no user does it: the people who do are lifelines on its diagram, and no user or browser is. Settings apply to both. Back and Next stay inside a diagram, switching between them does not animate, and a step can link to a related step in the other.
 
-OIDC, DPoP with a nonce retry, brokering with its nested flow, and stored upstream tokens with two API versions all fit this model without special cases, and it gives 42 valid combinations. The order is what makes it work: because the list is fixed, a step that disappears has a nearest earlier step to fall back to, and a transition never has to move a row past another. If a later toggle needs to reorder steps, this record has to change first.
+OIDC, DPoP with a nonce retry, brokering with its nested flow, and stored upstream tokens with two API versions all fit this model without special cases, and it gives 38 valid combinations. The order is what makes it work: because the list is fixed, a step that disappears has a nearest earlier step to fall back to, and a transition never has to move a row past another. If a later toggle needs to reorder steps, this record has to change first.
 
 ## Not chosen
 

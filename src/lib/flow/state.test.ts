@@ -172,7 +172,7 @@ describe('an open source', () => {
 
 describe('stepping', () => {
 	it('walks every step of a diagram in order and stops at the end', () => {
-		let state = onFlow('oidc=1&binding=dpop&nonce=1&broker=1&upstream=v2');
+		let state = onFlow('oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1');
 		const walked = [state.step];
 		for (let next = nextStep(base, state); next; next = nextStep(base, state)) {
 			state = next;

@@ -68,6 +68,11 @@ export const AfterAChangeThatResetAnother: Story = {
 			view({ broker: true, upstreamTokens: 'v2' }),
 			view({ broker: true, clientType: 'public' })
 		),
-		resets: [{ setting: 'upstreamTokens', because: 'API V2 only accepts confidential clients.' }]
+		resets: [
+			{
+				setting: 'upstreamTokens',
+				because: 'API V2 only works with a confidential client and a Bearer token.'
+			}
+		]
 	}
 };

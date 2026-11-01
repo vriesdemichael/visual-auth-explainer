@@ -157,7 +157,11 @@ export function layoutDiagram(view: FlowView): DiagramLayout {
 		if (step.group && previous?.group !== step.group) cursor += GROUP_TOP;
 		const y = cursor;
 		// A setting's change and a credential or token go on the message. The rest is in the detail.
-		const onMessage = step.fields.filter((field) => field.changed || field.artifact);
+		const onMessage: { name: string; artifact?: ArtifactId }[] = step.fields.filter(
+			(field) => field.changed || field.artifact
+		);
+		// Something a real server did not do should not look the same as what it did.
+		if (step.specOnly) onMessage.push({ name: 'spec only' });
 		const chipLines = onMessage.length ? CHIP_LINE_HEIGHT : 0;
 		rows.push({
 			id: step.id,

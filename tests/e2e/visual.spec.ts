@@ -14,7 +14,7 @@ const states: readonly [string, string, 'flow' | 'setup'][] = [
 	['openid-connect', 'oidc=1&step=token-response', 'flow'],
 	['dpop-with-nonce', 'binding=dpop&nonce=1&step=nonce-challenge', 'flow'],
 	['external-idp', 'broker=1&step=upstream-authorize', 'flow'],
-	['everything', 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v2&step=token-request', 'flow'],
+	['everything', 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1&step=token-request', 'flow'],
 	['setup', '', 'setup'],
 	['setup-with-external-idp', 'broker=1&upstream=v2&step=register-with-upstream', 'setup']
 ];

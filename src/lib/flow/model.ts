@@ -7,6 +7,7 @@ import {
 	type Settings
 } from '#lib/flow/settings.ts';
 import type { ArtifactId, Channel, LifelineIcon } from '#lib/flow/vocabulary.ts';
+import type { SourceId } from '#lib/sources/sources.ts';
 
 /** Text that varies with the settings. The first case that holds wins. */
 export type Text = string | readonly { when?: Condition; text: string }[];
@@ -60,6 +61,8 @@ export interface StepDef {
 	group?: string;
 	links?: readonly StepLink[];
 	fields?: readonly FieldDef[];
+	/** Where this comes from, when a real Keycloak did not do it and so it could not be recorded. */
+	specOnly?: string;
 	when?: Condition;
 }
 
@@ -68,6 +71,8 @@ export interface FlowDef {
 	id: string;
 	title: string;
 	summary: string;
+	/** The specs this diagram rests on, whatever the settings. */
+	specs: readonly SourceId[];
 	lifelines: readonly LifelineDef[];
 	groups: readonly GroupDef[];
 	steps: readonly StepDef[];
@@ -110,6 +115,7 @@ export interface Step {
 	group?: string;
 	links: readonly StepLink[];
 	fields: Field[];
+	specOnly?: string;
 	causes: SettingId[];
 }
 
@@ -150,6 +156,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			concept: resolve(step.concept, settings),
 			group: step.group,
 			links: step.links ?? [],
+			specOnly: step.specOnly,
 			causes: causes(step.when),
 			fields: (step.fields ?? [])
 				.filter((field) => present(field.when, settings))

@@ -109,6 +109,34 @@ test.describe('what each has seen', () => {
 	});
 });
 
+test.describe('how we know', () => {
+	test('each message says where it comes from', async ({ page }) => {
+		await open(page, 'step=token-request');
+		await expect(page.getByTestId('step-known')).toHaveAttribute('data-known', 'recorded');
+		await expect(page.getByTestId('step-known')).toContainText('Recorded from Keycloak');
+	});
+
+	test('what Keycloak did not do is marked on the diagram and in the detail', async ({ page }) => {
+		await open(page, 'binding=dpop&nonce=1&step=nonce-challenge');
+		await expect(page.getByTestId('step-known')).toHaveAttribute('data-known', 'spec');
+		await expect(page.getByTestId('step-known')).toContainText('RFC 9449 section 8');
+		await expect(page.locator('[data-chip="nonce-challenge:spec only"]')).toBeVisible();
+	});
+
+	test('a step with nothing on the wire makes no claim', async ({ page }) => {
+		await open(page, '', 'setup');
+		await expect(page.getByTestId('step-known')).toHaveCount(0);
+	});
+
+	test('the screen names its specs and the server it was checked against', async ({ page }) => {
+		await open(page, 'oidc=1');
+		const line = page.getByTestId('provenance');
+		await expect(line).toContainText('RFC 6749');
+		await expect(line).toContainText('OpenID Connect Core 1.0');
+		await expect(line).toContainText(/Recorded from Keycloak \d+\.\d+\.\d+ on\s+\d{4}-\d{2}-\d{2}/);
+	});
+});
+
 test.describe('nothing an automated check can find', () => {
 	const screens: readonly [string, string][] = [
 		['the start page', './'],

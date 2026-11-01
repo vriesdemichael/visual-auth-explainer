@@ -51,7 +51,7 @@ export const presets: readonly Preset[] = [
 			binding: 'dpop',
 			dpopNonce: true,
 			broker: true,
-			upstreamTokens: 'v2'
+			upstreamTokens: 'v1'
 		}
 	}
 ];

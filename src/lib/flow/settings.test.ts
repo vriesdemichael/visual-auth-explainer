@@ -32,9 +32,12 @@ describe('conditions', () => {
 
 describe('constraints', () => {
 	it('allow exactly the expected combinations', () => {
-		// oidc (2) x token type (bearer, dpop, dpop with nonce) x client and upstream tokens:
-		// confidential has no broker, broker, V1 and V2. Public has no V2.
-		expect(allValidSettings()).toHaveLength(2 * 3 * (4 + 3));
+		// oidc (2) x token type x client and upstream tokens. Confidential has no broker, broker, V1
+		// and V2. Public has no V2, and neither does DPoP, because Keycloak refused its token.
+		const bearer = 4 + 3;
+		const dpop = 3 + 3;
+		const dpopWithNonce = 3 + 3;
+		expect(allValidSettings()).toHaveLength(2 * (bearer + dpop + dpopWithNonce));
 	});
 
 	it('include the defaults', () => {
