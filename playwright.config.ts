@@ -10,6 +10,7 @@ const LIVE_URL = process.env.LIVE_URL;
 // Every browser in CI. One while working, because all three take several minutes, and
 // `pnpm test:browsers` runs them in CI's image.
 const ALL_BROWSERS = Boolean(process.env.CI) && !process.env.LIVE_URL;
+const ONE_BROWSER_IS_ENOUGH = /(visual|published|combinations)\.spec/;
 
 // The click-through runs against the real static build, served the way GitHub Pages serves it.
 export default defineConfig({
@@ -29,16 +30,17 @@ export default defineConfig({
 		{ name: 'chromium', use: { ...devices['Desktop Chrome'] } },
 		...(ALL_BROWSERS
 			? [
-					// A screenshot is only valid in one browser, and a story only needs rendering once.
+					// A screenshot is only valid in one browser, and a story or a combination only needs
+					// rendering once.
 					{
 						name: 'firefox',
 						use: { ...devices['Desktop Firefox'] },
-						testIgnore: /(visual|published)\.spec/
+						testIgnore: ONE_BROWSER_IS_ENOUGH
 					},
 					{
 						name: 'webkit',
 						use: { ...devices['Desktop Safari'] },
-						testIgnore: /(visual|published)\.spec/
+						testIgnore: ONE_BROWSER_IS_ENOUGH
 					}
 				]
 			: [])

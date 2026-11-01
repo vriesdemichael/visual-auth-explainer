@@ -1,7 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { allValidSettings } from '../../src/lib/flow/settings.ts';
-import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
-import { presetSearch } from '../../src/lib/flow/state.ts';
 import {
 	currentSearch,
 	expectedFor,
@@ -69,17 +66,6 @@ test.describe('the two diagrams', () => {
 		await expect(page.locator('[data-step="discover"]')).toHaveClass(/request/);
 		await expect(page.locator('[data-step="discover"]')).not.toHaveClass(/human/);
 		await expect(page.getByTestId('step-detail')).toContainText('People, not HTTP');
-	});
-
-	test('every valid combination shows what the model says in setup', async ({ page }) => {
-		test.setTimeout(300_000);
-		const check = watchForErrors(page);
-		const searches = new Set(allValidSettings().map((settings) => presetSearch(base, settings)));
-		for (const search of searches) {
-			await open(page, search, 'setup');
-			await expectMatchesModel(page, search, 'setup');
-		}
-		check();
 	});
 });
 
