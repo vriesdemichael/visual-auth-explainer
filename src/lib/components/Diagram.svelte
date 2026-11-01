@@ -410,7 +410,7 @@
 
 	.lane-head .name {
 		font-weight: 600;
-		font-size: 13.5px;
+		font-size: 13px;
 	}
 
 	.lane-head .role {
@@ -481,11 +481,6 @@
 
 	.lane-head.fresh > rect {
 		fill: var(--fresh-soft);
-		stroke: var(--fresh);
-	}
-
-	.lane-head.fresh .role {
-		fill: var(--fresh);
 	}
 
 	.lane-head[data-lifeline='attacker'] > rect {
@@ -748,21 +743,20 @@
 		}
 	}
 
-	/* What just changed is an outline that goes again, and not a colour that stays. */
+	/* What just changed is a soft band that goes again, and not a colour or a box that stays. */
 	.row.fresh .hit {
-		stroke: var(--fresh);
-		stroke-width: 1;
+		fill: var(--fresh-soft);
 		animation: settle-down 2.4s ease-out forwards;
 	}
 
 	.row.current.fresh .hit {
+		fill: var(--accent-soft);
 		animation: none;
-		stroke: none;
 	}
 
 	@keyframes settle-down {
 		to {
-			stroke-opacity: 0;
+			fill: transparent;
 		}
 	}
 
@@ -784,12 +778,12 @@
 	}
 
 	.row.fresh.future .number circle {
-		fill: var(--fresh);
-		stroke: var(--bg);
+		fill: var(--bg);
+		stroke: var(--fresh);
 	}
 
 	.row.fresh.future .number text {
-		fill: var(--on-tone);
+		fill: var(--fresh);
 	}
 
 	.lane-head {
@@ -846,10 +840,5 @@
 
 	.chip.future:not(.fresh) {
 		opacity: 0 !important;
-	}
-
-	.chip.fresh {
-		--chip: var(--fresh);
-		--chip-soft: var(--fresh-soft);
 	}
 </style>
