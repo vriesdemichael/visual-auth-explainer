@@ -5,6 +5,7 @@ import { layoutDiagram } from '#lib/diagram/layout.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { diffViews, evaluate, holdingsAt } from '#lib/flow/model.ts';
+import { bothOf } from '#lib/flow/preview.ts';
 import { defaultSettings, type Settings } from '#lib/flow/settings.ts';
 
 const layoutFor = (settings: Partial<Settings> = {}) =>
@@ -55,6 +56,24 @@ export const ARefusalOnItsWay: Story = {
 		layout: layoutFor({ attacker: true, clientType: 'public', pkce: true }),
 		currentStep: 'attacker-token-response',
 		sending: 'attacker-token-response'
+	}
+};
+
+export const ASettingBeingPointedAt: Story = {
+	args: {
+		layout: layoutDiagram(
+			bothOf(
+				flow,
+				evaluate(flow, { ...defaultSettings, oidc: true }),
+				evaluate(flow, { ...defaultSettings, attacker: true })
+			)
+		),
+		currentStep: 'authorize',
+		fresh: new Set(['attacker', 'attacker-steals-code', 'attacker-token-request']),
+		preview: {
+			adds: new Set(['attacker', 'attacker-steals-code', 'attacker-token-request']),
+			removes: new Set(['userinfo-request', 'userinfo-response'])
+		}
 	}
 };
 

@@ -54,6 +54,7 @@
 	import { explanationOf, litBy, stateShowing } from '#lib/flow/explain.ts';
 	import { sees } from '#lib/flow/eyes.ts';
 	import { formsOf, pathOf } from '#lib/flow/follow.ts';
+	import { bothOf, whatItWouldDo } from '#lib/flow/preview.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
@@ -123,7 +124,35 @@
 	let canvasWidth = $state(0);
 	let canvasHeight = $state(0);
 	const room = $derived(canvasWidth ? { width: canvasWidth, height: canvasHeight } : undefined);
-	const layout = $derived(layoutDiagram(view, mode, room));
+	// What a setting being pointed at would do. Only ever shown, so the state does not know about it.
+	let pointedAt = $state.raw<{ id: SettingId; value: boolean | string } | null>(null);
+	let previewedLast = $state(false);
+	const preview = $derived.by(() => {
+		if (!pointedAt) return null;
+		const after = evaluate(
+			flow,
+			withSetting(base, appState, pointedAt.id, pointedAt.value as never).state.settings
+		);
+		const diff = diffViews(view, after);
+		return {
+			both: bothOf(flow, view, after),
+			fresh: freshIds(diff),
+			says: whatItWouldDo(diff),
+			marks: {
+				adds: new Set([...diff.addedSteps, ...diff.addedLifelines]),
+				removes: new Set([
+					...diff.removedSteps,
+					...diff.removedLifelines,
+					...diff.removedFields.map(({ step, field }) => `${step}:${field}`)
+				])
+			}
+		};
+	});
+	function pointAtSetting(choice: { id: SettingId; value: boolean | string } | null) {
+		pointedAt = choice;
+		if (choice) previewedLast = true;
+	}
+	const layout = $derived(layoutDiagram(preview?.both ?? view, mode, room));
 
 	// Below this the settings do not fit beside the diagram, so they open over it when asked for.
 	let settingsDoNotFit = $state(false);
@@ -212,6 +241,8 @@
 	});
 
 	function setSetting<K extends SettingId>(id: K, value: Settings[K]) {
+		pointedAt = null;
+		previewedLast = false;
 		const result = withSetting(base, appState, id, value);
 		last = afterFlip(
 			last,
@@ -548,6 +579,8 @@
 			elsewhere={settingsElsewhere}
 			onexplain={(id) => explain({ kind: 'setting', id })}
 			onopensource={(setting, ref) => onnavigate(withSourceOpen(appState, setting, ref), 'push')}
+			onpreview={pointAtSetting}
+			previewed={pointedAt && preview ? { id: pointedAt.id, says: preview.says } : null}
 		/>
 	</aside>
 
@@ -573,7 +606,9 @@
 				<Diagram
 					{layout}
 					{animate}
-					{fresh}
+					fresh={preview?.fresh ?? fresh}
+					preview={preview?.marks ?? null}
+					quick={previewedLast}
 					{holdings}
 					{lit}
 					{sending}
@@ -583,7 +618,7 @@
 					currentStep={appState.step}
 					onexplainlifeline={(id) => explain({ kind: 'lifeline', id })}
 					onexplainartifact={(id: ArtifactId) => explain({ kind: 'artifact', id })}
-					onselect={(step) => onnavigate({ ...appState, step }, 'replace')}
+					onselect={goToStep}
 				/>
 			{/key}
 		</div>

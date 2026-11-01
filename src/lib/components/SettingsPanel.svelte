@@ -30,6 +30,10 @@
 		notHere?: readonly SettingId[];
 		/** Where the ones left out do change something. */
 		elsewhere?: { text: string; href: string } | null;
+		/** Someone is pointing at a value of a setting, or no longer is. */
+		onpreview?: (choice: { id: SettingId; value: boolean | string } | null) => void;
+		/** What the setting being pointed at would do, in words. */
+		previewed?: { id: SettingId; says: string } | null;
 	}
 
 	let {
@@ -42,8 +46,35 @@
 		serverNotes = true,
 		onservernotes,
 		notHere = [],
-		elsewhere = null
+		elsewhere = null,
+		onpreview,
+		previewed = null
 	}: Props = $props();
+
+	// So that passing over a setting on the way to another does not set the diagram off.
+	const SETTLE_MS = 150;
+	let settling: ReturnType<typeof setTimeout> | undefined;
+	function consider(id: SettingId, value: boolean | string) {
+		clearTimeout(settling);
+		if (settings[id] === value || unavailable(id, value as never, settings)) return;
+		settling = setTimeout(() => onpreview?.({ id, value }), SETTLE_MS);
+	}
+	// Flipping a setting can move the others, and something sliding under a mouse that stayed where it
+	// pressed is not someone pointing at it.
+	let pressedAt = { x: -1, y: -1 };
+	function pointAt(event: PointerEvent, id: SettingId, value: boolean | string) {
+		if (event.clientX === pressedAt.x && event.clientY === pressedAt.y) return;
+		// A finger has nothing to hover with, and a tap flips it as it always did.
+		if (event.pointerType === 'mouse') consider(id, value);
+	}
+	function focusOn(event: FocusEvent, id: SettingId, value: boolean | string) {
+		// Not after a click, which has flipped it already.
+		if ((event.target as Element).matches(':focus-visible')) consider(id, value);
+	}
+	function letGo() {
+		clearTimeout(settling);
+		onpreview?.(null);
+	}
 
 	const simple = $derived(mode === 'simple');
 	const offered = $derived(
@@ -61,7 +92,10 @@
 	);
 
 	const defOf = (id: SettingId): SettingDef => settingDefs[id];
-	const set = (id: SettingId, value: boolean | string) => onchange(id, value as never);
+	const set = (id: SettingId, value: boolean | string) => {
+		clearTimeout(settling);
+		onchange(id, value as never);
+	};
 	// The button goes with its chip, so the focus goes to the next one, or to what they were part of.
 	let panelHeading = $state<HTMLElement>();
 	async function turnOff(id: SettingId) {
@@ -79,13 +113,22 @@
 	}
 </script>
 
+<svelte:window onpointerdown={(event) => (pressedAt = { x: event.clientX, y: event.clientY })} />
+
 <h2 tabindex="-1" bind:this={panelHeading}>{simple ? 'Try changing' : 'Settings'}</h2>
 {#each offered as id (id)}
 	{@const def = defOf(id)}
 	<section data-setting={id} aria-describedby={`about-${id}`}>
 		{#if def.kind === 'toggle'}
 			{@const blocked = blockedBy(id, true)}
-			<label class="toggle" class:blocked>
+			<label
+				class="toggle"
+				class:blocked
+				onpointerenter={(event) => pointAt(event, id, settings[id] !== true)}
+				onpointerleave={letGo}
+				onfocusin={(event) => focusOn(event, id, settings[id] !== true)}
+				onfocusout={letGo}
+			>
 				<input
 					type="checkbox"
 					checked={settings[id] === true}
@@ -100,7 +143,14 @@
 				<legend>{def.label}</legend>
 				{#each def.options as option (option.value)}
 					{@const blocked = blockedBy(id, option.value)}
-					<label class:blocked title={blocked}>
+					<label
+						class:blocked
+						title={blocked}
+						onpointerenter={(event) => pointAt(event, id, option.value)}
+						onpointerleave={letGo}
+						onfocusin={(event) => focusOn(event, id, option.value)}
+						onfocusout={letGo}
+					>
 						<input
 							type="radio"
 							name={id}
@@ -123,6 +173,9 @@
 					</label>
 				{/each}
 			</fieldset>
+		{/if}
+		{#if previewed?.id === id}
+			<p class="would" data-testid="setting-preview">{previewed.says}</p>
 		{/if}
 		<p
 			id={`about-${id}`}
@@ -209,7 +262,28 @@
 	</section>
 {/if}
 
+<!-- One place that is always there, because something that appears with its words is not announced. -->
+<p class="said" role="status" data-testid="preview-said">{previewed?.says ?? ''}</p>
+
 <style>
+	.would {
+		margin: 4px 0 0;
+		font-size: 12px;
+		font-weight: 600;
+	}
+
+	/* Fixed, because anywhere further down the rail it would make the whole page taller. */
+	.said {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
+
 	h2 {
 		margin: 0 0 10px;
 		font-size: 13px;
