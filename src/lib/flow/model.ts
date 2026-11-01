@@ -97,9 +97,11 @@ export interface StepDef {
 }
 
 /** Steps are one ordered list, so a toggle can only add, remove or reword, never reorder. */
-export interface FlowDef {
+export interface DiagramDef {
 	id: string;
 	title: string;
+	/** What it is about, in a few words beside the switch between diagrams. */
+	caption: string;
 	summary: string;
 	/** Where someone new starts: what this is for, in their words. */
 	intro: string;
@@ -110,10 +112,23 @@ export interface FlowDef {
 	steps: readonly StepDef[];
 }
 
-/** A base flow has two diagrams, because nobody in the user flow does the setup. */
+/** A set of settings that has a recording, which is one real run (ADR-005). */
+export interface Preset {
+	id: string;
+	title: string;
+	settings: Partial<Settings>;
+}
+
+/**
+ * What a visitor picks, such as the authorization code flow. It has two diagrams, because nobody in
+ * the user flow does the setup. Its recordings and settings are its own, so one base flow cannot
+ * claim what was only ever true of another.
+ */
 export interface BaseFlow {
 	id: string;
-	diagrams: Readonly<Record<DiagramId, FlowDef>>;
+	diagrams: Readonly<Record<DiagramId, DiagramDef>>;
+	settings: readonly SettingId[];
+	presets: readonly Preset[];
 }
 
 export interface Lifeline {
@@ -158,8 +173,7 @@ export interface Step {
 	causes: SettingId[];
 }
 
-export interface FlowView {
-	flow: string;
+export interface DiagramView {
 	lifelines: Lifeline[];
 	steps: Step[];
 	groups: GroupDef[];
@@ -186,14 +200,14 @@ function causes(when: Condition | undefined, settings: Settings): SettingId[] {
 	return needed.length ? needed : changed;
 }
 
-function channelOf(flow: FlowDef, step: StepDef): Channel {
+function channelOf(flow: DiagramDef, step: StepDef): Channel {
 	if (step.kind === 'human') return 'people';
 	if (step.kind === 'internal') return 'internal';
 	const front = flow.lifelines.some((l) => l.front && (l.id === step.from || l.id === step.to));
 	return front ? 'front' : 'back';
 }
 
-export function evaluate(flow: FlowDef, settings: Settings): FlowView {
+export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 	const steps: Step[] = flow.steps
 		.filter((step) => present(step.when, settings))
 		.map((step) => ({
@@ -227,7 +241,6 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 		}));
 
 	return {
-		flow: flow.id,
 		lifelines: flow.lifelines
 			.filter((lifeline) => present(lifeline.when, settings))
 			.map((lifeline) => ({
@@ -248,7 +261,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 }
 
 /** What each lifeline has seen by the end of a step: what it started with, and what passed through it. */
-export function holdingsAt(view: FlowView, stepId: string): Record<string, ArtifactId[]> {
+export function holdingsAt(view: DiagramView, stepId: string): Record<string, ArtifactId[]> {
 	const held = Object.fromEntries(view.lifelines.map((line) => [line.id, [...line.startsWith]]));
 	const see = (line: string, artifact: ArtifactId) => {
 		if (!held[line].includes(artifact)) held[line].push(artifact);
@@ -276,7 +289,7 @@ export interface ViewDiff {
 }
 
 /** What a change of settings did to the diagram, which is what the transition has to show. */
-export function diffViews(before: FlowView, after: FlowView): ViewDiff {
+export function diffViews(before: DiagramView, after: DiagramView): ViewDiff {
 	const beforeSteps = new Map(before.steps.map((step) => [step.id, step]));
 	const afterSteps = new Map(after.steps.map((step) => [step.id, step]));
 	const beforeLines = new Map(before.lifelines.map((line) => [line.id, line]));
@@ -306,7 +319,7 @@ export function isEmptyDiff(diff: ViewDiff): boolean {
 }
 
 /** What simple mode shows of a diagram: who is on it, what is said, and what gets passed around. */
-const plainShape = (view: FlowView) =>
+const plainShape = (view: DiagramView) =>
 	JSON.stringify([
 		view.lifelines.map((line) => line.id),
 		view.steps.map((step) => [
@@ -317,6 +330,6 @@ const plainShape = (view: FlowView) =>
 	]);
 
 /** Whether someone in simple mode would see anything change on this diagram. */
-export function changesInPlainWords(flow: FlowDef, before: Settings, after: Settings): boolean {
+export function changesInPlainWords(flow: DiagramDef, before: Settings, after: Settings): boolean {
 	return plainShape(evaluate(flow, before)) !== plainShape(evaluate(flow, after));
 }

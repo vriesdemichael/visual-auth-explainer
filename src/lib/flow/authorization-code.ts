@@ -1,4 +1,4 @@
-import type { FlowDef } from '#lib/flow/model.ts';
+import type { DiagramDef } from '#lib/flow/model.ts';
 import { all, any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
@@ -24,9 +24,10 @@ const apiV2 = is('upstreamTokens', 'v2');
  * Every field here is held to the recordings of a real Keycloak by src/lib/recordings/recordings.test.ts.
  * The concept texts are not, because they explain and do not describe the wire.
  */
-export const authorizationCode: FlowDef = {
+export const authorizationCode: DiagramDef = {
 	id: 'authorization-code',
 	title: 'Authorization code flow',
+	caption: 'What happens when a user arrives.',
 	summary: 'An app gets access on behalf of a user, without ever seeing their password.',
 	intro:
 		'An app wants to do something for a user, such as read their calendar, without ever seeing their password. OAuth is how it gets permission. OpenID Connect adds who the user is, which is what logging in with an account elsewhere comes down to. Press Next to follow it, one message at a time.',

@@ -4,7 +4,9 @@ import { defaultSettings, type Settings } from '#lib/flow/settings.ts';
 import { notesFor } from '#lib/keycloak/notes.ts';
 
 const noteOn = (step: string, id: string, settings: Partial<Settings> = {}) => {
-	const note = notesFor(step, { ...defaultSettings, ...settings }).find((n) => n.id === id);
+	const note = notesFor('authorization-code', step, { ...defaultSettings, ...settings }).find(
+		(n) => n.id === id
+	);
 	if (!note) throw new Error(`No note ${id} on ${step}`);
 	return note;
 };

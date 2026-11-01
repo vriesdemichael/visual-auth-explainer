@@ -4,7 +4,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium } from '@playwright/test';
 import { layoutDiagram, WIDTH } from '#lib/diagram/layout.ts';
-import type { FlowView } from '#lib/flow/model.ts';
+import type { DiagramView } from '#lib/flow/model.ts';
 import { mapNodes, nodeView } from '#lib/map/nodes.ts';
 import { socialKey } from '#lib/map/social.ts';
 
@@ -24,7 +24,7 @@ const COLOURS: Record<string, string> = {
 const escape = (text: string) =>
 	text.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 
-function diagram(view: FlowView) {
+function diagram(view: DiagramView) {
 	const { lanes, rows } = layoutDiagram(view);
 	const scale = 420 / WIDTH;
 	const gap = Math.min(30, 470 / Math.max(rows.length, 1));
@@ -43,7 +43,7 @@ function diagram(view: FlowView) {
 	return `<svg width="420" height="${height}" viewBox="0 0 420 ${height}">${lines.join('')}${arrows.join('')}</svg>`;
 }
 
-const page = (title: string, summary: string, view: FlowView) => `<!doctype html>
+const page = (title: string, summary: string, view: DiagramView) => `<!doctype html>
 <style>
 	@font-face { font-family: Plex; src: url(data:font/woff2;base64,${FONT}) format('woff2'); font-weight: 100 700; }
 	* { box-sizing: border-box; }
@@ -65,7 +65,7 @@ ${diagram(view)}`;
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 const shot = await browser.newPage({ viewport: { width: 1200, height: 630 } });
-const render = async (name: string, title: string, summary: string, view: FlowView) => {
+const render = async (name: string, title: string, summary: string, view: DiagramView) => {
 	await shot.setContent(page(title, summary, view));
 	await shot.evaluate(() => document.fonts.ready);
 	await shot.screenshot({ path: `${OUT}/${name}.png` });

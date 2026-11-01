@@ -46,7 +46,8 @@
 		type AppState,
 		type Explained
 	} from '#lib/flow/state.ts';
-	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
+	import { explanationOf } from '#lib/flow/explain.ts';
+	import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
 		knownFrom,
@@ -56,7 +57,7 @@
 		settingsOf
 	} from '#lib/recordings/known.ts';
 	import { notesFor } from '#lib/keycloak/notes.ts';
-	import { isVendorSource, sources } from '#lib/sources/sources.ts';
+	import { sources } from '#lib/sources/sources.ts';
 
 	interface Props {
 		base: BaseFlow;
@@ -94,13 +95,17 @@
 	const current = $derived(steps[position]);
 	const holdings = $derived(holdingsAt(view, appState.step));
 	const channelsHere = $derived([...new Set(steps.map((step) => step.channel))]);
-	const origin = $derived(provenance(flow, appState.settings));
+	const origin = $derived(provenance(base, flow, appState.settings));
 
 	// What the last change of settings did. Stays until the visitor moves on, so it can be read.
-	let change = $state<ViewDiff | null>(null);
-	let resets = $state<Reset[]>([]);
-	let changedElsewhere = $state(false);
-	let changedSetting = $state<SettingId | null>(null);
+	interface LastChange {
+		diff: ViewDiff | null;
+		resets: Reset[];
+		elsewhere: boolean;
+		setting: SettingId | null;
+	}
+	const NOTHING_CHANGED: LastChange = { diff: null, resets: [], elsewhere: false, setting: null };
+	let last = $state.raw<LastChange>(NOTHING_CHANGED);
 	let previousView = untrack(() => view);
 	let previousStepId = untrack(() => appState.step);
 	let previousDiagram = untrack(() => appState.diagram);
@@ -112,13 +117,10 @@
 		untrack(() => {
 			const diff = diffViews(previousView, nextView);
 			if (diagram !== previousDiagram || (isEmptyDiff(diff) && stepId !== previousStepId)) {
-				change = null;
-				resets = [];
-				changedElsewhere = false;
-				changedSetting = null;
+				last = NOTHING_CHANGED;
 			} else if (!isEmptyDiff(diff) && animate) {
 				// Opening a link also moves from the prerendered default state, but changes nothing.
-				change = diff;
+				last = { ...last, diff };
 			}
 			previousView = nextView;
 			previousStepId = stepId;
@@ -126,7 +128,7 @@
 		});
 	});
 
-	const fresh = $derived(change ? freshIds(change) : new Set<string>());
+	const fresh = $derived(last.diff ? freshIds(last.diff) : new Set<string>());
 
 	const otherDiagram = $derived<DiagramId>(appState.diagram === 'flow' ? 'setup' : 'flow');
 	const hrefs = $derived({
@@ -140,7 +142,7 @@
 		}))
 	);
 	const elsewhere = $derived(
-		changedElsewhere
+		last.elsewhere
 			? {
 					text: `It changes the ${otherDiagram === 'flow' ? 'user flow' : 'setup'}.`,
 					href: hrefs[otherDiagram]
@@ -173,12 +175,15 @@
 		const other = base.diagrams[otherDiagram];
 		const before = appState.settings;
 		const after = result.state.settings;
-		resets = result.resets;
-		changedElsewhere =
+		const elsewhere =
 			isEmptyDiff(diffViews(evaluate(flow, before), evaluate(flow, after))) &&
 			!isEmptyDiff(diffViews(evaluate(other, before), evaluate(other, after)));
-		if (changedElsewhere) change = null;
-		changedSetting = id;
+		last = {
+			diff: elsewhere ? null : last.diff,
+			resets: result.resets,
+			elsewhere,
+			setting: id
+		};
 		onnavigate(result.state, 'push');
 	}
 
@@ -191,52 +196,24 @@
 
 	const explain = (explained: Explained | null) =>
 		onnavigate(withExplained(appState, explained), 'push');
-	const nameOf = (id: string) => {
-		const line = view.lifelines.find((candidate) => candidate.id === id);
-		return (appState.mode === 'simple' ? line?.plainName : line?.name) ?? id;
-	};
-	const explanation = $derived.by(() => {
-		const explained = appState.explained;
-		if (explained?.kind === 'lifeline') {
-			const line = view.lifelines.find((candidate) => candidate.id === explained.id);
-			if (!line) return null;
-			return {
-				title: nameOf(line.id),
-				text: line.concept,
-				seen: holdings[line.id] ?? []
-			};
-		}
-		if (explained?.kind === 'artifact') {
-			return {
-				title: artifacts[explained.id].label,
-				text: artifacts[explained.id].explains,
-				seenBy: view.lifelines
-					.filter((line) => holdings[line.id]?.includes(explained.id))
-					.map((line) => nameOf(line.id))
-			};
-		}
-		if (explained?.kind === 'setting') {
-			const def = settingDefs[explained.id];
-			return {
-				title: appState.mode === 'simple' ? (def.simple?.label ?? def.label) : def.label,
-				text: def.why,
-				sources: def.sources.filter((ref) => appState.serverNotes || !isVendorSource(ref.source))
-			};
-		}
-		return null;
-	});
+	const explanation = $derived(explanationOf(appState, view, holdings));
 	// The setting an open explanation is about is where its sources should open from.
 	const explainedSetting = $derived(
 		appState.explained?.kind === 'setting' ? appState.explained.id : null
 	);
 	const intro = $derived(position === 0 ? flow.intro : null);
+	const notes = $derived(
+		appState.serverNotes ? notesFor(base.id, current.id, appState.settings) : []
+	);
 
 	// Raw traffic is only for advanced mode, and only what is on the wire has any.
 	const onWire = $derived(
 		appState.mode === 'advanced' && (current.channel === 'front' || current.channel === 'back')
 	);
 	// Loaded when it is first asked for, so simple mode downloads none of it.
-	const wantedPreset = $derived(onWire ? (recordingFor(appState.settings)?.id ?? null) : null);
+	const wantedPreset = $derived(
+		onWire ? (recordingFor(base, appState.settings)?.id ?? null) : null
+	);
 	let loaded = $state.raw<Recording | null>(null);
 	let failedPreset = $state<string | null>(null);
 	$effect(() => {
@@ -257,13 +234,13 @@
 	});
 	const recording = $derived(loaded?.preset === wantedPreset ? loaded : null);
 	const wireStatus = $derived.by(() => {
-		if (!recordingFor(appState.settings)) return 'none';
+		if (!recordingFor(base, appState.settings)) return 'none';
 		if (recording) return 'loaded';
 		return failedPreset === wantedPreset ? 'failed' : 'loading';
 	});
 	const nearest = $derived(
 		wireStatus === 'none'
-			? nearestRecordings(appState.settings).map((preset) => {
+			? nearestRecordings(base, appState.settings).map((preset) => {
 					const settings = settingsOf(preset);
 					const step = resolveStep(flow, evaluate(flow, settings), appState.step);
 					return { text: preset.title, href: hrefFor({ ...appState, settings, step }) };
@@ -384,6 +361,7 @@
 	<aside class="settings" aria-label="Settings">
 		<SettingsPanel
 			settings={appState.settings}
+			available={base.settings}
 			mode={appState.mode}
 			onchange={setSetting}
 			serverNotes={appState.serverNotes}
@@ -396,7 +374,7 @@
 	</aside>
 
 	<main class="diagram">
-		<DiagramSwitch current={appState.diagram} {hrefs} />
+		<DiagramSwitch current={appState.diagram} {hrefs} caption={flow.caption} />
 		<div class="canvas">
 			<!-- Two diagrams, not two states of one, so switching does not animate. -->
 			{#key appState.diagram}
@@ -435,15 +413,15 @@
 			atEnd={position === steps.length - 1}
 			{onward}
 			mapHref={homeHref}
-			{change}
-			{resets}
+			change={last.diff}
+			resets={last.resets}
 			{links}
 			{elsewhere}
-			changed={changedSetting}
+			changed={last.setting}
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
-			notes={appState.serverNotes ? notesFor(current.id, appState.settings) : []}
+			{notes}
 			serverNamed={appState.serverNotes}
-			known={knownFrom(current, appState.settings)}
+			known={knownFrom(base, current, appState.settings)}
 		>
 			{#snippet wire()}
 				{#if onWire}
@@ -456,7 +434,7 @@
 						{numberOf}
 						onstep={goToStep}
 						serverNamed={appState.serverNotes}
-						notes={appState.serverNotes ? notesFor(current.id, appState.settings) : []}
+						{notes}
 					/>
 				{/if}
 			{/snippet}

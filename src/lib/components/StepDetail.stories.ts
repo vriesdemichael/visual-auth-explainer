@@ -32,7 +32,7 @@ export const WithFieldsFromSettings: Story = {
 export const WithKeycloakNotes: Story = {
 	args: {
 		step: stepIn('token-request'),
-		notes: notesFor('token-request', defaultSettings)
+		notes: notesFor('authorization-code', 'token-request', defaultSettings)
 	}
 };
 

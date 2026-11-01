@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
-import { evaluate, type Field, type FlowView, type Step } from '#lib/flow/model.ts';
+import { authorizationCodeBase as base } from '#lib/flow/index.ts';
+import { evaluate, type Field, type DiagramView, type Step } from '#lib/flow/model.ts';
 import { allValidSettings, defaultSettings, normalize, type Settings } from '#lib/flow/settings.ts';
 import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 import type { RecordedMessage, Recording } from '#lib/recordings/format.ts';
@@ -15,10 +15,10 @@ function read(preset: string): Recording {
 	return JSON.parse(readFileSync(`${FOLDER}/${preset}.json`, 'utf8'));
 }
 
-const recordings = presets.map((preset) => read(preset.id));
+const recordings = base.presets.map((preset) => read(preset.id));
 const asCases = recordings.map((recording) => [recording.preset, recording] as const);
 
-function viewsOf(recording: Recording): FlowView[] {
+function viewsOf(recording: Recording): DiagramView[] {
 	return [base.diagrams.setup, base.diagrams.flow].map((flow) =>
 		evaluate(flow, recording.settings)
 	);
@@ -238,7 +238,7 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 	});
 
 	it('was made with the settings of its named state', () => {
-		const wanted = presets.find((p) => p.id === preset)!;
+		const wanted = base.presets.find((p) => p.id === preset)!;
 		expect(recording.settings).toEqual(
 			normalize({ ...defaultSettings, ...wanted.settings }).settings
 		);
@@ -248,13 +248,13 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 describe('the files', () => {
 	it('are one per named state, and the answers to the open questions', () => {
 		const files = readdirSync(FOLDER).sort();
-		expect(files).toEqual([...presets.map((p) => `${p.id}.json`), 'questions.json'].sort());
+		expect(files).toEqual([...base.presets.map((p) => `${p.id}.json`), 'questions.json'].sort());
 	});
 
 	it('have an index that agrees with them', () => {
 		const steps = new Set(recordings.flatMap((r) => r.messages.flatMap((m) => m.step ?? [])));
-		expect(recordedIndex.steps).toEqual([...steps].sort());
-		expect(recordedIndex.presets).toEqual(presets.map((p) => p.id));
+		expect(recordedIndex.flows[base.id].steps).toEqual([...steps].sort());
+		expect(recordedIndex.flows[base.id].presets).toEqual(base.presets.map((p) => p.id));
 		for (const recording of recordings) {
 			expect(recording.keycloak).toBe(recordedIndex.keycloak);
 		}
@@ -266,7 +266,7 @@ describe('the files', () => {
 	});
 
 	it('exist for the file the application will ask for', () => {
-		for (const preset of recordedIndex.presets) {
+		for (const preset of recordedIndex.flows[base.id].presets) {
 			expect(existsSync(`${FOLDER}/${preset}.json`)).toBe(true);
 		}
 	});
@@ -278,7 +278,7 @@ describe('how each message is known', () => {
 			[base.diagrams.setup, base.diagrams.flow].flatMap((flow) =>
 				evaluate(flow, settings)
 					.steps.filter(onTheWire)
-					.filter((step) => knownFrom(step, settings)?.kind === 'unchecked')
+					.filter((step) => knownFrom(base, step, settings)?.kind === 'unchecked')
 					.map((step) => step.id)
 			)
 		);
@@ -287,7 +287,7 @@ describe('how each message is known', () => {
 
 	it('says nothing about steps with nothing on the wire', () => {
 		const steps = evaluate(base.diagrams.setup, defaultSettings).steps;
-		expect(knownFrom(steps[0], defaultSettings)).toBeNull();
+		expect(knownFrom(base, steps[0], defaultSettings)).toBeNull();
 	});
 
 	it('names the spec when Keycloak did not do it', () => {
@@ -295,19 +295,19 @@ describe('how each message is known', () => {
 		const step = evaluate(base.diagrams.flow, settings).steps.find(
 			(s) => s.id === 'nonce-challenge'
 		)!;
-		expect(knownFrom(step, settings)).toMatchObject({ kind: 'spec' });
+		expect(knownFrom(base, step, settings)).toMatchObject({ kind: 'spec' });
 	});
 
 	const stepAt = (id: string, settings: Settings = defaultSettings) =>
 		evaluate(base.diagrams.flow, settings).steps.find((step) => step.id === id)!;
 
 	it('names the server only for what the server took part in', () => {
-		expect(knownFrom(stepAt('token-response'), defaultSettings)).toMatchObject({
+		expect(knownFrom(base, stepAt('token-response'), defaultSettings)).toMatchObject({
 			kind: 'recorded',
 			by: 'server'
 		});
 		for (const id of ['open-app', 'redirect-to-idp', 'callback', 'api-request', 'api-response']) {
-			expect(knownFrom(stepAt(id), defaultSettings), id).toMatchObject({
+			expect(knownFrom(base, stepAt(id), defaultSettings), id).toMatchObject({
 				kind: 'recorded',
 				by: 'demo'
 			});
@@ -316,16 +316,16 @@ describe('how each message is known', () => {
 
 	it('does not claim a recording for settings that have none', () => {
 		const settings = { ...defaultSettings, oidc: true, consent: true };
-		expect(recordingFor(settings)).toBeNull();
-		expect(knownFrom(stepAt('token-response', settings), settings)).toEqual({
+		expect(recordingFor(base, settings)).toBeNull();
+		expect(knownFrom(base, stepAt('token-response', settings), settings)).toEqual({
 			kind: 'other-settings'
 		});
-		expect(provenance(base.diagrams.flow, settings).recorded).toBe(false);
+		expect(provenance(base, base.diagrams.flow, settings).recorded).toBe(false);
 	});
 
 	it('does not pass off a copy of a message as a message of its own', () => {
 		const settings = { ...defaultSettings, attacker: true };
-		expect(knownFrom(stepAt('attacker-steals-code', settings), settings)).toMatchObject({
+		expect(knownFrom(base, stepAt('attacker-steals-code', settings), settings)).toMatchObject({
 			kind: 'copied'
 		});
 	});
@@ -333,14 +333,14 @@ describe('how each message is known', () => {
 
 describe('what the application says about where it comes from', () => {
 	it('names the specs, the version and the date', () => {
-		const origin = provenance(base.diagrams.flow, defaultSettings);
+		const origin = provenance(base, base.diagrams.flow, defaultSettings);
 		expect(origin.specs).toEqual(['RFC 6749', 'RFC 6750']);
 		expect(origin.keycloak).toBe(recordedIndex.keycloak);
 		expect(origin.date).toBe(recordedIndex.recordedAt);
 	});
 
 	it('adds the specs of the settings that are on, and leaves vendor docs out', () => {
-		const origin = provenance(base.diagrams.flow, {
+		const origin = provenance(base, base.diagrams.flow, {
 			...defaultSettings,
 			oidc: true,
 			binding: 'dpop',

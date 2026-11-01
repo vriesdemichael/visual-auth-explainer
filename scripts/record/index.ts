@@ -5,7 +5,7 @@
 //   pnpm record --check            records, writes nothing, and fails if the shape has changed
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium, type Browser, type Request, type Response } from '@playwright/test';
-import { authorizationCodeBase as base, presets } from '#lib/flow/index.ts';
+import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import { defaultSettings, flagsInSettings, normalize, type Settings } from '#lib/flow/settings.ts';
 import type { FlagStatus, Recording, RecordingIndex } from '#lib/recordings/format.ts';
 import { shapeDifferences, shapeOf } from '#lib/recordings/shape.ts';
@@ -29,6 +29,8 @@ import {
 } from './keycloak.ts';
 import { lookInConsole } from './console.ts';
 import { questionsWithApiV1, questionsWithApiV2 } from './questions.ts';
+
+const { presets } = base;
 
 export const PINNED_KEYCLOAK = '26.8.1';
 const FOLDER = 'static/recordings/authorization-code';
@@ -187,8 +189,7 @@ function indexOf(
 	return {
 		keycloak,
 		recordedAt,
-		presets: presets.map((preset) => preset.id),
-		steps: [...steps].sort(),
+		flows: { [base.id]: { presets: presets.map((preset) => preset.id), steps: [...steps].sort() } },
 		flags
 	};
 }

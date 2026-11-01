@@ -4,15 +4,15 @@
 	interface Props {
 		current: DiagramId;
 		hrefs: Readonly<Record<DiagramId, string>>;
+		caption: string;
 	}
 
-	let { current, hrefs }: Props = $props();
+	let { current, hrefs, caption }: Props = $props();
 
-	const diagrams: readonly { id: DiagramId; label: string; caption: string }[] = [
-		{ id: 'flow', label: 'User flow', caption: 'What happens when a user arrives.' },
-		{ id: 'setup', label: 'Setup', caption: 'What people do before any user arrives.' }
+	const diagrams: readonly { id: DiagramId; label: string }[] = [
+		{ id: 'flow', label: 'User flow' },
+		{ id: 'setup', label: 'Setup' }
 	];
-	const caption = $derived(diagrams.find((diagram) => diagram.id === current)?.caption);
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -- the route resolves these -->

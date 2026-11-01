@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Note } from '#lib/keycloak/notes.ts';
-	import { flagStatus } from '#lib/recordings/known.ts';
+	import { flagStatus } from '#lib/keycloak/flags.ts';
 
 	interface Props {
 		note: Note;

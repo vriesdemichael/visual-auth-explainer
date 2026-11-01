@@ -2,8 +2,8 @@ import {
 	evaluate,
 	type BaseFlow,
 	type DiagramId,
-	type FlowDef,
-	type FlowView
+	type DiagramDef,
+	type DiagramView
 } from '#lib/flow/model.ts';
 import {
 	change,
@@ -47,11 +47,12 @@ export interface AppState {
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
 const SERVER_NOTES_PARAM = 'keycloak';
 
-const flowOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
-const viewOf = (base: BaseFlow, state: AppState) => evaluate(flowOf(base, state), state.settings);
+const diagramOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
+const viewOf = (base: BaseFlow, state: AppState) =>
+	evaluate(diagramOf(base, state), state.settings);
 
 /** The requested step if it is on screen, otherwise the nearest earlier one that is (ADR-003). */
-export function resolveStep(flow: FlowDef, view: FlowView, requested: string | null): string {
+export function resolveStep(flow: DiagramDef, view: DiagramView, requested: string | null): string {
 	const visible = new Set(view.steps.map((step) => step.id));
 	const index = flow.steps.findIndex((step) => step.id === requested);
 	for (let i = index; i >= 0; i--) {
@@ -99,10 +100,11 @@ function parseExplained(base: BaseFlow, diagram: DiagramId, raw: string | null):
 
 export function parseState(base: BaseFlow, onPath: DiagramId, search: string): AppState {
 	const params = new URLSearchParams(search);
+	// A link can only ask for what this flow has, so the rest stay on their defaults.
 	const requested = Object.fromEntries(
-		settingIds.map((id) => [id, parseValue(settingDefs[id], params.get(settingDefs[id].param))])
-	) as unknown as Settings;
-	const { settings } = normalize(requested);
+		base.settings.map((id) => [id, parseValue(settingDefs[id], params.get(settingDefs[id].param))])
+	);
+	const { settings } = normalize({ ...defaultSettings, ...requested });
 	const diagram = diagramFor(base, onPath, params);
 	const flow = base.diagrams[diagram];
 	return {
@@ -159,7 +161,7 @@ export function withSetting<K extends SettingId>(
 	value: Settings[K]
 ): { state: AppState; resets: Reset[] } {
 	const { settings, resets } = change(state.settings, id, value);
-	const flow = flowOf(base, state);
+	const flow = diagramOf(base, state);
 	const step = resolveStep(flow, evaluate(flow, settings), state.step);
 	return { state: { ...state, settings, step }, resets };
 }

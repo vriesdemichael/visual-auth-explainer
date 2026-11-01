@@ -1,106 +1,77 @@
 import { authorizationCode } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup } from '#lib/flow/authorization-code-setup.ts';
-import type { BaseFlow } from '#lib/flow/model.ts';
-import type { Settings } from '#lib/flow/settings.ts';
+import type { BaseFlow, Preset } from '#lib/flow/model.ts';
+import { settingIds } from '#lib/flow/settings.ts';
 
-export const authorizationCodeBase: BaseFlow = {
-	id: authorizationCode.id,
-	diagrams: { flow: authorizationCode, setup: authorizationCodeSetup }
-};
-
-export const flows: Record<string, BaseFlow> = {
-	[authorizationCodeBase.id]: authorizationCodeBase
-};
-
-export interface Preset {
-	id: string;
-	title: string;
-	flow: string;
-	settings: Partial<Settings>;
-}
-
-export const presets: readonly Preset[] = [
-	{ id: 'oauth', title: 'OAuth', flow: authorizationCode.id, settings: {} },
-	{ id: 'oidc', title: 'OpenID Connect', flow: authorizationCode.id, settings: { oidc: true } },
+const presets: readonly Preset[] = [
+	{ id: 'oauth', title: 'OAuth', settings: {} },
+	{ id: 'oidc', title: 'OpenID Connect', settings: { oidc: true } },
 	{
 		id: 'consent',
 		title: 'Asking the user',
-		flow: authorizationCode.id,
 		settings: { consent: true }
 	},
-	{ id: 'pkce', title: 'PKCE', flow: authorizationCode.id, settings: { pkce: true } },
+	{ id: 'pkce', title: 'PKCE', settings: { pkce: true } },
 	{
 		id: 'public',
 		title: 'An app with no secret',
-		flow: authorizationCode.id,
 		settings: { clientType: 'public' }
 	},
 	{
 		id: 'public-pkce',
 		title: 'An app with no secret, with PKCE',
-		flow: authorizationCode.id,
 		settings: { clientType: 'public', pkce: true }
 	},
 	{
 		id: 'oidc-pkce',
 		title: 'OpenID Connect with PKCE',
-		flow: authorizationCode.id,
 		settings: { oidc: true, pkce: true }
 	},
 	{
 		id: 'browser-app',
 		title: 'An app in the browser',
-		flow: authorizationCode.id,
 		settings: { oidc: true, clientType: 'public', pkce: true }
 	},
 	{
 		id: 'attack-public',
 		title: 'An attacker, against an app with no secret',
-		flow: authorizationCode.id,
 		settings: { attacker: true, clientType: 'public' }
 	},
 	{
 		id: 'attack-public-pkce',
 		title: 'An attacker, against an app with no secret, with PKCE',
-		flow: authorizationCode.id,
 		settings: { attacker: true, clientType: 'public', pkce: true }
 	},
 	{
 		id: 'attack-confidential',
 		title: 'An attacker, against an app with a secret',
-		flow: authorizationCode.id,
 		settings: { attacker: true }
 	},
 	{
 		id: 'attack-confidential-pkce',
 		title: 'An attacker, against an app with a secret, with PKCE',
-		flow: authorizationCode.id,
 		settings: { attacker: true, pkce: true }
 	},
-	{ id: 'dpop', title: 'DPoP', flow: authorizationCode.id, settings: { binding: 'dpop' } },
+	{ id: 'dpop', title: 'DPoP', settings: { binding: 'dpop' } },
 	{
 		id: 'dpop-nonce',
 		title: 'DPoP with a nonce',
-		flow: authorizationCode.id,
 		settings: { binding: 'dpop', dpopNonce: true }
 	},
-	{ id: 'broker', title: 'External IdP', flow: authorizationCode.id, settings: { broker: true } },
+	{ id: 'broker', title: 'External IdP', settings: { broker: true } },
 	{
 		id: 'upstream-v1',
 		title: 'Stored upstream tokens, API V1',
-		flow: authorizationCode.id,
 		settings: { broker: true, upstreamTokens: 'v1' }
 	},
 	{
 		id: 'upstream-v2',
 		title: 'Stored upstream tokens, API V2',
-		flow: authorizationCode.id,
 		settings: { broker: true, upstreamTokens: 'v2' }
 	},
 	{
 		id: 'everything',
 		title: 'Everything on',
-		flow: authorizationCode.id,
 		settings: {
 			oidc: true,
 			pkce: true,
@@ -111,3 +82,14 @@ export const presets: readonly Preset[] = [
 		}
 	}
 ];
+
+export const authorizationCodeBase: BaseFlow = {
+	id: authorizationCode.id,
+	diagrams: { flow: authorizationCode, setup: authorizationCodeSetup },
+	settings: settingIds,
+	presets
+};
+
+export const flows: Record<string, BaseFlow> = {
+	[authorizationCodeBase.id]: authorizationCodeBase
+};

@@ -33,7 +33,7 @@ export interface FlagStatus {
 export interface RecordingIndex {
 	keycloak: string;
 	recordedAt: string;
-	presets: string[];
-	steps: string[];
+	/** What was recorded of each base flow, so one cannot claim what only another did. */
+	flows: Record<string, { presets: string[]; steps: string[] }>;
 	flags: Record<string, FlagStatus>;
 }

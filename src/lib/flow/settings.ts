@@ -370,11 +370,12 @@ function valuesOf(id: SettingId): readonly (boolean | string)[] {
 	return def.kind === 'toggle' ? [false, true] : def.options.map((option) => option.value);
 }
 
-export function allValidSettings(): Settings[] {
-	const combinations = settingIds.reduce<Partial<Settings>[]>(
+/** Every combination of these settings that makes sense, with the rest on their defaults. */
+export function allValidSettings(ids: readonly SettingId[] = settingIds): Settings[] {
+	const combinations = ids.reduce<Settings[]>(
 		(partial, id) =>
 			partial.flatMap((settings) => valuesOf(id).map((value) => ({ ...settings, [id]: value }))),
-		[{}]
-	) as Settings[];
+		[defaultSettings]
+	);
 	return combinations.filter((settings) => normalize(settings).resets.length === 0);
 }
