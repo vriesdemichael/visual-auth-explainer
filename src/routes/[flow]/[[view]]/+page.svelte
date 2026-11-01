@@ -70,7 +70,9 @@
 		sharingTags({
 			title,
 			description,
-			path: data.node ? `/${data.flowId}/${data.node.id}/` : `/${data.flowId}/`,
+			path: data.node
+				? `/${data.flowId}/${data.node.id}/`
+				: `/${data.flowId}/${data.diagram === 'setup' ? 'setup/' : ''}`,
 			image: data.node?.id
 		})
 	);

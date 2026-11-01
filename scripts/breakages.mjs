@@ -196,6 +196,14 @@ export const breakages = [
 		to: 'false &&'
 	},
 
+	// Names every object has.
+	{
+		name: 'state: an explanation of constructor opens',
+		file: STATE,
+		from: "if (kind === 'artifact' && Object.hasOwn(artifacts, id)) return { kind, id: id as ArtifactId };",
+		to: "if (kind === 'artifact' && id in artifacts) return { kind, id: id as ArtifactId };"
+	},
+
 	// The map.
 	{
 		name: 'map: the next question skips one',

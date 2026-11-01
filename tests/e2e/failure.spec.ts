@@ -1,0 +1,114 @@
+import { expect, test } from '@playwright/test';
+import { FLOW_PATH, open } from './helpers.ts';
+
+test.describe('an address that does not exist', () => {
+	test('says so, with the way to the map', async ({ page }) => {
+		await page.goto('no-such-flow/');
+		const message = page.getByTestId('error-message');
+		await expect(message).toContainText('There is no page here');
+		await expect(message).not.toContainText('500');
+		await expect(page).toHaveTitle('Page not found');
+		await message.getByRole('link', { name: 'Go to the map' }).click();
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Visual auth explainer');
+	});
+
+	// Each of these is on every object, so a plain lookup finds it and carries on.
+	for (const name of ['constructor', 'toString', 'hasOwnProperty', '__proto__']) {
+		test(`says so for ${name}, as a flow and as a question`, async ({ page }) => {
+			const errors: string[] = [];
+			page.on('pageerror', (error) => errors.push(error.message));
+			await page.goto(`${name}/`);
+			await expect(page.getByTestId('error-message')).toContainText('There is no page here');
+			await page.goto(`${FLOW_PATH}${name}/`);
+			await expect(page.getByTestId('error-message')).toContainText('There is no page here');
+			expect(errors).toEqual([]);
+		});
+
+		test(`opens nothing for an explanation of ${name}`, async ({ page }) => {
+			await open(page, `explain=artifact.${name}`);
+			await expect(page.getByTestId('explanation')).toHaveCount(0);
+		});
+	}
+});
+
+test.describe('an address that means another', () => {
+	test('index.html goes to the page it is', async ({ page }) => {
+		await page.goto(`${FLOW_PATH}index.html?mode=advanced`);
+		await expect(page).toHaveURL(/authorization-code\/\?mode=advanced$/);
+		await expect(page.getByTestId('diagram')).toBeVisible();
+		await expect(page.getByTestId('error-message')).toHaveCount(0);
+	});
+
+	test('a doubled slash goes to the page it is, with its styles', async ({ page }) => {
+		await page.goto(`${FLOW_PATH.replace(/\/$/, '')}//`);
+		await expect(page).toHaveURL(/visual-auth-explainer\/authorization-code\/$/);
+		const background = await page
+			.locator('.workspace')
+			.evaluate((element) => getComputedStyle(element).display);
+		expect(background).toBe('grid');
+	});
+});
+
+test.describe('something failing to load', () => {
+	test('a part of a page says so, offers to try again, and that works', async ({ page }) => {
+		await open(page, '');
+		let blocked = true;
+		await page.route('**/_app/immutable/nodes/**', (route) =>
+			blocked ? route.abort() : route.continue()
+		);
+		await page.getByRole('link', { name: 'Map', exact: true }).click();
+		const message = page.getByTestId('error-message');
+		await expect(message).toContainText('That did not load');
+		await expect(message).not.toContainText('There is no page here');
+		await expect(page).toHaveTitle('That did not load');
+		blocked = false;
+		await page.getByTestId('try-again').click();
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Visual auth explainer');
+	});
+
+	test('the application itself says so, and a link with settings is not blank', async ({
+		page
+	}) => {
+		await page.route('**/_app/immutable/entry/**', (route) => route.abort());
+		await page.goto(`${FLOW_PATH}?mode=advanced&oidc=1`);
+		await expect(page.getByTestId('not-started')).toContainText('did not load');
+		await expect(page.getByTestId('diagram')).toBeVisible();
+		await expect(page.getByTestId('not-started').getByRole('link')).toHaveText('Try again');
+	});
+
+	test('nothing is said when it does start', async ({ page }) => {
+		await open(page, 'oidc=1');
+		await expect(page.getByTestId('diagram')).toBeVisible();
+		await page.waitForFunction(() => document.documentElement.hasAttribute('data-started'));
+		await expect(page.getByTestId('not-started')).toHaveCount(0);
+	});
+});
+
+test.describe('with JavaScript off', () => {
+	test.use({ javaScriptEnabled: false });
+
+	test('an address that does not exist still says something, with a title', async ({ page }) => {
+		await page.goto('no-such-flow/');
+		await expect(page.getByTestId('no-javascript')).toBeVisible();
+		await expect(page).toHaveTitle('Visual auth explainer');
+		await page.getByTestId('no-javascript').getByRole('link', { name: 'map' }).click();
+		await expect(page.getByRole('heading', { level: 1 })).toHaveText('Visual auth explainer');
+	});
+
+	test('a question shows its start and says what is missing', async ({ page }) => {
+		await page.goto(`${FLOW_PATH}how-access-works/`);
+		await expect(page.getByTestId('no-javascript')).toContainText('needs JavaScript');
+		await expect(page.getByTestId('diagram')).toBeVisible();
+		await expect(page).toHaveTitle('How does an app get access?');
+	});
+});
+
+test.describe('when a link is shared', () => {
+	test('setup names setup as its address', async ({ page }) => {
+		await page.goto(`${FLOW_PATH}setup/`);
+		await expect(page.locator('meta[property="og:url"]')).toHaveAttribute(
+			'content',
+			/authorization-code\/setup\/$/
+		);
+	});
+});

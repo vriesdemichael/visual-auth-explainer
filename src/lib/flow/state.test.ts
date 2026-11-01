@@ -91,6 +91,16 @@ describe('the URL', () => {
 		expect(state.step).toBe('open-app');
 	});
 
+	it('opens nothing for a name every object has', () => {
+		for (const name of Object.getOwnPropertyNames(Object.prototype)) {
+			for (const kind of ['artifact', 'lifeline', 'setting']) {
+				expect(onFlow(`explain=${kind}.${name}`).explained, name).toBeNull();
+			}
+			expect(onFlow(`step=${name}`).step, name).toBe('open-app');
+			expect(onFlow(`for=${name}&source=${name}`).source, name).toBeNull();
+		}
+	});
+
 	it('rejects combinations that are not valid', () => {
 		const state = onFlow('client=public&broker=1&upstream=v2&nonce=1');
 		expect(state.settings.upstreamTokens).toBe('off');
