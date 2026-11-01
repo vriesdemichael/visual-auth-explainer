@@ -4,7 +4,9 @@ on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
 
-concurrency: preview-${{ github.ref }}
+# By pull request: on a merged close github.ref is main, so every close would share one group,
+# and the ones waiting get cancelled, which leaves their previews up for good.
+concurrency: preview-${{ github.event.number }}
 
 permissions:
   contents: write
@@ -13,13 +15,13 @@ permissions:
 
 jobs:
   preview:
-    # Forks cannot write to gh-pages.
-    if: ${{ !github.event.pull_request.head.repo.fork }}
+    # Forks and Dependabot get a read-only token, so they cannot write to gh-pages.
+    if: ${{ !github.event.pull_request.head.repo.fork && github.event.pull_request.user.login != 'dependabot[bot]' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.1.0
         if: github.event.action != 'closed'
       - uses: actions/setup-node@v7
         if: github.event.action != 'closed'
@@ -36,7 +38,7 @@ jobs:
       # The one at the root of gh-pages covers the whole site.
       - run: find build -name .nojekyll -delete
         if: github.event.action != 'closed'
-      - uses: rossjrw/pr-preview-action@v1
+      - uses: rossjrw/pr-preview-action@873417d2df72380da1f3978378fb58560bcde976 # v1.8.2
         id: preview
         with:
           source-dir: build
@@ -46,7 +48,7 @@ jobs:
           # Not waiting for Pages: when two previews deploy within seconds, Pages abandons the older
           # build and the newer one includes both, so that job would go red for nothing.
           wait-for-pages-deployment: false
-      - uses: marocchino/sticky-pull-request-comment@v3.0.5
+      - uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         if: steps.preview.outputs.deployment-action == 'deploy'
         with:
           header: preview
@@ -55,7 +57,7 @@ jobs:
 
             - [Site](${{ steps.preview.outputs.preview-url }})
             - [Storybook](${{ steps.preview.outputs.preview-url }}storybook/)
-      - uses: marocchino/sticky-pull-request-comment@v3.0.5
+      - uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
         if: steps.preview.outputs.deployment-action == 'remove'
         with:
           header: preview

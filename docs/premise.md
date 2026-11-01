@@ -267,7 +267,7 @@ Plan early for step text outside the SVG, reduced motion, keyboard control and a
 
 ### Visual ambition is a requirement and a cost (Proposed)
 
-"Visually striking" is part of the Decided idea, so it is not the first thing to cut. Effort should go up front into the engine and visual language, with each later toggle costing much less. Transformer Explainer, the closest comparison as an interactive tool, took over a year with nine authors. There is no reliable estimate for this project, so do not plan around one.
+"Visually striking" is part of the Decided idea, so it is not the first thing to cut. **Decided:** it does not mean loud. Shown sketches with heavy transit-style lines, a glowing dark blueprint and an illustrated one with a rubber stamp, the maintainer found them "visually distracting". What should strike someone is the diagram changing and what it shows, with one thing standing out at a time ([#63](https://github.com/vriesdemichael/visual-auth-explainer/issues/63)). Effort should go up front into the engine and visual language, with each later toggle costing much less. Transformer Explainer, the closest comparison as an interactive tool, took over a year with nine authors. There is no reliable estimate for this project, so do not plan around one.
 
 ## 7. Candidate concepts
 
@@ -372,7 +372,7 @@ Still to settle:
 
 - **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). Named states have a path of their own so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md), and how presets relate to nodes by section 5.9.
-- **Name and domain:** `visual-auth-explainer` is a working name only. Moving means changing `SITE_URL` in `src/lib/site.ts`, regenerating nothing else, and setting up the redirect.
+- **Name and domain:** `visual-auth-explainer` is a working name only. Moving means changing `SITE_URL` in `src/lib/site.ts` and the base path in `scripts/build.mjs` and `playwright.config.ts`, and setting up the redirect.
 - **Whether to measure use.** Section 12 wants to know whether people come back, and [ADR-010](adr/010-static-files-on-github-pages.md) keeps nothing about a visitor outside their browser. **Proposed:** start without it, and go by GitHub stars and what people say.
 - **When to let search engines in.** Everything is ready: set the repository variable `ALLOW_INDEXING` to `true`, and the next production deploy can be indexed. Better after the name is settled, because the address gets indexed too.
 
