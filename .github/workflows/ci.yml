@@ -32,8 +32,7 @@ jobs:
       - run: pnpm test:unit
 
   # Jobs of their own, because most tests run in all three browsers and there are more with each
-  # setting. Firefox and WebKit take about twice as long as Chromium, so each is split in three to
-  # finish about when it does.
+  # setting. Every merge waits for the slowest, so they are split to finish at about the same time.
   click-through:
     name: Click-through (${{ matrix.browser }} ${{ matrix.part }} of ${{ matrix.parts }})
     runs-on: ubuntu-latest
@@ -45,7 +44,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { browser: chromium, part: 1, parts: 1 }
+          - { browser: chromium, part: 1, parts: 2 }
+          - { browser: chromium, part: 2, parts: 2 }
           - { browser: firefox, part: 1, parts: 3 }
           - { browser: firefox, part: 2, parts: 3 }
           - { browser: firefox, part: 3, parts: 3 }
@@ -79,7 +79,7 @@ jobs:
           retention-days: 7
       # A build the click-through just tested is the one that goes live.
       - uses: actions/upload-artifact@v7
-        if: github.event_name == 'push' && matrix.browser == 'chromium'
+        if: github.event_name == 'push' && matrix.browser == 'chromium' && matrix.part == 1
         with:
           name: pages
           path: build/
