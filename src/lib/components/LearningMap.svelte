@@ -1,21 +1,18 @@
 <script lang="ts">
-	import MiniDiagram from '#lib/components/MiniDiagram.svelte';
-	import {
-		nodeBaseView,
-		nodeState,
-		nodeView,
-		type MapNode,
-		type MapTrack
-	} from '#lib/map/nodes.ts';
+	import type { MapNode, MapTrack } from '#lib/map/tracks.ts';
 
 	interface Props {
 		tracks: readonly MapTrack[];
 		hrefOf: (node: MapNode) => string;
 		/** The node someone came back from, to mark where they were. */
 		current?: string | null;
+		/** The question the diagram beside it is showing. */
+		showing?: string | null;
+		/** Someone is pointing at a question, with a mouse or by moving to it with the keyboard. */
+		onpoint?: (node: MapNode) => void;
 	}
 
-	let { tracks, hrefOf, current = null }: Props = $props();
+	let { tracks, hrefOf, current = null, showing = null, onpoint }: Props = $props();
 </script>
 
 <!-- A question can be a long way down, and someone with an error wants to get to it quickly. -->
@@ -37,21 +34,19 @@
 						<li>
 							<!-- eslint-disable svelte/no-navigation-without-resolve -- hrefOf resolves it -->
 							<a
-								class="node"
+								class="stop"
+								class:showing={showing === node.id}
 								href={hrefOf(node)}
 								data-testid={`node-${node.id}`}
 								aria-current={current === node.id ? 'location' : undefined}
+								onpointerenter={() => onpoint?.(node)}
+								onfocus={() => onpoint?.(node)}
 							>
-								<MiniDiagram
-									view={nodeView(node)}
-									base={nodeBaseView(node)}
-									about={node.step ? nodeState(node).step : null}
-								/>
-								<strong>{node.title}</strong>
-								<span class="summary">{node.summary}</span>
+								<span class="title">{node.title}</span>
 								{#if node.mode === 'advanced'}
 									<span class="tag">Advanced</span>
 								{/if}
+								<span class="summary">{node.summary}</span>
 							</a>
 							<!-- eslint-enable svelte/no-navigation-without-resolve -->
 						</li>
@@ -72,136 +67,100 @@
 	.jump {
 		display: flex;
 		flex-wrap: wrap;
-		gap: 4px 16px;
-		margin-bottom: 18px;
+		gap: 4px 14px;
+		margin-bottom: 20px;
 		font-size: 13px;
 	}
 
-	/* One line everything branches off, because everything builds on the same flow. */
-	.tracks {
-		position: relative;
-		padding-left: 26px;
-		border-left: 2px solid var(--strong-line);
-	}
-
 	.track {
-		position: relative;
-		padding-bottom: 30px;
+		margin-bottom: 26px;
 		scroll-margin-top: 12px;
-	}
-
-	.track::before {
-		content: '';
-		position: absolute;
-		top: 6px;
-		left: -33px;
-		width: 12px;
-		height: 12px;
-		border: 2px solid var(--strong-line);
-		border-radius: 50%;
-		background: var(--bg);
 	}
 
 	h2 {
 		margin: 0;
-		font-size: 17px;
+		font-size: 15px;
 		font-weight: 600;
 	}
 
 	.lead {
-		margin: 2px 0 12px;
+		margin: 1px 0 8px;
 		color: var(--muted);
+		font-size: 13px;
 	}
 
+	/* A thin line, and each question a stop on it. The words do the work. */
 	.chain {
-		display: flex;
-		flex-wrap: wrap;
-		align-items: stretch;
-		gap: 18px;
-		margin-bottom: 18px;
+		margin-left: 4px;
+		border-left: 1px solid var(--strong-line);
 	}
 
-	.chain > li {
+	.chain + .chain {
+		margin-top: 10px;
+	}
+
+	.stop {
 		position: relative;
-		display: flex;
-		flex: 0 1 250px;
-		min-width: 200px;
-	}
-
-	/* Each one builds on the one before it. */
-	.chain > li + li::before {
-		content: '';
-		position: absolute;
-		top: 34px;
-		left: -18px;
-		width: 18px;
-		border-top: 2px solid var(--strong-line);
-	}
-
-	.node {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		gap: 6px;
-		padding: 10px 12px;
-		border: 1px solid var(--line);
-		border-radius: 10px;
-		background: var(--raised);
+		display: block;
+		padding: 3px 0 3px 16px;
 		color: var(--fg);
+		font-size: 14px;
+		line-height: 1.35;
 		text-decoration: none;
 	}
 
-	.node:hover {
-		border-color: var(--strong-line);
+	.stop::before {
+		content: '';
+		position: absolute;
+		top: 9px;
+		left: -4px;
+		width: 7px;
+		height: 7px;
+		box-sizing: border-box;
+		border: 1px solid var(--strong-line);
+		border-radius: 50%;
+		background: var(--bg);
 	}
 
-	.node[aria-current] {
+	.stop:hover .title,
+	.stop:focus-visible .title {
+		text-decoration: underline;
+	}
+
+	.stop.showing::before,
+	.stop[aria-current='location']::before {
 		border-color: var(--accent);
-		box-shadow: 0 0 0 1px var(--accent);
-		background: var(--accent-soft);
+		background: var(--accent);
 	}
 
-	strong {
-		font-weight: 600;
-		line-height: 1.3;
-	}
-
-	.summary {
-		color: var(--muted);
-		font-size: 12.5px;
-		line-height: 1.4;
-	}
-
-	.node[aria-current] .summary {
-		color: var(--fg);
+	.stop.showing .title,
+	.stop[aria-current='location'] .title {
+		color: var(--accent);
 	}
 
 	.tag {
-		margin-top: auto;
-		align-self: flex-start;
-		padding: 0 7px;
-		border: 1px solid var(--strong-line);
-		border-radius: 8px;
+		margin-left: 6px;
 		color: var(--muted);
-		font-size: 11px;
+		font-size: 11.5px;
 	}
 
-	.node[aria-current] .tag {
-		color: var(--fg);
+	/* Beside the diagram, the diagram says it. Still there for anyone who cannot see that. */
+	@media (min-width: 1100px) {
+		.summary {
+			position: absolute;
+			width: 1px;
+			height: 1px;
+			overflow: hidden;
+			clip-path: inset(50%);
+			white-space: nowrap;
+		}
 	}
 
-	@media (max-width: 720px) {
-		.chain {
-			flex-direction: column;
-			align-items: stretch;
-		}
-
-		.chain > li {
-			flex: none;
-		}
-
-		.chain > li + li::before {
-			display: none;
+	@media (max-width: 1099px) {
+		.summary {
+			display: block;
+			color: var(--muted);
+			font-size: 13px;
 		}
 	}
 </style>

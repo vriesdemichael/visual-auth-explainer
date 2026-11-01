@@ -22,7 +22,7 @@
 	--accent: light-dark(#3b37d6, #a5aeff);
 	--accent-soft: light-dark(#ecebff, #262a52);
 
-	/* What a setting just changed, which is an outline that goes again and not a colour of its own. */
+	/* What a setting just changed, which is a soft band that goes again and not a colour of its own. */
 	--fresh: light-dark(#141720, #eceef3);
 	--fresh-soft: light-dark(#f1f2f5, #2a2e36);
 
