@@ -505,6 +505,32 @@ export const breakages = [
 		to: 'changed.size && `changes ${count(diff.addedFields.length + diff.removedFields.length + diff.rewordedSteps.length, '
 	},
 
+	// A request as a command.
+	{
+		name: 'curl: a quote ends the argument early',
+		file: 'src/lib/recordings/curl.ts',
+		from: 'text.replaceAll("\'", "\'\\\\\'\'")',
+		to: 'text'
+	},
+	{
+		name: 'curl: a request is sent without its headers',
+		file: 'src/lib/recordings/curl.ts',
+		from: '...Object.entries(message.headers).map(([name, value]) => `-H ${quoted(`${name}: ${value}`)}`),',
+		to: ''
+	},
+	{
+		name: 'curl: a code reads as if it could be used again',
+		file: 'src/lib/recordings/curl.ts',
+		from: "{ code: 'redirect-with-code' }",
+		to: '{}'
+	},
+	{
+		name: 'curl: nothing says the values are throwaway',
+		file: 'src/lib/recordings/curl.ts',
+		from: "'# Never paste real secrets into a command like this.',",
+		to: ''
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',

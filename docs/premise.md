@@ -180,6 +180,8 @@ Three things follow:
 - The stronger edge is that **anyone can run it**. Every diagram can be reproduced against a real server, and vendors have little reason to build this layer.
 - So keep the **protocol layer neutral, with Keycloak as an overlay** on each message: this setting controls this behaviour. Someone on another IdP still gets the protocol explanation.
 
+**Proposed: any request can be copied as a command,** with the run's values, labelled as throwaway, saying where a code that was good once has to come from. A test reads each command back as a shell would and compares it to the recording, so it cannot drift from what was sent.
+
 **Built, with rules in [ADR-015](adr/015-keycloak-is-an-overlay-on-a-neutral-protocol.md).** Each note names a setting, where it is in the admin console, and is backed by changing that setting on a real server and seeing the behaviour change. **Proposed, for the maintainer to overrule:** one switch, Server notes, on by default, with notes in advanced mode only, closed until opened.
 
 **Decided:** recordings use a default Keycloak client, which is what people meet. On one, the access token carries the same identity claims with or without `openid`, so the overlay has to explain client scopes. Details are in [research/followup-checks.md](research/followup-checks.md).
