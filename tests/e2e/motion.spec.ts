@@ -120,6 +120,7 @@ test.describe('what changed', () => {
 		await open(page, 'broker=1&upstream=v2');
 		await page.getByRole('radio', { name: /Public/ }).click();
 		await expect(page.getByTestId('change-summary')).toContainText('was reset');
+		await expect(page).toHaveURL(/client=public/);
 		await page.goBack();
 		await expect(page.getByRole('radio', { name: /Public/ })).not.toBeChecked();
 		await expect(page.getByTestId('change-summary')).not.toContainText('was reset');

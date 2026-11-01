@@ -22,6 +22,8 @@ export type FrameGroup = GroupLayout & Visibility;
 
 export interface Frame {
 	width: number;
+	viewX: number;
+	viewWidth: number;
 	height: number;
 	heldWidth: number;
 	headHeight: number;
@@ -36,6 +38,8 @@ const settled = <T>(item: T) => ({ ...item, opacity: 1, draw: 1, leaving: false 
 export function toFrame(layout: DiagramLayout): Frame {
 	return {
 		width: layout.width,
+		viewX: layout.viewX,
+		viewWidth: layout.viewWidth,
 		height: layout.height,
 		heldWidth: layout.heldWidth,
 		headHeight: layout.headHeight,
@@ -88,6 +92,8 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 	if (t >= 1) return to;
 	return {
 		width: to.width,
+		viewX: to.viewX,
+		viewWidth: to.viewWidth,
 		height: lerp(from.height, to.height, moveAt(t)),
 		heldWidth: to.heldWidth,
 		headHeight: lerp(from.headHeight, to.headHeight, moveAt(t)),

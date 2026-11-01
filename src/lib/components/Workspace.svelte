@@ -216,9 +216,13 @@
 	function showAdded() {
 		const first = last.diff?.addedSteps[0];
 		if (!first) return;
-		window.document
-			.querySelector(`[data-step="${CSS.escape(first)}"]`)
-			?.scrollIntoView({ block: 'center' });
+		const row = window.document.querySelector(`[data-step="${CSS.escape(first)}"]`);
+		const scroller = row?.closest('.scroller');
+		if (!row || !scroller) return;
+		// Measured, because Firefox scrolls to the top when asked to bring something in an SVG into view.
+		const box = row.getBoundingClientRect();
+		const view = scroller.getBoundingClientRect();
+		scroller.scrollTop += box.top + box.height / 2 - (view.top + view.height / 2);
 	}
 
 	function go(next: AppState | null) {

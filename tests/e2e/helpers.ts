@@ -18,6 +18,22 @@ export async function open(page: Page, search = '', diagram: DiagramId = 'flow')
 	await page.locator('.workspace[data-ready="true"]').waitFor();
 }
 
+/**
+ * Clicks a row where it is on screen. Firefox scrolls to the top when asked to bring something in an
+ * SVG into view, which is what a plain click does first, so this measures and scrolls by hand.
+ */
+export async function pressRow(page: Page, step: string) {
+	const box = await page.locator(`[data-step="${step}"]`).evaluate((row) => {
+		const scroller = row.closest('.scroller') as HTMLElement;
+		const measured = row.getBoundingClientRect();
+		const view = scroller.getBoundingClientRect();
+		scroller.scrollTop += measured.top + measured.height / 2 - (view.top + view.height / 2);
+		const { left, right, top, bottom } = row.getBoundingClientRect();
+		return { x: (left + right) / 2, y: (top + bottom) / 2 };
+	});
+	await page.mouse.click(box.x, box.y);
+}
+
 export const visibleStepIds = (page: Page) =>
 	page.locator('[data-step]').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-step')));
 

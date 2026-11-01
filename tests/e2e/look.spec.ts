@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { open } from './helpers.ts';
+import { open, pressRow } from './helpers.ts';
 
 const row = (page: import('@playwright/test').Page, id: string) =>
 	page.locator(`[data-step="${id}"]`);
@@ -81,15 +81,15 @@ test.describe('what each has seen', () => {
 		await expect(held(page, 'app', 'secret')).toBeVisible();
 		await expect(held(page, 'browser', 'code')).toHaveCount(0);
 
-		await page.locator('[data-step="redirect-with-code"]').click();
+		await pressRow(page, 'redirect-with-code');
 		await expect(held(page, 'browser', 'code')).toBeVisible();
 		await expect(held(page, 'app', 'code')).toHaveCount(0);
 
-		await page.locator('[data-step="token-response"]').click();
+		await pressRow(page, 'token-response');
 		await expect(held(page, 'app', 'access-token')).toBeVisible();
 		await expect(held(page, 'browser', 'access-token')).toHaveCount(0);
 
-		await page.locator('[data-step="api-request"]').click();
+		await pressRow(page, 'api-request');
 		await expect(held(page, 'api', 'access-token')).toBeVisible();
 	});
 
