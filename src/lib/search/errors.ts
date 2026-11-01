@@ -23,6 +23,20 @@ const storedV2: Partial<Settings> = { broker: true, upstreamTokens: 'v2' };
 
 export const knownErrors: readonly KnownError[] = [
 	{
+		text: 'Maximum allowed refresh token reuse exceeded',
+		means:
+			'A refresh token that had already been used was sent again, and the server allows that no more.',
+		step: 'refresh-again-response',
+		settings: { refresh: true, reuse: 'ends' }
+	},
+	{
+		text: "Session doesn't have required client",
+		means:
+			'A refresh token was used twice, which ended the session for this app, so even the newest one stops working.',
+		step: 'refresh-newest-response',
+		settings: { refresh: true, reuse: 'ends' }
+	},
+	{
 		text: 'Invalid parameter: redirect_uri',
 		means: 'The address the app sent is not one registered for this client.',
 		step: 'authorize',

@@ -49,5 +49,16 @@
 	"call-upstream",
 	"configure-api",
 	"fetch-keys",
-	"keys"
+	"keys",
+	"token-runs-out",
+	"api-request-again",
+	"api-refused",
+	"refresh-request",
+	"refresh-response",
+	"api-request-new",
+	"api-response-new",
+	"refresh-again",
+	"refresh-again-response",
+	"refresh-newest",
+	"refresh-newest-response"
 ]

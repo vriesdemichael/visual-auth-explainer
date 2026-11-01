@@ -57,8 +57,12 @@ describe('constraints', () => {
 		const withConsent = 2;
 		// On the plain flow only, so client type and PKCE, with each way an API can say no.
 		const withApiAnswers = 2 * 2 * 5;
+		// On the plain flow too, but with OpenID Connect and consent, and two answers to using one twice.
+		const withRefresh = 2 * 2 * 2 * 2 * 2;
 		expect(allValidSettings()).toHaveLength(
-			withConsent * (2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker) + withApiAnswers
+			withConsent * (2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker) +
+				withApiAnswers +
+				withRefresh
 		);
 	});
 

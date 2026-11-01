@@ -6,6 +6,7 @@
 		labelCentre,
 		layHeld,
 		ROW_OFFSET,
+		TIME_GAP,
 		SELF_LOOP,
 		type DiagramLayout
 	} from '#lib/diagram/layout.ts';
@@ -257,6 +258,16 @@
 					}}
 				>
 					<desc id={`route-${row.id}`}>{row.route}</desc>
+					{#if row.kind === 'time'}
+						<!-- A gap in every line, which is how a sequence diagram says that time went by. -->
+						<rect
+							class="gap"
+							x={frame.viewX}
+							y={row.y - TIME_GAP / 2}
+							width={frame.viewWidth}
+							height={TIME_GAP}
+						/>
+					{/if}
 					<rect
 						class="hit"
 						x={frame.viewX}
@@ -264,7 +275,11 @@
 						width={frame.viewWidth}
 						height={row.band}
 					/>
-					{#if row.self}
+					{#if row.kind === 'time'}
+						{#each [row.y - TIME_GAP / 2, row.y + TIME_GAP / 2] as y (y)}
+							<line x1={frame.viewX} x2={frame.viewX + frame.viewWidth} y1={y} y2={y} />
+						{/each}
+					{:else if row.self}
 						<path
 							d={`M ${row.x1} ${row.y - 6} h ${row.selfSide * SELF_LOOP.width} v ${SELF_LOOP.height} h ${-row.selfSide * (SELF_LOOP.width - 6)}`}
 							pathLength="1"
@@ -294,7 +309,16 @@
 						<circle r="9.5" />
 						<text y="3.7" text-anchor="middle">{row.number}</text>
 					</g>
-					{#if row.self}
+					{#if row.kind === 'time'}
+						<text
+							class="label"
+							x={labelCentre(row.x1, row.x2, row.label, frame.width)}
+							y={row.y + 4}
+							text-anchor="middle"
+						>
+							{row.label}
+						</text>
+					{:else if row.self}
 						<text
 							class="label"
 							x={row.x1 + row.selfSide * (SELF_LOOP.width + 8)}
@@ -557,6 +581,16 @@
 
 	.row.response line {
 		stroke-dasharray: 7 5;
+	}
+
+	.gap {
+		fill: var(--bg);
+	}
+
+	.row.time line {
+		stroke-dasharray: 1.5 5;
+		stroke-linecap: round;
+		stroke-width: 1.4;
 	}
 
 	.row.human line {

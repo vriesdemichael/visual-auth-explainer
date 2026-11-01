@@ -85,6 +85,11 @@
 		searchState.open = false;
 		query = '';
 	};
+
+	// The browser says it closed a moment later, and by then someone may have opened it again.
+	const closed = () => {
+		if (!dialog?.open) close();
+	};
 </script>
 
 <svelte:window onkeydown={onwindowkey} />
@@ -94,7 +99,8 @@
 	bind:this={dialog}
 	data-testid="search"
 	aria-label="Search"
-	onclose={close}
+	oncancel={close}
+	onclose={closed}
 	onclick={(event) => {
 		// A click on the backdrop lands on the dialog itself.
 		if (event.target === dialog) close();

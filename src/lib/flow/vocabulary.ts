@@ -104,7 +104,7 @@ const parameterWhy: Readonly<Record<string, string>> = {
 	'Authorization: Bearer': 'The access token. Holding it is enough.',
 	'Authorization: DPoP': 'The access token, which only works together with the proof.',
 	'DPoP-Nonce': 'The value to put in the next proof.',
-	error: 'Says the proof has to include a nonce from the server.',
+	'error=use_dpop_nonce': 'Says the proof has to include a nonce from the server.',
 	issued_token_type: 'Says what kind of token this is.',
 	'client type': 'Whether the app can keep a secret.',
 	'Store Tokens': 'Makes the identity provider keep what the other provider issued.',
@@ -117,6 +117,7 @@ const parameterWhy: Readonly<Record<string, string>> = {
 	token_endpoint: 'Where the app trades a code for tokens.',
 	jwks_uri: 'Where to get the keys that verify its tokens.',
 	userinfo_endpoint: 'Where to ask for details about the user.',
+	error_description: 'What went wrong, in words for a person to read.',
 	keys: 'The public keys that check signatures.'
 };
 

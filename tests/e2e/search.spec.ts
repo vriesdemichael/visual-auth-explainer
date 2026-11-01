@@ -72,6 +72,23 @@ test.describe('by keyboard', () => {
 		await expect(input(page)).toBeFocused();
 	});
 
+	test('opens again straight after Escape', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await page.keyboard.press('/');
+		await expect(input(page)).toBeFocused();
+		// From inside the page, so nothing can get between the two.
+		await page.evaluate(() => {
+			const dialog = document.querySelector('dialog[data-testid="search"]') as HTMLDialogElement;
+			dialog.dispatchEvent(new Event('cancel', { cancelable: true }));
+			dialog.close();
+			document.body.dispatchEvent(
+				new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true })
+			);
+		});
+		await expect(page.getByTestId('search')).toHaveAttribute('open');
+		await expect(input(page)).toBeFocused();
+	});
+
 	test('arrows choose a result, and Enter opens it', async ({ page }) => {
 		await start(page);
 		await input(page).fill('token');

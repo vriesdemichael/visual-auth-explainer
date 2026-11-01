@@ -221,9 +221,12 @@ export function layoutDiagram(
 		const step = steps[i];
 		const previous = steps[i - 1];
 		const next = steps[i + 1];
-		const self = step.from === step.to;
-		const x1 = laneX.get(step.from) ?? 0;
-		const x2 = laneX.get(step.to) ?? 0;
+		// Time passing is not a message, so it reaches across everyone and starts from no one.
+		const time = step.kind === 'time';
+		const self = step.from === step.to && !time;
+		const lanes = [...laneX.values()];
+		const x1 = time ? Math.min(...lanes) : (laneX.get(step.from) ?? 0);
+		const x2 = time ? Math.max(...lanes) : (laneX.get(step.to) ?? 0);
 		const selfSide = x1 > width - SELF_LABEL_ROOM ? -1 : 1;
 
 		if (step.group && previous?.group !== step.group) cursor += GROUP_TOP;
@@ -245,9 +248,11 @@ export function layoutDiagram(
 			kind: step.kind,
 			channel: step.channel,
 			label: simple ? step.plain : step.label,
-			route: self
-				? `${nameOf(step.from)}, internally`
-				: `${nameOf(step.from)} to ${nameOf(step.to)}`
+			route: time
+				? 'Nothing is sent'
+				: self
+					? `${nameOf(step.from)}, internally`
+					: `${nameOf(step.from)} to ${nameOf(step.to)}`
 		});
 
 		const center = self ? x1 + selfSide * (SELF_LOOP_WIDTH + 90) : (x1 + x2) / 2;
@@ -344,4 +349,6 @@ export function layHeld(held: readonly ArtifactId[], lineWidth = HELD_LINE_WIDTH
 }
 
 export const SELF_LOOP = { width: SELF_LOOP_WIDTH, height: 18 };
+/** How tall the gap in every line is, where time passes. */
+export const TIME_GAP = 26;
 export const ROW_OFFSET = ROW_TOP;

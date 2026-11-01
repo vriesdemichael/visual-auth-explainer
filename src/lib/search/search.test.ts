@@ -7,6 +7,9 @@ import type { Recording } from '#lib/recordings/format.ts';
 import { knownErrors } from '#lib/search/errors.ts';
 import { search } from '#lib/search/search.ts';
 
+/** The demo API's words, which nobody else's server will say. */
+const API_ANSWERS = new Set(['api-response', 'api-refused']);
+
 const FOLDER = 'static/recordings/authorization-code';
 const files = readdirSync(FOLDER).filter((file) => file !== 'questions.json');
 const recordings: Recording[] = files.map((file) =>
@@ -85,8 +88,7 @@ describe('what a real server said', () => {
 	const stated = new Set(
 		recordings.flatMap((recording) =>
 			recording.messages.flatMap((message) => {
-				// The demo API's words, which nobody else's server will say.
-				if (message.step === 'api-response') return [];
+				if (API_ANSWERS.has(message.step ?? '')) return [];
 				const body = message.body as Record<string, string> | undefined;
 				return body && typeof body === 'object'
 					? [body.error, body.error_description].filter(Boolean)
@@ -126,7 +128,7 @@ describe('what a real server said', () => {
 			for (const message of recording.messages) {
 				const body = message.body as Record<string, string> | undefined;
 				const said = body?.error_description;
-				if (!said || !message.step || message.step === 'api-response') continue;
+				if (!said || !message.step || API_ANSWERS.has(message.step)) continue;
 				const known = knownErrors.find((candidate) => candidate.text === said);
 				expect(known, said).toBeDefined();
 				// Each error is recorded on the steps a real server said it on, and it opens one of those.

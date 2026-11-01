@@ -11,6 +11,8 @@ export interface Settings {
 	broker: boolean;
 	upstreamTokens: 'off' | 'v1' | 'v2';
 	apiToken: 'good' | 'none' | 'expired' | 'changed' | 'elsewhere' | 'noscope';
+	refresh: boolean;
+	reuse: 'keeps' | 'ends';
 }
 
 export type SettingId = keyof Settings;
@@ -330,6 +332,54 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 			{ value: 'changed', label: 'A changed token' },
 			{ value: 'elsewhere', label: 'A token for another API' },
 			{ value: 'noscope', label: 'A token that does not allow this' }
+		]
+	},
+	refresh: {
+		kind: 'toggle',
+		label: 'When the token runs out',
+		param: 'refresh',
+		default: false,
+		summary: 'Later on the access token expires, and the app gets a new one without the user.',
+		why: 'An access token is short-lived so that a stolen one is not good for long, and nobody wants to log in that often. A refresh token is how both can be true, which also makes it worth stealing.',
+		sources: [
+			{
+				source: 'rfc6749',
+				section: '6',
+				why: 'Section 6 is how an app uses a refresh token, and says a server may send a new one back.'
+			}
+		],
+		requires: {
+			when: all(
+				is('binding', 'bearer'),
+				is('broker', false),
+				is('attacker', false),
+				is('apiToken', 'good')
+			),
+			because: 'This shows the plain case, so other settings do not get in the way of the answer.',
+			sayWhenBlocked: true
+		}
+	},
+	reuse: {
+		kind: 'choice',
+		label: 'Using a refresh token twice',
+		param: 'reuse',
+		default: 'keeps',
+		summary: 'Whether an old refresh token still works once a new one has come back.',
+		why: 'A new refresh token each time looks as if the old one is finished with, and whether it is depends on the server. It decides what someone with a copy can do.',
+		sources: [
+			{
+				source: 'rfc9700',
+				section: '2.2.2',
+				why: "Section 2.2.2 says a public client's refresh tokens have to work only once, or be tied to the sender."
+			}
+		],
+		requires: {
+			when: is('refresh', true),
+			because: 'There is no second use until the token runs out and the first has happened.'
+		},
+		options: [
+			{ value: 'keeps', label: 'It keeps working' },
+			{ value: 'ends', label: 'It ends the login' }
 		]
 	}
 };

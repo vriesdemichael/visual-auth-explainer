@@ -626,6 +626,46 @@ describe('an attacker', () => {
 	});
 });
 
+describe('when the token runs out', () => {
+	const on = { refresh: true } as const;
+	const after = (settings: Partial<Settings>) => {
+		const { steps } = view(settings);
+		return steps.slice(steps.findIndex((step) => step.id === 'token-runs-out') + 1);
+	};
+
+	it('keeps the user out of it', () => {
+		for (const step of after(on)) {
+			expect([step.from, step.to]).not.toContain('user');
+			expect([step.from, step.to]).not.toContain('browser');
+		}
+	});
+
+	it('sends nothing while time passes, and has no message to record', () => {
+		const time = view(on).steps.find((step) => step.id === 'token-runs-out');
+		expect(time?.kind).toBe('time');
+		expect(time?.channel).toBe('internal');
+		expect(time?.fields).toEqual([]);
+	});
+
+	it('only goes on past the second use when it does not end things', () => {
+		const ids = (settings: Partial<Settings>) => after(settings).map((step) => step.id);
+		expect(ids(on)).not.toContain('refresh-newest');
+		expect(ids({ ...on, reuse: 'ends' })).toContain('refresh-newest-response');
+	});
+
+	it('says what is stolen in the same words as the attacker', () => {
+		const words = 'new access tokens without the user';
+		const stolen = view({ clientType: 'public', attacker: true }).steps.find(
+			(step) => step.id === 'attacker-token-response'
+		);
+		const again = view({ ...on, clientType: 'public' }).steps.find(
+			(step) => step.id === 'refresh-again-response'
+		);
+		expect(stolen?.concept).toContain(words);
+		expect(again?.concept).toContain(words);
+	});
+});
+
 describe('brokering', () => {
 	const change = diff({}, { broker: true });
 

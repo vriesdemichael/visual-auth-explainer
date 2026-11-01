@@ -306,7 +306,7 @@ export const noteDefs: readonly NoteDef[] = [
 	},
 	{
 		id: 'token-lifespan',
-		steps: ['token-response'],
+		steps: ['token-response', 'token-runs-out'],
 		claims: ['exp'],
 		title: 'Access Token Lifespan',
 		text: 'Sets expires_in for this client. Left empty, it comes from the realm, which is five minutes on a new one.',
@@ -348,6 +348,56 @@ export const noteDefs: readonly NoteDef[] = [
 				withoutTheRolesScope: { aud: null }
 			}
 		}
+	},
+	{
+		id: 'revoke-refresh-token',
+		steps: ['refresh-again-response', 'refresh-newest-response'],
+		title: 'Revoke Refresh Token',
+		text: "Off by default, so the old refresh token keeps working though a new one came back, on a client with no secret too. RFC 9700 asks more than that of a public client, so this is the setting to look at. Turn it on and a second use says Maximum allowed refresh token reuse exceeded, and then the newest one says Session doesn't have required client, because the second use ended the session for that client.",
+		when: is('refresh', true),
+		place: {
+			path: ['Realm settings', 'Tokens', 'Revoke Refresh Token'],
+			page: 'realm-settings',
+			opens: 'Tokens',
+			shows: ['Revoke Refresh Token']
+		},
+		backedBy: {
+			question: 'revokeRefreshToken',
+			shows: {
+				before: {
+					setting: false,
+					oldAgain: { status: 200 },
+					oldAgainWithNoSecret: { again: 200 }
+				},
+				after: {
+					oldAgain: {
+						status: 400,
+						error: 'invalid_grant',
+						description: 'Maximum allowed refresh token reuse exceeded'
+					},
+					newest: {
+						status: 400,
+						error: 'invalid_grant',
+						description: "Session doesn't have required client"
+					}
+				}
+			}
+		}
+	},
+	{
+		id: 'short-for-this-recording',
+		steps: ['token-runs-out'],
+		title: 'How long this recording waited',
+		text: 'An access token lasts five minutes on a default Keycloak, and its refresh token thirty. In this recording the access token lasts three seconds, so it does not have to wait, which is why expires_in says 3. With its real life, the same two calls answered the same: UserInfo said 401, and a refresh then said 200.',
+		when: is('refresh', true),
+		backedBy: {
+			question: 'refreshTokens',
+			shows: {
+				first: { expiresIn: 300, refreshExpiresIn: 1800 },
+				pastItsLife: { userinfo: 401, thenARefresh: 200 }
+			}
+		},
+		seen: 'Let a token run out, and tried both on'
 	},
 	{
 		id: 'how-an-api-says-no',

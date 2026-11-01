@@ -18,6 +18,17 @@ const presets: readonly Preset[] = [
 		title: 'The API sent a token that does not allow this',
 		settings: { apiToken: 'noscope' }
 	},
+	{ id: 'refresh', title: 'When the token runs out', settings: { refresh: true } },
+	{
+		id: 'refresh-public',
+		title: 'When the token runs out, with no secret',
+		settings: { refresh: true, clientType: 'public', pkce: true }
+	},
+	{
+		id: 'refresh-ends',
+		title: 'Using a refresh token twice ends the login',
+		settings: { refresh: true, reuse: 'ends' }
+	},
 	{ id: 'oidc', title: 'OpenID Connect', settings: { oidc: true } },
 	{
 		id: 'consent',

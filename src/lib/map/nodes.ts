@@ -185,6 +185,15 @@ export const mapTracks: readonly MapTrack[] = [
 			],
 			[
 				node({
+					id: 'stolen-refresh-token',
+					answer:
+						'New access tokens without the user, for as long as it lasts. From an app with a secret they need the secret too. A new refresh token coming back does not mean the old one stopped working, which depends on the server.',
+					title: 'What is a stolen refresh token worth?',
+					summary: 'More than the access token, and a new one coming back may not stop it.',
+					preset: 'refresh-public',
+					step: 'refresh-again'
+				}),
+				node({
 					id: 'stolen-token',
 					answer:
 						'It ties the token to a key that never leaves the app, and each call has to carry a proof signed with that key. At an API that checks the proof, the token alone gets nobody in.',
@@ -258,6 +267,15 @@ export const mapTracks: readonly MapTrack[] = [
 					summary: 'A token says nothing until someone has looked.',
 					preset: 'oauth',
 					step: 'api-check-token'
+				}),
+				node({
+					id: 'token-runs-out',
+					answer:
+						'The API refuses it, the app sends its refresh token to the identity provider, and it gets a new access token. The user is not involved, and sees nothing.',
+					title: 'What happens when the token runs out?',
+					summary: 'The app gets a new one, and the user never knows.',
+					preset: 'refresh',
+					step: 'token-runs-out'
 				})
 			],
 			[
@@ -363,6 +381,16 @@ export const mapTracks: readonly MapTrack[] = [
 					mode: 'advanced',
 					preset: 'oauth',
 					step: 'authorize'
+				}),
+				node({
+					id: 'refresh-token-reuse',
+					answer:
+						'Someone used a refresh token that had already been used, and the server is set to allow that once. It also stopped the newest one, so the app has to start a new login.',
+					title: 'Why do I get Maximum allowed refresh token reuse exceeded?',
+					summary: 'A refresh token was used twice, and that ended things for this app.',
+					mode: 'advanced',
+					preset: 'refresh-ends',
+					step: 'refresh-again-response'
 				}),
 				node({
 					id: 'what-is-in-my-token',

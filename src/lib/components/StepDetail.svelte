@@ -172,7 +172,9 @@
 <section data-testid="step-detail">
 	<div aria-live="polite">
 		<p class="route">
-			{#if step.from === step.to}
+			{#if step.kind === 'time'}
+				Nothing is sent
+			{:else if step.from === step.to}
 				{nameOf(step.from)}, internally
 			{:else}
 				{nameOf(step.from)} to {nameOf(step.to)}
@@ -199,12 +201,14 @@
 				{/if}
 			</p>
 		{/if}
-		<p class="channel" data-channel={step.channel} data-testid="step-channel">
-			<strong>{channels[step.channel].label}.</strong>
-			{#if step.channel !== previousChannel}
-				<span data-testid="channel-why">{channels[step.channel].explains}</span>
-			{/if}
-		</p>
+		{#if step.kind !== 'time'}
+			<p class="channel" data-channel={step.channel} data-testid="step-channel">
+				<strong>{channels[step.channel].label}.</strong>
+				{#if step.channel !== previousChannel}
+					<span data-testid="channel-why">{channels[step.channel].explains}</span>
+				{/if}
+			</p>
+		{/if}
 		{#if known && showKnown}
 			<p class="known" data-known={known.kind} data-testid="step-known">
 				{#if known.kind === 'recorded'}
