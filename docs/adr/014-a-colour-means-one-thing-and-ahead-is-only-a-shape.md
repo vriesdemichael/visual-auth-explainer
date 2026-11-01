@@ -4,7 +4,7 @@ Colours come from the tokens in `src/app.css`, and each means one thing everywhe
 
 A step shows what has happened and no more. Every message has a number. Up to the current step it has a label and its chips. Ahead it is a faint arrow with its number, and its label appears on pointing at it or when a setting has just changed it. So text is either readable or absent, never faded.
 
-A message says how it travels: through the browser, direct, or between people. Credentials and tokens are chips on the message. Under each lifeline are chips for what it has seen so far, which `holdingsAt` works out from the fields on the steps and is never written by hand, so it cannot disagree with the flow.
+A message says how it travels: through the browser, direct, or between people. Credentials and tokens are chips on the message. Under each lifeline are chips for what it has seen so far, which `holdingsAt` works out from the fields on the steps and is never written by hand, so it cannot disagree with the flow. The heads keep room for everything they will have seen by the last step, so stepping never moves a row.
 
 Limited context per step is the quality the maintainer asked to keep, and the numbers let someone presenting say which step they mean. What crosses the browser and what does not is the security idea of a redirect flow, and who has seen what is the question behind "why a code and then a token". Both were only in the text before, and a colour that meant two things would teach nothing.
 

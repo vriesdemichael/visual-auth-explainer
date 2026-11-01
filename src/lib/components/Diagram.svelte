@@ -1,13 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { ICONS } from '#lib/diagram/icons.ts';
-	import {
-		HEAD_HEIGHT,
-		layHeld,
-		ROW_OFFSET,
-		SELF_LOOP,
-		type DiagramLayout
-	} from '#lib/diagram/layout.ts';
+	import { layHeld, ROW_OFFSET, SELF_LOOP, type DiagramLayout } from '#lib/diagram/layout.ts';
 	import { interpolate, toFrame, TRANSITION_MS, type Frame } from '#lib/diagram/motion.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 
@@ -96,7 +90,7 @@
 <div class="diagram" data-testid="diagram" data-animating={animating}>
 	<svg
 		class="heads"
-		viewBox={`0 0 ${frame.width} ${HEAD_HEIGHT}`}
+		viewBox={`0 0 ${frame.width} ${frame.headHeight}`}
 		role="group"
 		aria-label="Who takes part, and what each has seen so far"
 		data-testid="diagram-heads"

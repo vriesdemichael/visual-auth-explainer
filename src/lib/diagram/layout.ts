@@ -1,4 +1,4 @@
-import type { FlowView, StepKind } from '#lib/flow/model.ts';
+import { holdingsAt, type FlowView, type StepKind } from '#lib/flow/model.ts';
 import {
 	artifacts,
 	type ArtifactId,
@@ -28,11 +28,8 @@ const HELD_LINE_HEIGHT = 19;
 const HELD_CHAR_WIDTH = 5.6;
 const HELD_PADDING = 12;
 const HELD_GAP = 4;
-const HELD_LINE_WIDTH = 150;
+const HELD_LINE_WIDTH = 174;
 const HELD_LINES = 2;
-
-/** Height of the heads, which always keep room for what the lifelines have seen. */
-export const HEAD_HEIGHT = HELD_TOP + HELD_LINES * HELD_LINE_HEIGHT + 2;
 
 export interface LaneLayout {
 	id: string;
@@ -84,6 +81,8 @@ export interface GroupLayout {
 export interface DiagramLayout {
 	width: number;
 	height: number;
+	/** Keeps room for all they will have seen by the end, so stepping moves nothing. */
+	headHeight: number;
 	lanes: LaneLayout[];
 	rows: RowLayout[];
 	chips: ChipLayout[];
@@ -211,7 +210,22 @@ export function layoutDiagram(view: FlowView, mode: Mode = 'simple'): DiagramLay
 		}
 	}
 
-	return { width: WIDTH, height: cursor, lanes, rows, chips, groups };
+	return {
+		width: WIDTH,
+		height: cursor,
+		headHeight: headHeightOf(view),
+		lanes,
+		rows,
+		chips,
+		groups
+	};
+}
+
+function headHeightOf(view: FlowView): number {
+	const last = view.steps.at(-1);
+	const held = Object.values(last ? holdingsAt(view, last.id) : {});
+	const lines = held.map((seen) => new Set(layHeld(seen).map((chip) => chip.y)).size);
+	return HELD_TOP + Math.max(HELD_LINES, ...lines) * HELD_LINE_HEIGHT + 2;
 }
 
 /** What a lifeline has seen, as chips under its name, relative to the middle of the lane. */
