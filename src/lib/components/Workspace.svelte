@@ -55,6 +55,7 @@
 		settingsOf
 	} from '#lib/recordings/known.ts';
 	import { notesFor } from '#lib/keycloak/notes.ts';
+	import { searchState } from '#lib/search/open.svelte.ts';
 	import { sources } from '#lib/sources/sources.ts';
 
 	interface Props {
@@ -420,6 +421,15 @@
 					These settings together were not recorded.
 				{/if}
 			</span>
+			<button
+				type="button"
+				class="quiet"
+				data-testid="open-search"
+				title="Press / from anywhere"
+				onclick={() => (searchState.open = true)}
+			>
+				Search
+			</button>
 			<button
 				type="button"
 				class="quiet"

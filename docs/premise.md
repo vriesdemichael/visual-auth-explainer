@@ -189,6 +189,7 @@ Three things follow:
 - A node is named for a question someone brings, such as "What if someone steals the code?", not for a feature, because people arrive with a problem and the feature's name is what they are trying to learn.
 - A question says its answer in a sentence or two straight away, and opens on the step where it can be seen, or says why it starts at the beginning. Someone who wants the walk can rewind with one click, and someone who flips a switch keeps a way back to the question.
 - Nodes and presets are different things. A preset is a set of settings that gets a recording, and a node is a question, a mode and a step on top of one, so several questions can share a recording. A test keeps every recording reachable from the map.
+- People can also search with the words they have, from anywhere, including a pasted error that goes to the step where a real server said it. It loads on first use, and nothing leaves the browser.
 - Planned nodes do not show. Everything on the map opens, because a greyed-out node says nothing a visitor can use.
 - Each card draws its real diagram small, from the same model, so you can see how far each question goes.
 - The way back to the map stays one click away, and the node matching the current state is marked.
