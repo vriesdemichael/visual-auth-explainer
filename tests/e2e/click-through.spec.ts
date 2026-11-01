@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test';
-import { allValidSettings } from '../../src/lib/flow/settings.ts';
 import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
 import { presetSearch } from '../../src/lib/flow/state.ts';
 import {
@@ -66,20 +65,6 @@ test.describe('links', () => {
 		const response = await page.goto('no-such-flow/');
 		expect(response?.status()).toBe(404);
 		await expect(page.getByTestId('error-message')).toContainText('There is no page here');
-	});
-});
-
-test.describe('every valid combination', () => {
-	const combinations = allValidSettings().map((settings) => presetSearch(base, settings));
-
-	test('shows what the model says', async ({ page }) => {
-		test.setTimeout(300_000);
-		const check = watchForErrors(page);
-		for (const search of combinations) {
-			await open(page, search);
-			await expectMatchesModel(page, search);
-		}
-		check();
 	});
 });
 

@@ -547,12 +547,25 @@ function valuesOf(id: SettingId): readonly (boolean | string)[] {
 	return def.kind === 'toggle' ? [false, true] : def.options.map((option) => option.value);
 }
 
-/** Every combination of these settings that makes sense, with the rest on their defaults. */
-export function allValidSettings(ids: readonly SettingId[] = settingIds): Settings[] {
+function validCombinations(ids: readonly SettingId[]): Settings[] {
 	const combinations = ids.reduce<Settings[]>(
 		(partial, id) =>
 			partial.flatMap((settings) => valuesOf(id).map((value) => ({ ...settings, [id]: value }))),
 		[defaultSettings]
 	);
 	return combinations.filter((settings) => normalize(settings).resets.length === 0);
+}
+
+let everyValid: readonly Readonly<Settings>[] | undefined;
+
+/**
+ * Every combination of these settings that makes sense, with the rest on their defaults. The ones to
+ * try at least double with each setting, so the list for all of them is worked out once, and shared.
+ */
+export function allValidSettings(
+	ids: readonly SettingId[] = settingIds
+): readonly Readonly<Settings>[] {
+	if (ids !== settingIds) return validCombinations(ids);
+	everyValid ??= Object.freeze(validCombinations(ids).map((settings) => Object.freeze(settings)));
+	return everyValid;
 }

@@ -255,7 +255,7 @@ Stamp each flow with its spec version and a last-verified date. Experimental fla
 
 ### Combinations grow fast (Proposed)
 
-Three independent toggles already give eight variants. Offer named presets as well as free toggles, encode invalid combinations as constraints, and test every valid one. The one detailed teaching success found also fits presets: a trainer offered a menu of recommended options per use case, and why each one solved the problem.
+Three independent toggles already give eight variants. Offer named presets as well as free toggles, encode invalid combinations as constraints, and test every valid one: all of them in the unit tests, where it takes milliseconds, and once in a browser, in Chromium. The one detailed teaching success found also fits presets: a trainer offered a menu of recommended options per use case, and why each one solved the problem.
 
 ### Presentations are one use of the application (Proposed)
 
@@ -355,7 +355,7 @@ OAuth to OIDC comes first because it takes on the most reported confusion with a
 |---|---|
 | Flow model | Every valid combination builds, invalid ones are rejected, step IDs stay stable |
 | Component states (Storybook) | Each component renders in each of its states in isolation, such as step, field and mode |
-| Click-through (Playwright) | For each named state: walk every step, flip toggles, switch mode, assert the visible steps match the model, use keyboard control, and open a fixed list of URLs that must keep showing the same state |
+| Click-through (Playwright) | For each named state: walk every step, flip toggles, switch mode, assert the visible steps match the model, use keyboard control, and open a fixed list of URLs that must keep showing the same state. Every valid combination is opened once, in Chromium |
 | Visual regression | Screenshots of key states in both themes, with animation frozen through reduced motion, and an automated accessibility check on each screen |
 | Keycloak recordings | Regenerate on demand against a pinned Keycloak, 26.8.1 for now, and check weekly against new releases to detect drift ([ADR-005](adr/005-payloads-are-recorded-never-invented.md)). Not on every pull request. A test holds the flow data to the recordings on every change |
 
