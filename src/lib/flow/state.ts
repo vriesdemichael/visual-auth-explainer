@@ -94,7 +94,7 @@ function parseExplained(base: BaseFlow, diagram: DiagramId, raw: string | null):
 	if (kind === 'lifeline' && base.diagrams[diagram].lifelines.some((line) => line.id === id)) {
 		return { kind, id };
 	}
-	if (kind === 'artifact' && id in artifacts) return { kind, id: id as ArtifactId };
+	if (kind === 'artifact' && Object.hasOwn(artifacts, id)) return { kind, id: id as ArtifactId };
 	if (kind === 'setting' && settingIds.includes(id as SettingId)) {
 		return { kind, id: id as SettingId };
 	}

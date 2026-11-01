@@ -145,3 +145,11 @@ code {
 	font-family: var(--mono);
 	font-size: 0.92em;
 }
+
+/* Says the application did not start, or cannot without JavaScript. */
+.not-started {
+	margin: 0;
+	padding: 10px 16px;
+	border-bottom: 1px solid var(--line);
+	background: var(--accent-soft);
+}

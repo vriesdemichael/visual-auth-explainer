@@ -1,21 +1,11 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
+	import ErrorMessage from '#lib/components/ErrorMessage.svelte';
 </script>
 
 <svelte:head>
-	<title>{page.status}</title>
+	<title>{page.status === 404 ? 'Page not found' : 'That did not load'}</title>
 </svelte:head>
 
-<main>
-	<h1>{page.status}</h1>
-	<p>Nothing here. <a href={resolve('/')}>Back to the start.</a></p>
-</main>
-
-<style>
-	main {
-		max-width: 640px;
-		margin: 48px auto;
-		padding: 0 16px;
-	}
-</style>
+<ErrorMessage status={page.status} homeHref={resolve('/')} onretry={() => location.reload()} />

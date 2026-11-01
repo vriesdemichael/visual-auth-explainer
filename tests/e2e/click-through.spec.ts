@@ -65,7 +65,7 @@ test.describe('links', () => {
 	test('a link to a page that does not exist gets the 404 page', async ({ page }) => {
 		const response = await page.goto('no-such-flow/');
 		expect(response?.status()).toBe(404);
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('404');
+		await expect(page.getByTestId('error-message')).toContainText('There is no page here');
 	});
 });
 

@@ -176,7 +176,7 @@ test.describe('links', () => {
 	test('an unknown diagram gets the 404 page', async ({ page }) => {
 		const response = await page.goto('authorization-code/nope/');
 		expect(response?.status()).toBe(404);
-		await expect(page.getByRole('heading', { level: 1 })).toHaveText('404');
+		await expect(page.getByTestId('error-message')).toContainText('There is no page here');
 	});
 
 	// Literal on purpose, as in click-through.spec.ts: these are public (ADR-003).

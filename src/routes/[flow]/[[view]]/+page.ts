@@ -20,7 +20,7 @@ interface Loaded {
 }
 
 export const load = ({ params }): Loaded => {
-	if (!flows[params.flow]) error(404);
+	if (!Object.hasOwn(flows, params.flow)) error(404);
 	const flowId = params.flow;
 	if (!params.view) return { flowId, diagram: 'flow', node: null };
 	if (params.view === 'setup') return { flowId, diagram: 'setup', node: null };
