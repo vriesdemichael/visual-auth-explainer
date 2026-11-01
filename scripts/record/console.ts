@@ -38,6 +38,7 @@ export async function lookInConsole(browser: Browser, admin: Admin, flagsOn: rea
 		'client-dedicated-scope': `${onClient}/clientScopes/dedicated`,
 		'provider-settings': `${root}/${BROKERED_REALM}/identity-providers/oidc/${UPSTREAM_REALM}/settings`,
 		'realm-settings': `${root}/${LOCAL_REALM}/realm-settings`,
+		'realm-sessions': `${root}/${LOCAL_REALM}/realm-settings/sessions`,
 		'browser-flow': `${root}/${BROKERED_REALM}/authentication`
 	};
 

@@ -292,9 +292,9 @@ export const authorizationCodeSetup: DiagramDef = {
 			to: 'idp',
 			kind: 'request',
 			plain: 'The API gets the keys',
-			label: 'GET /certs',
+			label: 'GET jwks_uri',
 			concept:
-				'The API looks up the keys that check signatures, at the address discovery gives. It does not need to call the identity provider for each token after that.',
+				'The API looks up the keys that check signatures, at the address discovery gives. After that it does not need to call the identity provider for each token, only when it meets a key it does not know.',
 			fields: [{ name: '/certs', place: 'path', note: 'The jwks_uri from the discovery document' }]
 		},
 		{

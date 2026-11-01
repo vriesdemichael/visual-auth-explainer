@@ -29,6 +29,22 @@ const presets: readonly Preset[] = [
 		title: 'Using a refresh token twice ends the login',
 		settings: { refresh: true, reuse: 'ends' }
 	},
+	{ id: 'sso', title: 'A second app', settings: { sso: true } },
+	{
+		id: 'sso-oidc',
+		title: 'A second app, with who logged in',
+		settings: { sso: true, oidc: true }
+	},
+	{
+		id: 'sso-insists',
+		title: 'A second app that insists on a login',
+		settings: { sso: true, oidc: true, ssoAsks: 'insists' }
+	},
+	{
+		id: 'sso-fresh',
+		title: 'A second app, in a new browser',
+		settings: { sso: true, oidc: true, ssoAsks: 'fresh' }
+	},
 	{ id: 'oidc', title: 'OpenID Connect', settings: { oidc: true } },
 	{
 		id: 'consent',

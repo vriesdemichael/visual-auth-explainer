@@ -22,6 +22,9 @@ export const BROKER_SECRET = 'throwaway-broker-secret';
 export const USERNAME = 'alice';
 export const PASSWORD = 'throwaway-password';
 export const REDIRECT_URI = `${APP}/callback`;
+export const SECOND_APP = 'http://localhost:9103';
+export const SECOND_CLIENT = 'demo-app-two';
+export const SECOND_REDIRECT_URI = `${SECOND_APP}/callback`;
 // A default client's access token names this and nothing else, and the recordings use one (ADR-005).
 // A real API expects its own name, which takes the Audience mapper, as the note on that step says.
 export const API_AUDIENCE = 'account';
@@ -173,6 +176,10 @@ export async function setUpRealms(admin: Admin) {
 	}
 
 	await admin.call('POST', `/realms/${LOCAL_REALM}/users`, user);
+	await admin.call('POST', `/realms/${LOCAL_REALM}/clients`, {
+		...client(SECOND_CLIENT, confidential),
+		redirectUris: [SECOND_REDIRECT_URI]
+	});
 	await admin.call(
 		'POST',
 		`/realms/${LOCAL_REALM}/clients`,

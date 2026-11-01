@@ -60,5 +60,15 @@
 	"refresh-again",
 	"refresh-again-response",
 	"refresh-newest",
-	"refresh-newest-response"
+	"refresh-newest-response",
+	"second-open-app",
+	"second-redirect-to-idp",
+	"second-authorize",
+	"idp-recognises",
+	"second-login-page",
+	"second-submit-credentials",
+	"second-redirect-with-code",
+	"second-callback",
+	"second-token-request",
+	"second-token-response"
 ]
