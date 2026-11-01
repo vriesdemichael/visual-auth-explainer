@@ -5,7 +5,14 @@
 //   pnpm record --check            records, writes nothing, and exits 2 if what the screen says no
 //                                  longer holds: the shape of a message, a flag, or a note's evidence
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { chromium, type Browser, type Request, type Response } from '@playwright/test';
+import {
+	chromium,
+	type Browser,
+	type BrowserContext,
+	type Page,
+	type Request,
+	type Response
+} from '@playwright/test';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import { whatChanged } from '#lib/recordings/check.ts';
 import { defaultSettings, flagsInSettings, normalize, type Settings } from '#lib/flow/settings.ts';
@@ -21,6 +28,9 @@ import {
 	LOCAL_REALM,
 	PASSWORD,
 	REDIRECT_URI,
+	SECOND_APP,
+	SECOND_CLIENT,
+	SECOND_REDIRECT_URI,
 	setUpFor,
 	setUpRealms,
 	startKeycloak,
@@ -50,6 +60,14 @@ const version = argument('--keycloak') ?? PINNED_KEYCLOAK;
 /** Which step of the diagram a message in the browser is, going by where it went. */
 function classifyRequest(url: URL): string | null {
 	const path = url.pathname;
+	if (url.origin === SECOND_APP) return path === '/' ? 'second-open-app' : 'second-callback';
+	const forSecond = url.searchParams.get('client_id') === SECOND_CLIENT;
+	if (forSecond && path === `/realms/${LOCAL_REALM}/protocol/openid-connect/auth`) {
+		return 'second-authorize';
+	}
+	if (forSecond && path.startsWith(`/realms/${LOCAL_REALM}/login-actions/authenticate`)) {
+		return 'second-submit-credentials';
+	}
 	if (url.origin === APP)
 		return path === '/' ? 'open-app' : path === '/callback' ? 'callback' : null;
 	if (path === `/realms/${LOCAL_REALM}/protocol/openid-connect/auth`) return 'authorize';
@@ -68,6 +86,15 @@ function classifyRequest(url: URL): string | null {
 }
 
 function classifyResponse(url: URL, status: number, location: string | null): string | null {
+	if (url.origin === SECOND_APP) return url.pathname === '/' ? 'second-redirect-to-idp' : null;
+	if (location?.startsWith(SECOND_REDIRECT_URI)) return 'second-redirect-with-code';
+	if (
+		url.searchParams.get('client_id') === SECOND_CLIENT &&
+		url.pathname === `/realms/${LOCAL_REALM}/protocol/openid-connect/auth` &&
+		status === 200
+	) {
+		return 'second-login-page';
+	}
 	if (url.origin === APP) return url.pathname === '/' ? 'redirect-to-idp' : null;
 	if (location?.startsWith(REDIRECT_URI)) return 'redirect-with-code';
 	if (location?.includes(`/realms/${UPSTREAM_REALM}/protocol/openid-connect/auth`)) {
@@ -85,21 +112,31 @@ function classifyResponse(url: URL, status: number, location: string | null): st
 
 const isDocument = (request: Request) => request.resourceType() === 'document';
 
-async function login(browser: Browser, run: Run) {
-	const context = await browser.newContext();
-	const page = await context.newPage();
-	const inBrowser = (url: string) => url.startsWith(APP) || url.startsWith(KEYCLOAK);
+/** The one cookie that is the session. The rest of them are how Keycloak keeps its forms going. */
+const SESSION_COOKIE = /(?:^|\n|; )(KEYCLOAK_IDENTITY=[^\n]*)/;
 
+/** Writes down what a page does, in order. Cookies arrive later, so they are added once they do. */
+function watch(page: Page, run: Run, cookies: Promise<void>[]) {
+	const inBrowser = (url: string) =>
+		url.startsWith(APP) || url.startsWith(SECOND_APP) || url.startsWith(KEYCLOAK);
 	page.on('request', (request) => {
 		if (!isDocument(request) || !inBrowser(request.url())) return;
-		run.messages.push(
-			requestMessage(
-				classifyRequest(new URL(request.url())),
-				request.method(),
-				request.url(),
-				request.headers(),
-				request.postData() ?? ''
-			)
+		const message = requestMessage(
+			classifyRequest(new URL(request.url())),
+			request.method(),
+			request.url(),
+			request.headers(),
+			request.postData() ?? ''
+		);
+		run.messages.push(message);
+		if (!request.url().startsWith(KEYCLOAK)) return;
+		cookies.push(
+			request.allHeaders().then((all) => {
+				const session = all.cookie
+					?.split('; ')
+					.find((part) => part.startsWith('KEYCLOAK_IDENTITY='));
+				if (session) message.headers.cookie = session;
+			})
 		);
 	});
 	page.on('response', (response: Response) => {
@@ -110,8 +147,47 @@ async function login(browser: Browser, run: Run) {
 			response.status(),
 			headers.location ?? null
 		);
-		run.messages.push(responseMessage(step, response.status(), headers));
+		const message = responseMessage(step, response.status(), headers);
+		run.messages.push(message);
+		if (!response.url().startsWith(KEYCLOAK)) return;
+		cookies.push(
+			response.allHeaders().then((all) => {
+				const session = all['set-cookie']?.match(SESSION_COOKIE)?.[1];
+				if (session) message.headers['set-cookie'] = session;
+			})
+		);
 	});
+}
+
+/** The second app, in the same browser unless the setting says it is a new one. */
+async function logInToSecondApp(
+	browser: Browser,
+	first: BrowserContext,
+	run: Run,
+	cookies: Promise<void>[]
+) {
+	const fresh = run.settings.ssoAsks === 'fresh';
+	const context = fresh ? await browser.newContext() : first;
+	const page = await context.newPage();
+	watch(page, run, cookies);
+	await page.goto(SECOND_APP);
+	if (run.settings.ssoAsks === 'insists') {
+		// Only the password, because it knows who they are.
+		await page.fill('#password', PASSWORD);
+		await page.click('#kc-login');
+	}
+	await page.getByRole('heading', { name: /Logged in|Not logged in|Failed/ }).waitFor();
+	const outcome = await page.locator('body').innerText();
+	if (outcome.includes('Failed')) throw new Error(`The second app failed: ${outcome}`);
+	if (fresh !== outcome.includes('Not logged in')) throw new Error(`The second app: ${outcome}`);
+	if (fresh) await context.close();
+}
+
+async function login(browser: Browser, run: Run) {
+	const context = await browser.newContext();
+	const page = await context.newPage();
+	const cookies: Promise<void>[] = [];
+	watch(page, run, cookies);
 
 	await page.goto(APP);
 	await page.locator('#username').waitFor();
@@ -124,8 +200,10 @@ async function login(browser: Browser, run: Run) {
 	}
 	await page.getByRole('heading', { name: /Logged in|Refused|Failed/ }).waitFor();
 	const outcome = await page.locator('body').innerText();
-	await context.close();
 	if (outcome.includes('Failed')) throw new Error(`Login failed: ${outcome}`);
+	if (run.settings.sso) await logInToSecondApp(browser, context, run, cookies);
+	await Promise.all(cookies);
+	await context.close();
 }
 
 function runFor(settings: Settings): Run {

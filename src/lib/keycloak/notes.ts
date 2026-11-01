@@ -32,6 +32,7 @@ export type ConsolePage =
 	| 'client-dedicated-scope'
 	| 'provider-settings'
 	| 'realm-settings'
+	| 'realm-sessions'
 	| 'browser-flow';
 
 export interface ConsolePlace {
@@ -350,6 +351,47 @@ export const noteDefs: readonly NoteDef[] = [
 		}
 	},
 	{
+		id: 'sso-session-max',
+		steps: ['idp-recognises'],
+		title: 'SSO Session Max',
+		text: 'How long a session lasts: thirty minutes idle and ten hours at most, by default, set by SSO Session Idle and SSO Session Max. Past that the cookie no longer counts, and the form comes back. Set Max to three seconds and wait, and the second app sees the form.',
+		when: is('sso', true),
+		place: {
+			path: ['Realm settings', 'Sessions', 'SSO Session Max'],
+			page: 'realm-sessions',
+			shows: ['SSO Session Idle', 'SSO Session Max']
+		},
+		backedBy: {
+			question: 'ssoSessionMax',
+			shows: {
+				before: { idle: 1800, max: 36000, secondSawForm: false },
+				after: { secondSawForm: true }
+			}
+		}
+	},
+	{
+		id: 'session-cookie',
+		steps: ['redirect-with-code', 'second-authorize'],
+		title: 'Where it keeps the session',
+		text: "In a cookie called KEYCLOAK_IDENTITY, on Keycloak's own address, and HttpOnly, so a script on that page cannot read it either. The two ID tokens came out with the same sid and auth_time, and each app's own aud. Told not to show a form, it gave a code to the browser with a session, and login_required to a new one.",
+		when: is('sso', true),
+		backedBy: {
+			question: 'singleSignOn',
+			shows: {
+				second: { sawForm: false, gotACode: true },
+				sameSession: true,
+				sameLoginTime: true,
+				insists: { sawForm: true },
+				told: {
+					withASession: { sawForm: false, gotACode: true },
+					inANewBrowser: { sawForm: false, error: 'login_required' }
+				},
+				cookie: { name: 'KEYCLOAK_IDENTITY', httpOnly: true }
+			}
+		},
+		seen: 'Tried each of these with two clients, on'
+	},
+	{
 		id: 'revoke-refresh-token',
 		steps: ['refresh-again-response', 'refresh-newest-response'],
 		title: 'Revoke Refresh Token',
@@ -388,13 +430,13 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'short-for-this-recording',
 		steps: ['token-runs-out'],
 		title: 'How long this recording waited',
-		text: 'An access token lasts five minutes on a default Keycloak, and its refresh token thirty. In this recording the access token lasts three seconds, so it does not have to wait, which is why expires_in says 3. With its real life, the same two calls answered the same: UserInfo said 401, and a refresh then said 200.',
+		text: 'An access token lasts five minutes on a default Keycloak, and its refresh token thirty. In this recording the access token lasts three seconds, so it does not have to wait, which is why expires_in says 3. A token with a life of one second, once that was over, got a 401 from UserInfo, and a refresh then said 200.',
 		when: is('refresh', true),
 		backedBy: {
 			question: 'refreshTokens',
 			shows: {
 				first: { expiresIn: 300, refreshExpiresIn: 1800 },
-				pastItsLife: { userinfo: 401, thenARefresh: 200 }
+				pastItsLife: { userinfo: 401, thenARefresh: 200, idTokenAgain: true }
 			}
 		},
 		seen: 'Let a token run out, and tried both on'

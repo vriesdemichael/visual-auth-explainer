@@ -60,6 +60,10 @@ export const StoredUpstreamTokens: Story = {
 	}
 };
 
+export const ASecondApp: Story = {
+	args: { layout: layoutFor({ sso: true, oidc: true }), currentStep: 'idp-recognises' }
+};
+
 export const TimePassing: Story = {
 	args: { layout: layoutFor({ refresh: true }), currentStep: 'token-runs-out' }
 };

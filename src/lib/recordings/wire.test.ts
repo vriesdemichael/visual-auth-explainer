@@ -158,7 +158,10 @@ describe('a message as text', () => {
 	});
 
 	it('invents no protocol version, because the recording does not hold one', () => {
-		const text = recording.messages.flatMap(rawLines).map(lineText).join('\n');
+		const text = recording.messages
+			.flatMap((message) => rawLines(message))
+			.map(lineText)
+			.join('\n');
 		expect(text).not.toContain('HTTP/1.1');
 	});
 
@@ -172,7 +175,8 @@ describe('a message as text', () => {
 	});
 
 	it('does not take a code for a token', () => {
-		expect(jwtsIn(linesOn(recording, 'redirect-with-code'))).toEqual([]);
+		const names = jwtsIn(linesOn(recording, 'redirect-with-code')).map(({ name }) => name);
+		expect(names).not.toContain('code');
 	});
 
 	it('colours a value as the chip it is on the diagram', () => {
@@ -328,7 +332,21 @@ describe('what gets downloaded', () => {
 		expect(importing).toEqual([]);
 	});
 
+	it('leaves the name of the server out of its session cookie, with its notes off', () => {
+		const message = {
+			step: 'redirect-with-code',
+			direction: 'response',
+			status: 302,
+			headers: { 'set-cookie': 'KEYCLOAK_IDENTITY=abc; HttpOnly' }
+		} as RecordedMessage;
+		const shown = (serverNamed: boolean) =>
+			rawLines(message, { serverNamed }).map(lineText).join('\n');
+		expect(shown(true)).toContain('KEYCLOAK_IDENTITY=abc');
+		expect(shown(false)).toContain('session=abc');
+		expect(shown(false)).not.toMatch(/keycloak/i);
+	});
+
 	it('stays small for the index the application does load', () => {
-		expect(statSync('src/lib/recordings/recorded.json').size).toBeLessThan(2 * 1024);
+		expect(statSync('src/lib/recordings/recorded.json').size).toBeLessThan(4 * 1024);
 	});
 });

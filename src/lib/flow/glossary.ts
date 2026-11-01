@@ -170,6 +170,30 @@ const list: readonly Term[] = [
 		at: flowAt('token-response')
 	},
 	{
+		id: 'session',
+		name: 'Session',
+		words: ['session', 'sessions'],
+		alsoCalled: ['cookie, which is usually how a browser holds on to one'],
+		explains: '',
+		artifact: 'session',
+		at: flowAt('redirect-with-code')
+	},
+	{
+		id: 'auth-time',
+		name: 'auth_time',
+		words: ['auth_time'],
+		explains: 'When the user last really logged in, as an ID token says.',
+		at: flowAt('second-token-response', { sso: true, oidc: true })
+	},
+	{
+		id: 'login-required',
+		name: 'login_required',
+		words: ['login_required'],
+		explains:
+			'What comes back when an app said not to show a form, and the user would have to log in.',
+		at: flowAt('second-redirect-with-code', { sso: true, oidc: true, ssoAsks: 'fresh' })
+	},
+	{
 		id: 'expires-in',
 		name: 'expires_in',
 		words: ['expires_in'],
@@ -255,14 +279,6 @@ const list: readonly Term[] = [
 		explains:
 			'A header on a refusal, saying what kind of token the server wants and what was wrong with this one.',
 		at: flowAt('api-response', { apiToken: 'expired' })
-	},
-	{
-		id: 'session',
-		name: 'Session',
-		words: ['session', 'sessions'],
-		alsoCalled: ['cookie, which is usually how a browser holds on to one'],
-		explains:
-			'What a server keeps to remember that someone has logged in, usually with a cookie in their browser. An app and an identity provider each have their own.'
 	},
 	{
 		id: 'logout',
@@ -403,6 +419,7 @@ const list: readonly Term[] = [
 		id: 'sso',
 		name: 'Single sign-on',
 		words: ['SSO', 'single sign-on'],
+		at: flowAt('idp-recognises', { sso: true }),
 		explains:
 			'Logging in once, and then not being asked again by other apps that use the same identity provider, because it remembers you in your browser.',
 		alsoCalled: ['SSO']

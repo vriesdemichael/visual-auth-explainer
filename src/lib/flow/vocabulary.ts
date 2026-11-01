@@ -8,6 +8,7 @@ export type ArtifactId =
 	| 'access-token'
 	| 'id-token'
 	| 'refresh-token'
+	| 'session'
 	| 'proof'
 	| 'upstream-token';
 
@@ -62,6 +63,12 @@ export const artifacts: Readonly<
 		explains:
 			'Gets the app a new access token later, without the user having to log in again. It only ever goes to the identity provider, and it lasts longer than an access token, so it is worth more to a thief.'
 	},
+	session: {
+		label: 'session',
+		short: 'session',
+		explains:
+			'How the identity provider remembers this browser. It is a cookie on the address of the identity provider, so the browser sends it there and nowhere else, and no app ever sees it. It is why a second app does not ask for a password. An app usually keeps a session of its own as well, which is a different thing.'
+	},
 	proof: {
 		label: 'key proof',
 		short: 'proof',
@@ -101,6 +108,7 @@ const parameterWhy: Readonly<Record<string, string>> = {
 	code_challenge: 'The fingerprint of the verifier, which is safe to send through the browser.',
 	expires_in: 'How many seconds the access token lasts.',
 	'username and password': 'Only whoever does the login sees these.',
+	password: 'Only whoever does the login sees this.',
 	'Authorization: Bearer': 'The access token. Holding it is enough.',
 	'Authorization: DPoP': 'The access token, which only works together with the proof.',
 	'DPoP-Nonce': 'The value to put in the next proof.',
@@ -117,6 +125,8 @@ const parameterWhy: Readonly<Record<string, string>> = {
 	token_endpoint: 'Where the app trades a code for tokens.',
 	jwks_uri: 'Where to get the keys that verify its tokens.',
 	userinfo_endpoint: 'Where to ask for details about the user.',
+	'prompt=login': 'Says to ask for the password, even with a session.',
+	'prompt=none': 'Says not to show a form, whatever happens.',
 	error_description: 'What went wrong, in words for a person to read.',
 	keys: 'The public keys that check signatures.'
 };

@@ -15,6 +15,7 @@ const states: readonly [string, string, 'flow' | 'setup'][] = [
 	['simple-setup', 'mode=simple&step=hand-over-credentials', 'setup'],
 	['simple-pkce', 'mode=simple&client=public&pkce=1&step=check-verifier', 'flow'],
 	['simple-time-passing', 'mode=simple&refresh=1&step=token-runs-out', 'flow'],
+	['simple-second-app', 'mode=simple&sso=1&oidc=1&step=idp-recognises', 'flow'],
 	['first-step', '', 'flow'],
 	['token-response', 'step=token-response', 'flow'],
 	['openid-connect', 'oidc=1&step=token-response', 'flow'],

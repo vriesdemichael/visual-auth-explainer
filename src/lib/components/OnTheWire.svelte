@@ -81,7 +81,7 @@
 		{#if answerTo}
 			<p class="answer" data-testid="answer-to">The answer to step {numberOf(answerTo)}.</p>
 		{/if}
-		<Payload {step} {message} {trace} {numberOf} {onstep} {notes} />
+		<Payload {step} {message} {trace} {numberOf} {onstep} {notes} {serverNamed} />
 		<RunValues values={soFar} {numberOf} {onstep} />
 		<p class="origin" data-testid="payload-origin">
 			One real run against {serverNamed ? `Keycloak ${recording.keycloak}` : 'a real server'}, on {recording.recordedAt},
@@ -91,7 +91,8 @@
 				The app here was a server standing in for one in a page or on a phone.
 			{/if}
 			{#if !serverNamed}
-				Names such as realms, and claims such as realm_access, are that server's own.
+				Names such as realms, and claims such as realm_access, are that server's own, and the name
+				of its session cookie is left out.
 			{/if}
 		</p>
 	{/if}
