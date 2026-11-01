@@ -84,8 +84,8 @@ export const breakages = [
 	{
 		name: 'sso: the cookie goes along with no session',
 		file: AC,
-		from: "note: 'Sent to this address, and to nowhere else',\n\t\t\t\t\tartifact: 'session',\n\t\t\t\t\twhen: secondGetsACode",
-		to: "note: 'Sent to this address, and to nowhere else',\n\t\t\t\t\tartifact: 'session'"
+		from: "note: 'Sent to the identity provider, and nowhere else',\n\t\t\t\t\tartifact: 'session',\n\t\t\t\t\twhen: secondGetsACode",
+		to: "note: 'Sent to the identity provider, and nowhere else',\n\t\t\t\t\tartifact: 'session'"
 	},
 
 	// A refresh token.

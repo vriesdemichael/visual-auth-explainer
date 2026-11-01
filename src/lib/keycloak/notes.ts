@@ -369,7 +369,7 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'backchannel-logout-url',
 		steps: ['backchannel-logout'],
 		title: 'Backchannel logout URL',
-		text: 'Where Keycloak tells this client that a session has ended. With it empty nothing is delivered, and the app only finds out when it next asks.',
+		text: 'Where Keycloak tells this client that a session has ended. With it empty nothing is delivered, and the app keeps them logged in until it next asks.',
 		when: is('logout', true),
 		place: clientSettings('Logout settings', 'Backchannel logout URL'),
 		backedBy: {

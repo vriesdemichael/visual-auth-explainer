@@ -448,7 +448,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'logout',
 		default: false,
 		summary: 'The user logs out, and what ends is not everything.',
-		why: 'Logging out ends a session. It does not take back tokens already handed out, so what happens to one of those depends on who checks it.',
+		why: 'Logging out ends a session. An access token already handed out does not know that, so whether it still works depends on who checks it.',
 		sources: [
 			{
 				source: 'oidc-rp-logout',

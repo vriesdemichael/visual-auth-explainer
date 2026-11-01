@@ -25,7 +25,7 @@ export const knownErrors: readonly KnownError[] = [
 	{
 		text: 'Session not active',
 		means:
-			'The session this refresh token belonged to is over, usually because someone logged out.',
+			'The session this refresh token belonged to is over, for example because someone logged out.',
 		step: 'refresh-after-logout-response',
 		settings: { oidc: true, logout: true }
 	},

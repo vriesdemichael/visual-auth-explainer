@@ -21,7 +21,7 @@
 	"token-api-v2": "What changes with API V2 for stored tokens?|Only the access token, and the client has to be allowed to ask.|22|5",
 	"what-api-checks": "What does my API have to check?|A token says nothing until someone has looked.|12|4",
 	"token-runs-out": "What happens when the token runs out?|The app gets a new one, and the user never knows.|21|4",
-	"what-log-out-does": "What does log out actually do?|Two sessions end, if you ask for both, and the tokens stay.|30|4",
+	"what-log-out-does": "What does log out actually do?|Two sessions end, if you ask for both, and an access token keeps working.|30|4",
 	"token-after-logout": "I logged out. Does the token still work?|The same token, and two answers.|30|4",
 	"logged-out-of-other-apps": "Am I logged out of my other apps too?|They lose the session they relied on, and may not know yet.|40|5",
 	"web-app": "A web app on a server|It can keep a secret. With OpenID Connect to know who logged in, and PKCE on top.|17|4",

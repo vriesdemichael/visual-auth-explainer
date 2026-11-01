@@ -1438,7 +1438,7 @@ export const authorizationCode: DiagramDef = {
 				{
 					name: 'Cookie',
 					place: 'header',
-					note: 'Sent to this address, and to nowhere else',
+					note: 'Sent to the identity provider, and nowhere else',
 					artifact: 'session',
 					when: secondGetsACode
 				}
@@ -1500,7 +1500,7 @@ export const authorizationCode: DiagramDef = {
 				{
 					name: 'Cookie',
 					place: 'header',
-					note: 'Sent to this address, and to nowhere else',
+					note: 'Sent to the identity provider, and nowhere else',
 					artifact: 'session'
 				}
 			]
@@ -1645,7 +1645,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The user presses log out',
 			label: 'GET /logout',
 			concept:
-				'The user wants to be logged out. There are two sessions to end: the one the app keeps for itself, and the one on the identity provider. Neither ends the other.',
+				'The user wants to be logged out. There are two sessions to end: the one the app keeps for itself, and the one on the identity provider. Ending one does not by itself end the other.',
 			inPractice: 'This is your own route, and what it does is up to you.'
 		},
 		{
@@ -1718,7 +1718,7 @@ export const authorizationCode: DiagramDef = {
 				{
 					name: 'Cookie',
 					place: 'header',
-					note: 'Sent to this address, and to nowhere else',
+					note: 'Sent to the identity provider, and nowhere else',
 					artifact: 'session'
 				}
 			]
@@ -1732,7 +1732,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'It ends the session',
 			label: 'End the session',
 			concept:
-				'The session is over, so it has gone from under the names. The tokens are still there. Ending a session does not take back what was already handed out, and the logout specifications say nothing about access tokens.',
+				'The session is over, so it has gone from under the names. The tokens are still there. An access token does not know the session ended, and the logout specifications say nothing about access tokens.',
 			ends: ['session'],
 			fields: []
 		},
@@ -1745,7 +1745,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'It tells the second app',
 			label: 'POST logout_token',
 			concept:
-				'An app that registered an address is told right away and directly, with a signed token saying who logged out, and clears what it holds for them. Its next login asks again, because the session it relied on has gone. An app that registered no address only finds out when it next asks. There is also a front-channel way, through hidden pages in the browser, which was not tried here.',
+				'An app that registered an address is told right away and directly, with a signed token saying who logged out, and clears what it holds for them. Its next login asks again, because the session it relied on has gone. An app that registered no address keeps them logged in until it next asks, which may be a while. There is also a front-channel way, through hidden pages in the browser, which was not tried here.',
 			fields: [{ name: 'logout_token', place: 'body', note: 'Signed, and says who logged out' }]
 		},
 		{
@@ -1754,7 +1754,7 @@ export const authorizationCode: DiagramDef = {
 			from: 'second-app',
 			to: 'idp',
 			kind: 'response',
-			plain: 'It says it understood',
+			plain: 'It says it has logged them out',
 			label: '200',
 			concept: 'That is all the identity provider needs to hear.',
 			fields: []
@@ -1793,7 +1793,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The same token, at an API that only looks at it',
 			label: 'GET /resource',
 			concept:
-				'The app has forgotten this token, but suppose someone has a copy. Most APIs check a token by looking at the token itself, as the first call here did.',
+				'The app has forgotten this token, but suppose someone has a copy. An API can check a token like this by looking at it, as the first call here did.',
 			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token' }]
 		},
 		{
@@ -1851,7 +1851,8 @@ export const authorizationCode: DiagramDef = {
 			kind: 'response',
 			plain: 'It is no longer good',
 			label: 'active: false',
-			concept: 'The identity provider knows the session has ended, which the token could not say.',
+			concept:
+				'This identity provider knows the session has ended, and says so, which the token could not. What it answers is up to the server.',
 			fields: [{ name: 'active', place: 'body', note: 'Whether the token is still good' }]
 		},
 		{
@@ -1863,7 +1864,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The API refuses',
 			label: '401 invalid_token',
 			concept:
-				'The same token, and another answer. So whether a token still works after a logout depends on who checks it.',
+				'The same token, and another answer. So whether a token still works after a logout depends on who checks it, and what they are told.',
 			fields: [{ name: 'WWW-Authenticate', place: 'header', note: 'What was wrong with this one' }]
 		},
 		{
@@ -1889,7 +1890,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'Refused: the session is over',
 			label: '400 invalid_grant',
 			concept:
-				'A refresh token belongs to the session here, so it went with it, which is what the logout specification asks for. So a stolen access token runs out soon, and nobody gets a new one.',
+				'A refresh token belongs to the session here, so it went with it, which is what the back-channel logout specification recommends. One issued for offline access is meant to outlive the session. Otherwise a stolen access token runs out soon, and nobody gets a new one with this.',
 			fields: [
 				{ name: 'error=invalid_grant', place: 'body', note: 'The session it belonged to is over' },
 				{ name: 'error_description', place: 'body' }
