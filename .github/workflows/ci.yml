@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-latest
     # The screenshot baselines come from this image. Keep its version the same as @playwright/test.
     container: mcr.microsoft.com/playwright:v1.64.1-noble
-    timeout-minutes: 30
+    timeout-minutes: 1
     strategy:
       # A failure in one browser says more next to what the others did.
       fail-fast: false
