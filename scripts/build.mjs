@@ -2,7 +2,7 @@
 import { execSync } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 
-const env = { ...process.env, BASE_PATH: process.env.BASE_PATH ?? '/visual-auth-explainer' };
+const env = { ...process.env, BASE_PATH: process.env.BASE_PATH ?? '/authlines' };
 const run = (command) => execSync(command, { stdio: 'inherit', env });
 
 // The site goes first, because the adapter empties the folder.

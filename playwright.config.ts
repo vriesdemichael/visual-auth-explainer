@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const BASE_PATH = '/visual-auth-explainer';
+const BASE_PATH = '/authlines';
 // Not the port of `pnpm preview`, and never reused, so nothing else can get tested by mistake.
 const PORT = 4174;
 const LOCAL_URL = `http://127.0.0.1:${PORT}${BASE_PATH}/`;

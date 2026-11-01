@@ -44,7 +44,7 @@ export const namesTheApi = {
 // A real API expects its own name, which takes the Audience mapper, as the note on that step says.
 export const API_AUDIENCE = 'account';
 
-const CONTAINER = 'visual-auth-explainer-keycloak';
+const CONTAINER = 'authlines-keycloak';
 export const ADMIN_PASSWORD = 'throwaway-admin';
 
 const docker = (...args: string[]) =>

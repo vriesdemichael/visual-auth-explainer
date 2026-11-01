@@ -41,7 +41,7 @@ test.describe('an address that means another', () => {
 
 	test('a doubled slash goes to the page it is, with its styles', async ({ page }) => {
 		await page.goto(`${FLOW_PATH.replace(/\/$/, '')}//`);
-		await expect(page).toHaveURL(/visual-auth-explainer\/authorization-code\/$/);
+		await expect(page).toHaveURL(/authlines\/authorization-code\/$/);
 		const background = await page
 			.locator('.workspace')
 			.evaluate((element) => getComputedStyle(element).display);

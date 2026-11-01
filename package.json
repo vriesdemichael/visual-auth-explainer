@@ -9,7 +9,7 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "node scripts/build.mjs",
-		"preview": "node tests/support/pages-server.mjs build /visual-auth-explainer 4173",
+		"preview": "node tests/support/pages-server.mjs build /authlines 4173",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"lint": "eslint .",
 		"format": "prettier --write .",

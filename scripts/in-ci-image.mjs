@@ -22,7 +22,7 @@ execFileSync(
 		`${process.cwd()}:/work`,
 		// The checkout's own node_modules are for this machine, and may not run in Linux.
 		'--volume',
-		'visual-auth-explainer-node-modules:/work/node_modules',
+		'authlines-node-modules:/work/node_modules',
 		'--workdir',
 		'/work',
 		'--env',

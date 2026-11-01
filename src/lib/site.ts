@@ -2,7 +2,7 @@
 export const SITE_NAME = 'Authlines';
 
 /** Where the site lives, for what has to be a whole address. Moving it means changing this. */
-export const SITE_URL = 'https://vriesdemichael.github.io/visual-auth-explainer';
+export const SITE_URL = 'https://vriesdemichael.github.io/authlines';
 
 /** Whether search engines may index this build. Only production can say so, and only on request. */
 export const INDEXABLE = import.meta.env.VITE_INDEXABLE === 'true';
