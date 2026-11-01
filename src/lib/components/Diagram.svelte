@@ -3,9 +3,7 @@
 	import { ICONS } from '#lib/diagram/icons.ts';
 	import {
 		FULL_HEAD_WIDTH,
-		labelCentre,
 		layHeld,
-		ROW_OFFSET,
 		TIME_GAP,
 		SELF_LOOP,
 		type DiagramLayout
@@ -43,6 +41,7 @@
 	let frame = $state<Frame>(untrack(() => toFrame(layout)));
 	let animating = $state(false);
 	let scroller = $state<HTMLElement>();
+	let scrolled = $state(false);
 	let drawn = untrack(() => layout);
 	const BREATHING_ROOM = 60;
 	const TIGHT_ROOM = 12;
@@ -139,7 +138,7 @@
 </script>
 
 <div class="diagram" data-testid="diagram" data-animating={animating} data-lit={lit?.part}>
-	<div class="heads-band">
+	<div class="heads-band" class:scrolled>
 		<svg
 			class="heads"
 			viewBox={`${frame.viewX} 0 ${frame.viewWidth} ${frame.headHeight}`}
@@ -148,6 +147,14 @@
 			data-testid="diagram-heads"
 		>
 			{#each frame.lanes as lane (lane.id)}
+				<line
+					class="lifeline"
+					x1={lane.x}
+					x2={lane.x}
+					y1="51"
+					y2={frame.headHeight}
+					style:opacity={lane.opacity}
+				/>
 				<g
 					class="lane-head"
 					class:fresh={fresh.has(lane.id)}
@@ -201,7 +208,11 @@
 		</svg>
 	</div>
 
-	<div class="scroller" bind:this={scroller}>
+	<div
+		class="scroller"
+		bind:this={scroller}
+		onscroll={(event) => (scrolled = event.currentTarget.scrollTop > 0)}
+	>
 		<svg
 			class="body"
 			viewBox={`${frame.viewX} 0 ${frame.viewWidth} ${frame.height}`}
@@ -268,13 +279,7 @@
 							height={TIME_GAP}
 						/>
 					{/if}
-					<rect
-						class="hit"
-						x={frame.viewX}
-						y={row.y - ROW_OFFSET}
-						width={frame.viewWidth}
-						height={row.band}
-					/>
+					<rect class="hit" x={frame.viewX} y={row.top} width={frame.viewWidth} height={row.band} />
 					{#if row.kind === 'time'}
 						{#each [row.y - TIME_GAP / 2, row.y + TIME_GAP / 2] as y (y)}
 							<line x1={frame.viewX} x2={frame.viewX + frame.viewWidth} y1={y} y2={y} />
@@ -309,34 +314,12 @@
 						<circle r="9.5" />
 						<text y="3.7" text-anchor="middle">{row.number}</text>
 					</g>
-					{#if row.kind === 'time'}
-						<text
-							class="label"
-							x={labelCentre(row.x1, row.x2, row.label, frame.width)}
-							y={row.y + 4}
-							text-anchor="middle"
-						>
-							{row.label}
-						</text>
-					{:else if row.self}
-						<text
-							class="label"
-							x={row.x1 + row.selfSide * (SELF_LOOP.width + 8)}
-							y={row.y + 7}
-							text-anchor={row.selfSide === 1 ? 'start' : 'end'}
-						>
-							{row.label}
-						</text>
-					{:else}
-						<text
-							class="label"
-							x={labelCentre(row.x1, row.x2, row.label, frame.width)}
-							y={row.y - 8}
-							text-anchor="middle"
-						>
-							{row.label}
-						</text>
-					{/if}
+					<!-- The spaces are for anything reading this, because lines are only places on a screen. -->
+					<text class="label">
+						{#each row.lines as line, l (l)}
+							<tspan x={line.x} y={line.y} text-anchor={line.anchor}>{`${line.text} `}</tspan>
+						{/each}
+					</text>
 				</g>
 			{/each}
 
@@ -376,9 +359,14 @@
 	}
 
 	.heads-band {
+		position: relative;
+		z-index: 1;
 		flex: none;
-		border-bottom: 1px solid var(--line);
-		background: var(--panel);
+		background: var(--bg);
+	}
+
+	.heads-band.scrolled {
+		box-shadow: 0 1px 0 var(--line);
 	}
 
 	.heads {
@@ -500,6 +488,20 @@
 		fill: var(--fresh);
 	}
 
+	.lane-head[data-lifeline='attacker'] > rect {
+		stroke: var(--attacker);
+	}
+
+	.lane-head[data-lifeline='attacker'] .role,
+	.lane-head[data-lifeline='attacker'] .icon {
+		fill: var(--attacker);
+	}
+
+	.lane-head[data-lifeline='attacker'] .icon {
+		fill: none;
+		stroke: var(--attacker);
+	}
+
 	.held rect {
 		stroke-width: 1;
 	}
@@ -599,10 +601,12 @@
 		stroke-width: 2.4;
 	}
 
+	/* Knocked out of whatever passes behind it, so that a lifeline never strikes through the words. */
 	.label {
 		paint-order: stroke;
 		stroke: var(--bg);
-		stroke-width: 4px;
+		stroke-width: 7px;
+		stroke-linejoin: round;
 		fill: var(--muted);
 	}
 
@@ -623,16 +627,33 @@
 		opacity: 1;
 	}
 
+	/* Only the current step is filled in. What has happened stays readable, and quiet. */
 	.number circle {
-		fill: var(--row);
-		stroke: var(--bg);
-		stroke-width: 2;
+		fill: var(--bg);
+		stroke: var(--row);
+		stroke-width: 1.2;
 	}
 
 	.number text {
-		fill: var(--on-tone);
+		fill: var(--row);
 		font-size: 10.5px;
 		font-weight: 600;
+	}
+
+	.row.current .number circle {
+		fill: var(--row);
+		stroke: var(--accent-soft);
+		stroke-width: 2;
+	}
+
+	.row.current .number text {
+		fill: var(--on-tone);
+	}
+
+	.row.past line,
+	.row.past path,
+	.row.past polygon {
+		opacity: 0.55;
 	}
 
 	.row.future .number circle {
@@ -689,7 +710,6 @@
 	.row.current .label {
 		fill: var(--fg);
 		font-weight: 600;
-		font-size: 14px;
 		stroke: var(--accent-soft);
 	}
 
@@ -728,8 +748,28 @@
 		}
 	}
 
-	.row.fresh {
-		--row: var(--fresh);
+	/* What just changed is an outline that goes again, and not a colour that stays. */
+	.row.fresh .hit {
+		stroke: var(--fresh);
+		stroke-width: 1;
+		animation: settle-down 2.4s ease-out forwards;
+	}
+
+	.row.current.fresh .hit {
+		animation: none;
+		stroke: none;
+	}
+
+	@keyframes settle-down {
+		to {
+			stroke-opacity: 0;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.row.fresh .hit {
+			animation: none;
+		}
 	}
 
 	/* What is ahead stays only a shape, even when it is new, because it has not happened yet. */

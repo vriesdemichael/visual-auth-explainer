@@ -68,7 +68,7 @@ export function explanationOf(
 		const def = settingDefs[explained.id];
 		return {
 			title: simple ? (def.simple?.label ?? def.label) : def.label,
-			text: def.why,
+			text: `${simple ? (def.simple?.summary ?? def.summary) : def.summary} ${def.why}`,
 			sources: def.sources.filter((ref) => state.serverNotes || !isVendorSource(ref.source))
 		};
 	}

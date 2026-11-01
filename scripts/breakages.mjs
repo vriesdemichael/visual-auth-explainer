@@ -88,6 +88,38 @@ export const breakages = [
 		to: "note: 'Sent to the identity provider, and nowhere else',\n\t\t\t\t\tartifact: 'session'"
 	},
 
+	// The calm look.
+	{
+		name: 'look: a label is let run past its arrow',
+		file: LAYOUT,
+		from: ': Math.abs(x2 - x1) - NUMBER_ROOM * 2;',
+		to: ': 10000;'
+	},
+	{
+		name: 'look: chips are drawn over the words',
+		file: LAYOUT,
+		from: 'let x = start + line.textWidth + (line.text && line.chips.length ? LABEL_TO_CHIP : 0);',
+		to: 'let x = start;'
+	},
+	{
+		name: 'look: a mode switch moves rows',
+		file: LAYOUT,
+		from: 'return Math.max(...counts);',
+		to: 'return simple ? counts[0] : counts[1];'
+	},
+	{
+		name: 'look: another hue creeps in',
+		file: 'src/app.css',
+		from: '--remembers: light-dark(#5a5f52, #c5c9b8);',
+		to: '--remembers: light-dark(#5a5f52, #c5c9b8);\n\t--louder: light-dark(#ff0000, #ff0000);'
+	},
+	{
+		name: 'look: what just changed gets a colour of its own again',
+		file: 'src/app.css',
+		from: '--fresh: light-dark(#141720, #eceef3);',
+		to: '--fresh: light-dark(#be185d, #f688bd);'
+	},
+
 	// A refresh token.
 	{
 		name: 'refresh: the old one is said to be refused on a default server',

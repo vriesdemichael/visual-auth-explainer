@@ -106,10 +106,22 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 		rows: blend(from.rows, to.rows, t, (a, b, p) => ({
 			...b,
 			y: lerp(a.y, b.y, p),
+			top: lerp(a.top, b.top, p),
 			band: lerp(a.band, b.band, p),
 			x1: lerp(a.x1, b.x1, p),
 			x2: lerp(a.x2, b.x2, p),
-			label: p < 0.5 ? a.label : b.label
+			label: p < 0.5 ? a.label : b.label,
+			lines:
+				a.lines.length === b.lines.length
+					? b.lines.map((line, i) => ({
+							...line,
+							x: lerp(a.lines[i].x, line.x, p),
+							y: lerp(a.lines[i].y, line.y, p),
+							text: p < 0.5 ? a.lines[i].text : line.text
+						}))
+					: p < 0.5
+						? a.lines
+						: b.lines
 		})),
 		chips: blend(from.chips, to.chips, t, (a, b, p) => ({
 			...b,
