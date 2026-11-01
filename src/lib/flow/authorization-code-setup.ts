@@ -86,9 +86,9 @@ export const authorizationCodeSetup: DiagramDef = {
 			plain: 'Ask to register the app',
 			label: 'Ask to register the app',
 			concept:
-				'The app team tells an admin where users may be sent back to, the redirect URIs, and whether the app can keep a secret, the client type. People do this, so there is no HTTP message.',
+				'The app team, which is probably you, tells an admin where users may be sent back to, the redirect URIs, and whether the app can keep a secret, the client type. People do this, so there is no HTTP message.',
 			inPractice:
-				'You do this once per place the app runs, because a test address and a live address are registered separately.',
+				'You do this once, and again for each new address the app runs at, because each one has to be listed.',
 			links: [{ diagram: 'flow', step: 'authorize', text: 'See where this address gets checked' }],
 			fields: [
 				{ name: 'redirect_uris', place: 'setting', note: 'Checked again during every login' },
@@ -199,7 +199,7 @@ export const authorizationCodeSetup: DiagramDef = {
 				{ text: 'The team gives the app the issuer URL and the client ID.' }
 			],
 			inPractice:
-				'This is most of what you write: these values in your configuration, and a library that takes them. It does what comes next.',
+				'This is most of what you write for a login: these values in your configuration, and a library that takes them. What is left is where a step says so, and your own session for the user.',
 			fields: [
 				{ name: 'issuer', place: 'setting' },
 				{ name: 'client_id', place: 'setting' },

@@ -85,7 +85,11 @@
 		<RunValues values={soFar} {numberOf} {onstep} />
 		<p class="origin" data-testid="payload-origin">
 			One real run against {serverNamed ? `Keycloak ${recording.keycloak}` : 'a real server'}, on {recording.recordedAt},
-			with throwaway values. Only the headers that matter here were kept.
+			on one machine and so over plain HTTP, with throwaway values. Anywhere else all of this has to
+			be HTTPS. Only the headers that matter here were kept.
+			{#if !serverNamed}
+				Names such as realms, and claims such as realm_access, are that server's own.
+			{/if}
 		</p>
 	{/if}
 </section>

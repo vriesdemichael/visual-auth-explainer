@@ -120,12 +120,14 @@ test.describe('someone told to add login', () => {
 		await expect(title(page)).toHaveText('I have to add login to an app. What do I do?');
 		await expect(page.locator('.workspace')).toHaveAttribute('data-diagram', 'setup');
 		await expect(page.locator('[data-lifeline="app-team"]')).toContainText('You');
-		await expect(page.getByTestId('step-practice')).toContainText('once per place the app runs');
+		await expect(page.getByTestId('step-practice')).toContainText('each new address');
 	});
 
 	test('is told which part is theirs and which a library does', async ({ page }) => {
 		await open(page, 'mode=simple&step=configure-app', 'setup');
-		await expect(page.getByTestId('step-practice')).toContainText('most of what you write');
+		await expect(page.getByTestId('step-practice')).toContainText(
+			'most of what you write for a login'
+		);
 		await open(page, 'mode=simple&step=token-request');
 		await expect(page.getByTestId('step-practice')).toContainText('A library does this');
 		await expect(page.getByTestId('step-practice')).toContainText('out of your code');

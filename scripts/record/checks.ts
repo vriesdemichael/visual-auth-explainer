@@ -14,27 +14,51 @@ interface Jwt {
 }
 
 function readJwt(jwt: string): Jwt | null {
+	const parts = jwt.split('.');
+	if (parts.length !== 3) return null;
+	const [header, payload, signature] = parts;
 	try {
-		const [header, payload, signature] = jwt.split('.');
-		return {
+		const decoded = {
 			header: JSON.parse(Buffer.from(header, 'base64url').toString()),
 			claims: JSON.parse(Buffer.from(payload, 'base64url').toString()),
 			signing: `${header}.${payload}`,
 			signature: Buffer.from(signature, 'base64url')
 		};
+		const isObject = (value: unknown) => typeof value === 'object' && value !== null;
+		return isObject(decoded.header) && isObject(decoded.claims) ? decoded : null;
 	} catch {
 		return null;
 	}
 }
 
+/** The kind of key has to be the kind the header says, so a signature cannot pass as another kind. */
 function signedWith(jwt: Jwt, jwk: Jwk) {
-	const key = createPublicKey({ key: jwk as never, format: 'jwk' });
 	const data = Buffer.from(jwt.signing);
-	if (jwt.header.alg === 'RS256') return verify('sha256', data, key, jwt.signature);
-	if (jwt.header.alg === 'ES256') {
-		return verify('sha256', data, { key, dsaEncoding: 'ieee-p1363' }, jwt.signature);
+	try {
+		const key = createPublicKey({ key: jwk as never, format: 'jwk' });
+		if (jwt.header.alg === 'RS256' && jwk.kty === 'RSA') {
+			return verify('sha256', data, key, jwt.signature);
+		}
+		if (jwt.header.alg === 'ES256' && jwk.kty === 'EC' && jwk.crv === 'P-256') {
+			return verify('sha256', data, { key, dsaEncoding: 'ieee-p1363' }, jwt.signature);
+		}
+		return false;
+	} catch {
+		return false;
 	}
-	return false;
+}
+
+/** What identifies a public key, whichever kind it is (RFC 7638). */
+function thumbprintOf(jwk: Jwk): string | null {
+	if (jwk.kty === 'EC') {
+		const { crv, kty, x, y } = jwk;
+		return sha256(JSON.stringify({ crv, kty, x, y }));
+	}
+	if (jwk.kty === 'RSA') {
+		const { e, kty, n } = jwk;
+		return sha256(JSON.stringify({ e, kty, n }));
+	}
+	return null;
 }
 
 const namesAudience = (claims: Record<string, unknown>, audience: string) =>
@@ -56,6 +80,11 @@ export function idTokenProblem(
 	if (!signedWith(jwt, key)) return 'bad signature';
 	if (jwt.claims.iss !== expected.issuer) return 'from another issuer';
 	if (!namesAudience(jwt.claims, expected.clientId)) return 'not for this app';
+	const audiences = [jwt.claims.aud].flat();
+	if (audiences.length > 1 && jwt.claims.azp === undefined) return 'for several, and says not whom';
+	if (jwt.claims.azp !== undefined && jwt.claims.azp !== expected.clientId) {
+		return 'issued to another app';
+	}
 	if (hasExpired(jwt.claims, now)) return 'expired';
 	if (jwt.claims.nonce !== expected.nonce) return 'from another login';
 	return null;
@@ -82,18 +111,17 @@ export function proofProblem(
 	if (!jwt) return 'not a proof';
 	const jwk = jwt.header.jwk as Jwk | undefined;
 	if (jwt.header.typ !== 'dpop+jwt' || !jwk) return 'not a proof';
-	const { crv, kty, x, y } = jwk;
+	if ('d' in jwk) return 'a private key, sent in the open';
 	if (!signedWith(jwt, jwk)) return 'bad proof signature';
-	if (sha256(JSON.stringify({ crv, kty, x, y })) !== expected.thumbprint) {
-		return 'proof from the wrong key';
-	}
+	if (thumbprintOf(jwk) !== expected.thumbprint) return 'proof from the wrong key';
 	if (jwt.claims.htm !== expected.method) return 'proof for another method';
 	if (jwt.claims.htu !== expected.url.split('?')[0]) return 'proof for another address';
 	if (typeof jwt.claims.iat !== 'number') return 'proof with no time';
 	if (Math.abs(now / 1000 - jwt.claims.iat) > PROOF_WINDOW_SECONDS)
 		return 'proof at the wrong time';
 	if (jwt.claims.ath !== sha256(expected.token)) return 'proof for another token';
-	const id = String(jwt.claims.jti);
+	if (typeof jwt.claims.jti !== 'string' || !jwt.claims.jti) return 'proof with no id';
+	const id = jwt.claims.jti;
 	if (expected.seen.has(id)) return 'proof used before';
 	expected.seen.add(id);
 	return null;
@@ -107,7 +135,11 @@ export interface Trust {
 	seenProofs: Set<string>;
 }
 
-/** What an API checks before it answers (RFC 9068 section 4, RFC 9449 section 7.1). */
+/**
+ * What an API checks before it answers (RFC 9449 section 7.1). Not the token type RFC 9068 asks for,
+ * because a default Keycloak's tokens say JWT. Whether the scope covers the request is not here: that
+ * is the app's own business, and the step says so.
+ */
 export async function accessTokenProblem(
 	request: { authorization?: string; dpop?: string; method: string; url: string },
 	trust: Trust,
@@ -122,9 +154,16 @@ export async function accessTokenProblem(
 	if (!key) return 'signed with a key the issuer does not list';
 	if (!signedWith(jwt, key)) return 'bad signature';
 	if (hasExpired(jwt.claims, now)) return 'expired';
+	if (typeof jwt.claims.nbf === 'number' && jwt.claims.nbf * 1000 > now) return 'not valid yet';
 	if (!namesAudience(jwt.claims, trust.audience)) return 'not for this API';
+	// An ID token says this as well, and it is not for an API whatever else it says.
+	if (jwt.claims.typ !== undefined && !['Bearer', 'DPoP'].includes(String(jwt.claims.typ))) {
+		return 'not an access token';
+	}
 
-	const bound = (jwt.claims.cnf as { jkt?: string } | undefined)?.jkt;
+	const cnf = jwt.claims.cnf as { jkt?: string } | undefined;
+	if (cnf && !cnf.jkt) return 'tied to something this API cannot check';
+	const bound = cnf?.jkt;
 	if (!bound) return scheme === 'Bearer' ? null : 'not a DPoP token';
 	if (scheme !== 'DPoP') return 'tied to a key, and sent without it';
 	return proofProblem(

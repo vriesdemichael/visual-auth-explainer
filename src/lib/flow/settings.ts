@@ -159,7 +159,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		default: false,
 		summary:
 			'The app proves it started this login, so a stolen code is no use alone. Current advice is to have it on, and a public client must.',
-		why: 'The code goes through the browser, where other software can get at it. An app with no secret has nothing else to show that it is the one that asked, so whoever holds the code gets the tokens. With PKCE the code only works together with a value that was never in a redirect.',
+		why: 'The code goes through the browser, where other software can get at it. An app with a secret can at least prove who it is. An app with none has nothing else to show that it is the one that asked, so whoever holds the code gets the tokens. With PKCE the code only works together with a value that was never in a redirect.',
 		simple: {
 			label: 'Protect against a stolen code',
 			summary:
@@ -215,7 +215,7 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		param: 'binding',
 		default: 'bearer',
 		summary: 'Whether holding the token is enough, or the app must also prove it holds a key.',
-		why: 'Whoever holds a bearer token can use it, so a token that leaks is as good as the real thing. DPoP ties the token to a key that never leaves the app, so a stolen token alone gets nobody in.',
+		why: 'Whoever holds a bearer token can use it, so a token that leaks is as good as the real thing.DPoP ties the token to a key that never leaves the app, so a stolen token alone gets nobody in. Code running inside the app can still use the key while it is there.',
 		sources: [
 			{ source: 'rfc6750', why: 'This is the Bearer option: holding the token is enough.' },
 			{

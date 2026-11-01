@@ -16,6 +16,11 @@
 					"sameSite": 200,
 					"otherSite": 400
 				},
+				"noSlash": {
+					"sameSite": 200,
+					"otherSite": 400,
+					"startingTheSame": 400
+				},
 				"alone": {
 					"sameSite": 200,
 					"otherSite": 200
@@ -25,11 +30,13 @@
 		"webOrigins": {
 			"before": {
 				"blocked": true,
-				"status": null
+				"status": null,
+				"theSameCodeAfterwards": 200
 			},
 			"after": {
 				"blocked": false,
-				"status": 200
+				"status": 200,
+				"theSameCodeAfterwards": 400
 			}
 		},
 		"consentRequired": {
@@ -86,7 +93,8 @@
 		"audience": {
 			"before": {
 				"aud": "account",
-				"namesTheApi": false
+				"namesTheApi": false,
+				"demoApi": 200
 			},
 			"after": {
 				"aud": [
