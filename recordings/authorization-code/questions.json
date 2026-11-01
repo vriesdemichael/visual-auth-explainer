@@ -59,15 +59,39 @@
 			"after": {
 				"asked": true,
 				"lists": [
+					"User roles",
 					"User profile",
-					"Email address",
-					"User roles"
+					"Email address"
 				],
 				"audience": "account",
 				"hasRoles": true,
 				"gotCode": true,
 				"secondLoginAsked": false,
 				"whenDeclined": "access_denied"
+			},
+			"onAPublicClient": {
+				"first": {
+					"asked": true,
+					"lists": [
+						"User roles",
+						"User profile",
+						"Email address"
+					]
+				},
+				"second": {
+					"asked": false,
+					"lists": []
+				},
+				"withANewScope": {
+					"asked": true,
+					"lists": [
+						"Phone number"
+					]
+				},
+				"withThatScopeAgain": {
+					"asked": false,
+					"lists": []
+				}
 			}
 		},
 		"clientAuthentication": {
@@ -88,6 +112,10 @@
 				"gotCode": false,
 				"says": "Missing parameter: code_challenge_method"
 			}
+		},
+		"requirePkceWithASecret": {
+			"gotCode": false,
+			"says": "Missing parameter: code_challenge_method"
 		},
 		"clientScopes": {
 			"before": {
@@ -113,6 +141,9 @@
 					"account"
 				],
 				"namesTheApi": true
+			},
+			"withoutTheRolesScope": {
+				"aud": null
 			}
 		},
 		"requireDpop": {
@@ -258,6 +289,50 @@
 					"status": 400,
 					"description": "Code not valid"
 				}
+			},
+			"withDpop": {
+				"namedKeyNoProof": {
+					"status": 400,
+					"error": "invalid_request",
+					"description": "DPoP Proof missing",
+					"tokenType": null
+				},
+				"namedKeyOtherProof": {
+					"status": 400,
+					"error": "invalid_request",
+					"description": "DPoP Proof public key thumbprint does not match dpop_jkt",
+					"tokenType": null
+				},
+				"namedKeyRightProof": {
+					"status": 200,
+					"error": null,
+					"description": null,
+					"tokenType": "DPoP"
+				},
+				"noNamedKeyNoProof": {
+					"status": 200,
+					"error": null,
+					"description": null,
+					"tokenType": "Bearer"
+				},
+				"noNamedKeyTheirOwnProof": {
+					"status": 200,
+					"error": null,
+					"description": null,
+					"tokenType": "DPoP"
+				},
+				"requiredNoProof": {
+					"status": 400,
+					"error": "invalid_request",
+					"description": "DPoP proof is missing",
+					"tokenType": null
+				},
+				"requiredTheirOwnProof": {
+					"status": 200,
+					"error": null,
+					"description": null,
+					"tokenType": "DPoP"
+				}
 			}
 		},
 		"stolenTokensAfterTheRealAppTried": {
@@ -349,7 +424,17 @@
 			"after": {
 				"status": 200,
 				"redirects": false
+			},
+			"withHint": {
+				"status": 303,
+				"redirects": true
 			}
+		},
+		"storeTokensOnApiV2": {
+			"neither": 400,
+			"inSessionOnly": 200,
+			"inDatabaseOnly": 200,
+			"both": 200
 		},
 		"allowExternalTokens": {
 			"before": {
