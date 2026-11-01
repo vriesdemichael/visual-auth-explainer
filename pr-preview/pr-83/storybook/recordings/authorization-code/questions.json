@@ -59,9 +59,9 @@
 			"after": {
 				"asked": true,
 				"lists": [
+					"User roles",
 					"User profile",
-					"Email address",
-					"User roles"
+					"Email address"
 				],
 				"audience": "account",
 				"hasRoles": true,
@@ -73,9 +73,9 @@
 				"first": {
 					"asked": true,
 					"lists": [
+						"User roles",
 						"User profile",
-						"Email address",
-						"User roles"
+						"Email address"
 					]
 				},
 				"second": {
@@ -418,7 +418,8 @@
 			},
 			"pastItsLife": {
 				"userinfo": 401,
-				"thenARefresh": 200
+				"thenARefresh": 200,
+				"idTokenAgain": true
 			}
 		},
 		"revokeRefreshToken": {
