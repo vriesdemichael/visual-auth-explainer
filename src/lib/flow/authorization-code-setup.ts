@@ -1,4 +1,5 @@
 import type { DiagramDef } from '#lib/flow/model.ts';
+import { example } from '#lib/flow/libraries.ts';
 import { any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
@@ -200,6 +201,7 @@ export const authorizationCodeSetup: DiagramDef = {
 			],
 			inPractice:
 				'This is most of what you write for a login: these values in your configuration, and a library that takes them. What is left is where a step says so, and your own session for the user.',
+			practice: [example('authjs', true, 'takes the issuer, client ID and secret')],
 			fields: [
 				{ name: 'issuer', place: 'setting' },
 				{ name: 'client_id', place: 'setting' },
@@ -214,7 +216,12 @@ export const authorizationCodeSetup: DiagramDef = {
 			plain: "The app looks up the provider's addresses",
 			label: 'GET /.well-known/…',
 			execute: { answer: 'discovery-document' },
-			inPractice: 'A library does this when it starts.',
+			inPractice:
+				'Many libraries do this when they start. Others want the addresses in your configuration.',
+			practice: [
+				example('openidClient', true, 'with discovery'),
+				example('passport', false, 'wants the addresses as options')
+			],
 			concept:
 				'The app starts from the issuer URL and asks the identity provider where everything else is.',
 			fields: [

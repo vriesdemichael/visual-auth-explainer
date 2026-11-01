@@ -89,7 +89,8 @@
 			<ul class="behind" data-testid="token-settings">
 				{#each settingsBehind(jwt) as { note, claims } (note.id)}
 					<li>
-						<code>{claims.join(', ')}</code> comes from
+						<code>{claims.join(', ')}</code>
+						{note.claimsVerb ?? 'comes from'}
 						<button
 							type="button"
 							class="from"

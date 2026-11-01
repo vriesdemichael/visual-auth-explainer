@@ -1,4 +1,5 @@
 import type { DiagramDef } from '#lib/flow/model.ts';
+import { example } from '#lib/flow/libraries.ts';
 import { all, any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
@@ -130,6 +131,10 @@ export const authorizationCode: DiagramDef = {
 			concept: 'The user wants something from the app, and the app needs them logged in first.',
 			inPractice:
 				'Which pages need a login is your code. For most of what follows a library does the work, and how much depends on the library: a framework integration does nearly all of it, and a low-level one leaves some checks to you.',
+			practice: [
+				example('authjs', true, 'does nearly all of it'),
+				example('oauth4webapi', false, 'leaves you to call each step and pass it what to check')
+			],
 			links: [
 				{
 					diagram: 'setup',
@@ -146,8 +151,12 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The app makes a key pair',
 			label: 'Generate a key pair',
 			concept:
-				'DPoP ties tokens to a key only this app holds, so a stolen token is useless without the key.',
+				'DPoP ties tokens to a key only this app holds, so at an API that checks the proof a stolen token is useless without the key.',
 			inPractice: 'A library does this, if it supports DPoP. Not all of them do yet.',
+			practice: [
+				example('oauth4webapi', true, 'has DPoP, and you give it the key'),
+				example('passport', false, 'has no DPoP')
+			],
 			when: dpop
 		},
 		{
@@ -160,6 +169,10 @@ export const authorizationCode: DiagramDef = {
 			concept:
 				'The app makes up a random value for this login, the verifier, and keeps it to itself. From it, it works out a fingerprint, the challenge, that cannot be turned back. Only the fingerprint goes through the browser.',
 			inPractice: 'A library does this for you, often once you turn it on.',
+			practice: [
+				example('authjs', true, 'does this unless told otherwise'),
+				example('passport', false, 'only with pkce: true and state: true')
+			],
 			when: pkce,
 			fields: [
 				{
@@ -186,6 +199,10 @@ export const authorizationCode: DiagramDef = {
 			concept:
 				'The app sends the browser to the identity provider, because the password must never reach the app.',
 			inPractice: 'A library does this, from the values you gave it in setup.',
+			practice: [
+				example('passport', true, 'from its authorizationURL and clientID options'),
+				example('authjs', true, 'from the issuer and client ID')
+			],
 			fields: [{ name: 'code_challenge', place: 'query', artifact: 'challenge', when: pkce }]
 		},
 		{
@@ -443,7 +460,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The user agrees',
 			label: 'Grant access',
 			concept:
-				'The user says yes. The identity provider remembers that for this user and this app, so it does not ask again at the next login.',
+				'The user says yes. Many identity providers remember that for this user and this app, and do not ask again at the next login, though the spec advises care when the app has no secret.',
 			when: consent,
 			execute: { answer: 'redirect-with-code' },
 			fields: [
@@ -506,6 +523,10 @@ export const authorizationCode: DiagramDef = {
 			execute: { answer: 'attacker-token-response', when: attackerWins },
 			concept: [
 				{
+					when: all(not(confidential), pkce),
+					text: 'They send the code to the identity provider, as the real app would, but without the verifier, which they never saw.'
+				},
+				{
 					when: not(confidential),
 					text: 'They send the code to the identity provider, exactly as the real app would. This client has no secret, so nothing marks this request as not coming from the app.'
 				},
@@ -544,6 +565,10 @@ export const authorizationCode: DiagramDef = {
 				{
 					when: stoppedByPkce,
 					text: 'The code was tied to a challenge when it was issued, and only the verifier matches it. That was never in a redirect, so someone who only saw the code does not have it.'
+				},
+				{
+					when: pkce,
+					text: 'Without the secret, the identity provider will not even look at the code. Handing it to the real app from their own browser gets them nothing, because the verifier does not match, though it uses up the code.'
 				},
 				{
 					text: 'Without the secret, the identity provider will not even look at the code. But they could still hand it to the real app from their own browser, so that it trades the code for them, which is what PKCE stops.'
@@ -608,6 +633,10 @@ export const authorizationCode: DiagramDef = {
 			label: 'Deliver the code',
 			concept: [
 				{
+					when: all(not(confidential), not(pkce), dpop),
+					text: "The code reaches the app. It has just been through the browser, with no secret and no PKCE behind it. What protects it is that the login named this app's key, so the code alone gets nobody the tokens."
+				},
+				{
 					when: all(not(confidential), not(pkce)),
 					text: 'The code reaches the app. With no secret and no PKCE, this code is all anyone needs to get the tokens, and it has just been through the browser.'
 				},
@@ -620,7 +649,11 @@ export const authorizationCode: DiagramDef = {
 				}
 			],
 			inPractice:
-				'A framework usually handles this, at the address you registered, which has to match exactly. With a low-level library, comparing state with what this browser was given is your code. Do not skip it.',
+				'Many frameworks handle this, some only once you turn it on, so check. The address has to be the one you registered, exactly. With a low-level library, comparing state with what this browser was given is your code. Do not skip it.',
+			practice: [
+				example('springSecurity', true, 'compares state without being asked'),
+				example('passport', false, 'only compares state with state: true')
+			],
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query', note: 'Must match what the app sent' },
@@ -642,6 +675,10 @@ export const authorizationCode: DiagramDef = {
 				},
 				{ text: 'A library does this. There is no secret to keep, because there could not be one.' }
 			],
+			practice: [
+				example('passport', true, 'once it has the code'),
+				example('openidClient', true, 'when you call its code grant')
+			],
 			concept: [
 				{
 					when: all(confidential, pkce),
@@ -656,12 +693,20 @@ export const authorizationCode: DiagramDef = {
 					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, but it does have the verifier, which was never in a redirect. Someone who only saw the code cannot do this. If the app runs in the browser, this call comes from its own JavaScript.'
 				},
 				{
+					when: dpop,
+					text: "The app trades the code for tokens on a direct call. A public client has no secret to prove who it is. But the login named this app's key, so this takes a proof signed with that key, which someone who only saw the code does not have. If the app runs in the browser, this call comes from its own JavaScript."
+				},
+				{
 					text: 'The app trades the code for tokens on a direct call. A public client has no secret to prove who it is, so anyone holding the code could do this too, which is the gap PKCE closes. If the app runs in the browser, this call comes from its own JavaScript.'
 				}
 			],
 			pitfall: {
 				title: 'What if someone else gets hold of the code?',
 				text: [
+					{
+						when: all(not(confidential), not(pkce), dpop),
+						text: "The login named this app's key, so the identity provider refuses the code with no proof, or with a proof from any other key. PKCE is still the advice, because that only helps when the login names the key: without it, they can use a key of their own, even with a setting that requires a proof."
+					},
 					{
 						when: all(not(confidential), not(pkce)),
 						text: 'They can do exactly this. Nothing in this request shows it comes from the real app, so whoever intercepted the code gets the tokens. This is the attack PKCE was made for.'
@@ -748,13 +793,14 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The real app is refused',
 			label: '400 invalid_grant',
 			inPractice: 'A library reports this as an error. Your app should offer to start again.',
+			practice: [example('passport', true, 'as a TokenError')],
 			concept: [
 				{
 					when: pkce,
 					text: 'A code works once, and this server counts a failed try as that once. The specs do not say whether it should. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
 				},
 				{
-					text: 'A code works once, and it has been used, so the app gets nothing and the user sees an error.The specs advise the server to cancel what that code got, and this one does. But someone else has had the tokens by then, and an API that only looks at the token itself goes on taking them until they expire.'
+					text: 'A code works once, and it has been used, so the app gets nothing and the user sees an error. The specs advise the server to cancel what that code got, and this one does. But someone else has had the tokens by then, and an API that only looks at the token itself goes on taking them until they expire.'
 				}
 			],
 			when: codeGone,
@@ -805,11 +851,15 @@ export const authorizationCode: DiagramDef = {
 				},
 				{
 					when: dpop,
-					text: 'A library takes these. Where they are kept is up to you. A stolen token is no use without the key, but code running inside your app can use the key while it is there.'
+					text: 'A library takes these. Where they are kept is up to you. At an API that checks the proof a stolen token is no use without the key, but code running inside your app can use the key while it is there.'
 				},
 				{
 					text: 'A library takes these. Where they are kept is up to you, and worth thinking about, because whoever gets them can use them.'
 				}
+			],
+			practice: [
+				example('passport', true, 'hands them to the function you give it'),
+				example('openidClient', true, 'returns them from its code grant')
 			],
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'access-token' },
@@ -833,9 +883,17 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The app checks the ID token',
 			label: 'Validate the ID token',
 			concept:
-				'The app checks signature, issuer, audience, expiry and nonce before it trusts the token.',
+				'The app checks issuer, audience, expiry and nonce before it trusts the token, and usually the signature. The spec lets it skip that one when the token came straight from the identity provider over TLS.',
 			inPractice:
-				'A framework usually does all of this. A low-level library may check the signature and leave the nonce to you, so read what yours does, and do not skip any of it. After this your app starts its own session for the user, and logging out is yours as well. Neither is on this diagram.',
+				'A framework usually does all of this. A low-level library may leave parts of it to you, such as the nonce, so read what yours does, and do not skip any of it. After this your app starts its own session for the user, and logging out is yours as well. Neither is on this diagram.',
+			practice: [
+				example('authjs', true, 'keeps the nonce and checks it'),
+				example(
+					'oauth4webapi',
+					false,
+					'checks the nonce you pass it, and leaves the signature to a separate call'
+				)
+			],
 			when: all(oidc, stillGoing),
 			fields: [
 				{ name: 'iss', place: 'token' },
@@ -895,6 +953,7 @@ export const authorizationCode: DiagramDef = {
 			],
 			inPractice:
 				'This part is your code, though a library can add the token to each call for you.',
+			practice: [example('oauth4webapi', true, 'with protectedResourceRequest')],
 			fields: [
 				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: bearer },
 				{ name: 'Authorization: DPoP', place: 'header', artifact: 'access-token', when: dpop },
@@ -920,10 +979,25 @@ export const authorizationCode: DiagramDef = {
 					when: dpop,
 					text: 'The API checks the token, and that the proof was signed with the key the token names.'
 				},
-				{ text: 'The API checks the signature, that the token has not expired, and who it is for.' }
+				{
+					text: 'The API checks the signature, that the token has not expired, and who it is for. An opaque token it has to ask the server about.'
+				}
 			],
-			inPractice:
-				'A library or a gateway does this, once you tell it the issuer and who tokens have to be for. Forgetting the second is a common mistake. Whether the scope covers this request, and whether this user may see this thing, is your code, and a valid token says neither.',
+			inPractice: [
+				{
+					when: dpop,
+					text: 'An ordinary JWT library or gateway checks the token and ignores the proof, so it takes a stolen DPoP token sent as Bearer. Checking the proof takes a library that does DPoP. Whether the scope covers this request, and whether this user may see this thing, is your code, and a valid token says neither.'
+				},
+				{
+					text: 'A library or a gateway does this, once you tell it the issuer and who tokens have to be for. Forget the second, and a token meant for another API gets in. Whether the scope covers this request, and whether this user may see this thing, is your code, and a valid token says neither.'
+				}
+			],
+			practice: [
+				example('springSecurity', true, 'can check the proof', dpop),
+				example('awsJwt', false, 'lists no proof among what it checks', dpop),
+				example('jose', true, 'when you pass it the issuer and audience', bearer),
+				example('awsJwt', true, 'once it is given them', bearer)
+			],
 			fields: [
 				{ name: 'aud', place: 'token' },
 				{ name: 'exp', place: 'token' },

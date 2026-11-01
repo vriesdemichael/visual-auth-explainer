@@ -62,6 +62,8 @@ export interface NoteDef {
 	seen?: string;
 	/** What in an access token this setting controls. */
 	claims?: readonly string[];
+	/** How to say that, when it does not simply come from this setting. */
+	claimsVerb?: string;
 }
 
 export interface Note {
@@ -74,6 +76,7 @@ export interface Note {
 	/** How this was found out, up to the name of the server. */
 	evidence: string;
 	claims: readonly string[];
+	claimsVerb?: string;
 }
 
 const CHANGED_IT = 'Changed this, and the answer changed, on';
@@ -115,7 +118,7 @@ export const noteDefs: readonly NoteDef[] = [
 		text: [
 			{
 				when: is('consent', true),
-				text: "On for this client. What the page lists are the client's scopes, by their display names. Once someone agrees, they are not asked again."
+				text: "On for this client. What the page lists are the client's scopes, by their display names. Once someone agrees they are not asked again, on a client with a secret or without one, until the app asks for a scope they have not agreed to, and then only about that scope."
 			},
 			{
 				text: 'Off on a new client, which is why most logins through Keycloak never ask the user anything. Turn it on to get the question.'
@@ -132,6 +135,12 @@ export const noteDefs: readonly NoteDef[] = [
 					whenDeclined: 'access_denied',
 					audience: 'account',
 					hasRoles: true
+				},
+				onAPublicClient: {
+					first: { asked: true },
+					second: { asked: false },
+					withANewScope: { asked: true, lists: ['Phone number'] },
+					withThatScopeAgain: { asked: false }
 				}
 			}
 		}
@@ -207,7 +216,7 @@ export const noteDefs: readonly NoteDef[] = [
 		text: [
 			{
 				when: all(pkce, not(confidential)),
-				text: 'Someone with only the code gets a 400 invalid_grant: PKCE code verifier not specified.That try also uses up the code, so the real app has to start the login again. That is how Keycloak does it, and the specs do not say whether a failed try counts.'
+				text: 'Someone with only the code gets a 400 invalid_grant: PKCE code verifier not specified. That try also uses up the code, so the real app has to start the login again. That is how Keycloak does it, and the specs do not say whether a failed try counts.'
 			},
 			{
 				when: pkce,
@@ -216,6 +225,10 @@ export const noteDefs: readonly NoteDef[] = [
 			{
 				when: confidential,
 				text: 'Without the secret, this gets a 401, with the error unauthorized_client, where RFC 6749 says invalid_client. The code itself is still good, and PKCE is not insisted on unless this is turned on.'
+			},
+			{
+				when: dpop,
+				text: "Off by default. This login named the app's key with dpop_jkt, so someone with only the code gets a 400: DPoP Proof missing, or with their own key, that its thumbprint does not match. A login that does not name a key has no such protection: they get tokens with a key of their own, even with Require DPoP bound tokens on."
 			},
 			{
 				text: 'Off by default, so a public client with no PKCE gets its tokens, and so does anyone else who has the code. The real app then finds the code already used. Turn it on to refuse a login without PKCE.'
@@ -231,7 +244,19 @@ export const noteDefs: readonly NoteDef[] = [
 					description: 'PKCE code verifier not specified',
 					theRealAppAfterwards: { status: 400, description: 'Code not valid' }
 				},
-				confidentialNoPkceNoSecret: { status: 401, theRealAppAfterwards: { status: 200 } }
+				confidentialNoPkceNoSecret: { status: 401, theRealAppAfterwards: { status: 200 } },
+				withDpop: {
+					namedKeyNoProof: { status: 400, description: 'DPoP Proof missing' },
+					namedKeyOtherProof: {
+						status: 400,
+						description: 'DPoP Proof public key thumbprint does not match dpop_jkt'
+					},
+					namedKeyRightProof: { status: 200, tokenType: 'DPoP' },
+					noNamedKeyNoProof: { status: 200, tokenType: 'Bearer' },
+					noNamedKeyTheirOwnProof: { status: 200, tokenType: 'DPoP' },
+					requiredNoProof: { status: 400 },
+					requiredTheirOwnProof: { status: 200, tokenType: 'DPoP' }
+				}
 			}
 		},
 		seen: 'Tried with each kind of client, with and without PKCE, on'
@@ -240,7 +265,7 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'code-used-twice',
 		steps: ['real-app-refused'],
 		title: 'A code used twice',
-		text: 'Keycloak cancels what the code got when someone uses it again:after this, UserInfo says 401 to their access token and their refresh token is refused. The demo API looks at the token itself and never asks Keycloak, so it goes on answering until the token expires. An API that asks the server each time may not.',
+		text: 'Keycloak cancels what the code got when someone uses it again: after this, UserInfo says 401 to their access token and their refresh token is refused. The demo API looks at the token itself and never asks Keycloak, so it goes on answering until the token expires. An API that asks the server each time may not.',
 		when: not(pkce),
 		backedBy: {
 			question: 'stolenTokensAfterTheRealAppTried',
@@ -299,8 +324,9 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'audience',
 		steps: ['token-response', 'api-check-token'],
 		claims: ['aud'],
+		claimsVerb: 'can be changed with',
 		title: 'Audience mapper',
-		text: "A default client's access token names account as its audience, not your API, so an API that checks the audience refuses it. Add an Audience mapper to the client's dedicated scope to name your API.The demo API here is told to accept account, so that it can run against a default client, which means any default client's token in this realm gets in. Yours should expect its own name.",
+		text: "A default client's access token names account as its audience, not your API, so an API that checks the audience refuses it. Here account comes from the default roles client scope, and without that scope there is no audience at all. Add an Audience mapper to the client's dedicated scope to name your API. The demo API here is told to accept account, so that it can run against a default client, which means any default client's token in this realm gets in. Yours should expect its own name.",
 		place: {
 			path: [
 				'Clients',
@@ -318,7 +344,8 @@ export const noteDefs: readonly NoteDef[] = [
 			question: 'audience',
 			shows: {
 				before: { aud: 'account', namesTheApi: false, demoApi: 200 },
-				after: { namesTheApi: true }
+				after: { namesTheApi: true },
+				withoutTheRolesScope: { aud: null }
 			}
 		}
 	},
@@ -326,7 +353,7 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'require-dpop',
 		steps: ['token-request'],
 		title: 'Require DPoP bound tokens',
-		text: 'Off by default, and a client that sends a proof still gets a bound token. Turn it on and a request with no proof is refused.',
+		text: 'Off by default, and a client that sends a proof still gets a bound token. Turn it on and a request with no proof is refused. Someone with a stolen code can still send a proof of their own, so this alone does not protect the code.',
 		when: dpop,
 		place: clientSettings('Capability config', 'Require DPoP bound tokens'),
 		flag: { name: 'dpop' },
@@ -363,7 +390,7 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'broker-redirector',
 		steps: ['redirect-to-upstream'],
 		title: 'Identity Provider Redirector',
-		text: 'Going straight to the other provider takes a default provider on this step of the browser flow. Without one, Keycloak shows its own login page, with a button for the other provider.',
+		text: 'Going straight to the other provider takes a default provider on this step of the browser flow, or the app sending kc_idp_hint. Without either, Keycloak shows its own login page, with a button for the other provider.',
 		when: is('broker', true),
 		place: {
 			path: ['Authentication', 'browser', 'Identity Provider Redirector'],
@@ -373,14 +400,24 @@ export const noteDefs: readonly NoteDef[] = [
 		},
 		backedBy: {
 			question: 'brokerRedirector',
-			shows: { before: { redirects: true }, after: { redirects: false } }
+			shows: {
+				before: { redirects: true },
+				after: { redirects: false },
+				withHint: { redirects: true }
+			}
 		}
 	},
 	{
 		id: 'store-tokens',
 		steps: ['store-upstream-tokens', 'enable-token-storage'],
 		title: 'Store tokens',
-		text: 'Off by default, and then there is nothing for the app to ask for.',
+		text: [
+			{
+				when: apiV2,
+				text: 'Off by default. On API V2 this or Store token in session is enough for the app to ask, and with neither it gets a 400.'
+			},
+			{ text: 'Off by default, and then there is nothing for the app to ask for.' }
+		],
 		when: any(apiV1, apiV2),
 		place: providerSettings('Store tokens'),
 		backedBy: {
@@ -457,6 +494,7 @@ export function notesFor(flow: string, step: string, settings: Settings): Note[]
 			serverOption: def.serverOption,
 			flag: def.flag,
 			evidence: def.seen ?? CHANGED_IT,
-			claims: def.claims ?? []
+			claims: def.claims ?? [],
+			claimsVerb: def.claimsVerb
 		}));
 }

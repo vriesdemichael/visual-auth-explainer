@@ -59,7 +59,7 @@ export const artifacts: Readonly<
 		label: 'key proof',
 		short: 'proof',
 		explains:
-			'A short signed note showing that the sender holds a private key, which is what a stolen token is no use without. A new one goes with each request, so one that is seen cannot be used again.'
+			'A short signed note showing that the sender holds a private key, which an API that checks it will ask a stolen token for. A new one goes with each request, tied to its method and address and good for a short time. A server that remembers those it has seen can refuse a repeat, and not all do.'
 	},
 	'upstream-token': {
 		label: 'upstream token',

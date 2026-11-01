@@ -64,6 +64,8 @@ export function provenance(base: BaseFlow, flow: DiagramDef, settings: Settings)
 	return {
 		specs: specs.map((id) => sources[id].label),
 		recorded: recordingFor(base, settings) !== null,
+		// People talking cannot be recorded, so a diagram with them can claim its HTTP and no more.
+		onlyItsHttp: flow.steps.some((step) => step.kind === 'human'),
 		keycloak: recordedIndex.keycloak,
 		date: recordedIndex.recordedAt
 	};
