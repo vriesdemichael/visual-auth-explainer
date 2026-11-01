@@ -82,7 +82,7 @@
 <h2 tabindex="-1" bind:this={panelHeading}>{simple ? 'Try changing' : 'Settings'}</h2>
 {#each offered as id (id)}
 	{@const def = defOf(id)}
-	<section data-setting={id}>
+	<section data-setting={id} aria-describedby={`about-${id}`}>
 		{#if def.kind === 'toggle'}
 			{@const blocked = blockedBy(id, true)}
 			<label class="toggle" class:blocked>
@@ -124,7 +124,14 @@
 				{/each}
 			</fieldset>
 		{/if}
-		<p>{simple ? (def.simple?.summary ?? def.summary) : def.summary}</p>
+		<p
+			id={`about-${id}`}
+			class="about"
+			class:shown={settings[id] !== defaultSettings[id]}
+			data-testid="setting-about"
+		>
+			{simple ? (def.simple?.summary ?? def.summary) : def.summary}
+		</p>
 		<ul class="more">
 			<li>
 				<button
@@ -343,6 +350,17 @@
 		margin: 3px 0 0;
 		color: var(--muted);
 		font-size: 12px;
+	}
+
+	/* What never changes stays out of the way: on when the setting is, or while someone is on it. Its
+	   Why says the same and more. */
+	.about {
+		display: none;
+	}
+
+	.about.shown,
+	section:has(input:focus-visible) .about {
+		display: block;
 	}
 
 	.more {

@@ -79,12 +79,17 @@ const KEYCLOAK_ONLY = new Set([
 
 // Answers whose whole point is what is in them, where the fields name the ones the diagram relies
 // on. And redirects, which carry what the next request sends, and the diagram shows it there.
+const SAYS_WHO_THIS_IS = new Set(['logout-redirect', 'end-session']);
+
 const OPEN_ENDED = new Set([
 	'discovery-document',
 	'userinfo-response',
 	'api-response',
 	'api-refused',
 	'second-redirect-to-idp',
+	'logout-redirect',
+	'token-after-logout-response',
+	'asks-after-logout-response',
 	'api-response-new',
 	'attacker-api-response',
 	'redirect-to-idp',
@@ -264,7 +269,13 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 		for (const message of recorded) {
 			const step = views.find((s) => s.id === message.step)!;
 			if (step.channel !== 'front') continue;
-			for (const token of tokens) expect(JSON.stringify(message)).not.toContain(token);
+			for (const token of tokens) {
+				// Logging out is the one exception: the app sends the ID token to say who this is.
+				const idToken = recorded.find((m) => m.step === 'token-response')?.body as
+					Record<string, string> | undefined;
+				if (token === idToken?.id_token && SAYS_WHO_THIS_IS.has(step.id)) continue;
+				expect(JSON.stringify(message)).not.toContain(token);
+			}
 		}
 	});
 
@@ -284,6 +295,30 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 		expect(recording.settings).toEqual(
 			normalize({ ...defaultSettings, ...wanted.settings }).settings
 		);
+	});
+});
+
+describe('the words after a logout', () => {
+	it.each(['logout', 'logout-two-apps'])('%s says what it really said', (preset) => {
+		const recording = read(preset);
+		const statusOf = (step: string) =>
+			recording.messages.find((message) => message.step === step)?.status;
+		const labelOf = (step: string) => stepsOf(recording).find(({ id }) => id === step)?.label;
+		expect(statusOf('token-after-logout-response')).toBe(200);
+		expect(labelOf('token-after-logout-response')).toMatch(/^200/);
+		expect(statusOf('asks-after-logout-response')).toBe(401);
+		expect(labelOf('asks-after-logout-response')).toMatch(/^401/);
+		expect(statusOf('refresh-after-logout-response')).toBe(400);
+		expect(labelOf('refresh-after-logout-response')).toMatch(/^400/);
+		const asked = recording.messages.find(({ step }) => step === 'introspect-response');
+		expect((asked?.body as { active: boolean }).active).toBe(false);
+		expect(labelOf('introspect-response')).toBe('active: false');
+	});
+
+	it('tells the second app, from a real delivery', () => {
+		const told = read('logout-two-apps').messages.find(({ step }) => step === 'backchannel-logout');
+		expect((told?.body as { logout_token: string }).logout_token.split('.')).toHaveLength(3);
+		expect(read('logout').messages.map(({ step }) => step)).not.toContain('backchannel-logout');
 	});
 });
 

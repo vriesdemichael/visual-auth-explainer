@@ -8,12 +8,14 @@ import { accessTokenProblem, idTokenProblem, scopeProblem, sha256, type Jwk } fr
 import {
 	API,
 	API_AUDIENCE,
+	API_CLIENT,
 	APP,
 	BROKERED_REALM,
 	CLIENT_SECRET,
 	CONFIDENTIAL_CLIENT,
 	KEYCLOAK,
 	LOCAL_REALM,
+	POST_LOGOUT_URI,
 	PROXY_PORT,
 	REDIRECT_URI,
 	SECOND_APP,
@@ -26,6 +28,7 @@ import {
 const settle = () => new Promise((resolve) => setTimeout(resolve, 250));
 
 const random = () => randomBytes(16).toString('base64url');
+const BACKCHANNEL_SHOWN = `${SECOND_APP}/backchannel`;
 
 /** What someone would do to a token: change what it says, and keep the signature they have. */
 function withMoreInIt(token: string) {
@@ -179,6 +182,8 @@ interface Discovered {
 	authorization_endpoint: string;
 	token_endpoint: string;
 	userinfo_endpoint?: string;
+	end_session_endpoint?: string;
+	introspection_endpoint?: string;
 	jwks_uri: string;
 }
 
@@ -201,6 +206,9 @@ export class Demo {
 	current: Run | null = null;
 	/** The code from a login that was not part of a run, for trying things out with it. */
 	lastCode = '';
+	/** Logout tokens that came in with no run going, for a question to count. */
+	logoutTokens: string[] = [];
+	#tokens: Tokens | null = null;
 	#servers: Server[] = [];
 	#discovered: Discovered | null = null;
 	#state = '';
@@ -314,6 +322,7 @@ export class Demo {
 		}
 		const tokens = jsonOf<Tokens>(result.text);
 		if (!tokens.access_token) throw new Error(`No token: ${result.text}`);
+		this.#tokens = tokens;
 
 		if (settings.oidc) {
 			const problem = idTokenProblem(tokens.id_token, {
@@ -357,6 +366,44 @@ export class Demo {
 		if (settings.upstreamTokens !== 'off') await this.#storedToken(tokens.access_token);
 		if (settings.refresh) await this.#whenItRunsOut(tokens);
 		return 'Logged in';
+	}
+
+	/** What is left once the user has logged out, tried for real. */
+	async #afterLogout() {
+		await settle();
+		const run = this.#run;
+		const tokens = this.#tokens;
+		if (!tokens) throw new Error('Logged out with no tokens');
+		const bearer = { authorization: `Bearer ${tokens.access_token}` };
+		const looked = await call(
+			run,
+			['token-after-logout', 'token-after-logout-response'],
+			'GET',
+			`${API}/resource`,
+			bearer
+		);
+		if (looked.status !== 200) throw new Error(`The API refused: ${looked.text}`);
+		const asked = await call(
+			run,
+			['asks-after-logout', 'asks-after-logout-response'],
+			'GET',
+			`${API}/asks/resource`,
+			bearer
+		);
+		if (asked.status !== 401) throw new Error(`The API that asks took it: ${asked.text}`);
+		const refresh = await call(
+			run,
+			['refresh-after-logout', 'refresh-after-logout-response'],
+			'POST',
+			this.#server.token_endpoint,
+			run.clientSecret ? { authorization: basicAuth(run.clientId, run.clientSecret) } : {},
+			{
+				grant_type: 'refresh_token',
+				refresh_token: tokens.refresh_token,
+				...(run.clientSecret ? {} : { client_id: run.clientId })
+			}
+		);
+		if (refresh.status !== 400) throw new Error(`The refresh still works: ${refresh.text}`);
 	}
 
 	/** The same call once the token has run out, what a refresh token gets, and using one twice. */
@@ -460,6 +507,22 @@ export class Demo {
 				response.end();
 				return;
 			}
+			if (url.pathname === '/logout') {
+				const query = new URLSearchParams({
+					id_token_hint: this.#tokens?.id_token ?? '',
+					post_logout_redirect_uri: POST_LOGOUT_URI,
+					state: random()
+				});
+				response.writeHead(302, { location: `${this.#server.end_session_endpoint}?${query}` });
+				response.end();
+				return;
+			}
+			if (url.pathname === '/bye') {
+				if (this.current) await this.#afterLogout();
+				response.writeHead(200, { 'content-type': 'text/html' });
+				response.end('<h1>Logged out</h1>');
+				return;
+			}
 			if (url.pathname === '/callback') {
 				if (!this.current) {
 					this.lastCode = url.searchParams.get('code') ?? '';
@@ -496,6 +559,28 @@ export class Demo {
 					'www-authenticate': 'Bearer'
 				});
 				response.end(JSON.stringify({ error: 'no token' }));
+				return;
+			}
+			// One API that does not go by the token alone, and asks the server about it.
+			if (request.url?.startsWith('/asks/')) {
+				const answer = await call(
+					this.#run,
+					['introspect', 'introspect-response'],
+					'POST',
+					this.#server.introspection_endpoint ?? '',
+					{ authorization: basicAuth(API_CLIENT, CLIENT_SECRET) },
+					{ token: request.headers.authorization.split(' ')[1] }
+				);
+				const { active } = jsonOf<{ active: boolean }>(answer.text);
+				response.writeHead(active ? 200 : 401, {
+					'content-type': 'application/json',
+					...(active
+						? {}
+						: {
+								'www-authenticate': 'Bearer error="invalid_token", error_description="not active"'
+							})
+				});
+				response.end(JSON.stringify(active ? { resource: 'yours' } : { error: 'not active' }));
 				return;
 			}
 			const problem = await accessTokenProblem(
@@ -573,6 +658,27 @@ export class Demo {
 		// Another app, with a registration of its own, and all it shares is the identity provider.
 		const second = createServer(async (request, response) => {
 			const url = new URL(request.url ?? '/', SECOND_APP);
+			if (url.pathname === '/backchannel') {
+				const body = String(await readBody(request));
+				if (this.current) {
+					await settle();
+					this.current.messages.push(
+						requestMessage(
+							'backchannel-logout',
+							'POST',
+							BACKCHANNEL_SHOWN,
+							request.headers as Record<string, string>,
+							body
+						),
+						responseMessage('backchannel-response', 200, {})
+					);
+				} else {
+					this.logoutTokens.push(new URLSearchParams(body).get('logout_token') ?? '');
+				}
+				response.writeHead(200);
+				response.end();
+				return;
+			}
 			const run = this.#run;
 			const { oidc, ssoAsks } = run.settings;
 			if (url.pathname === '/') {

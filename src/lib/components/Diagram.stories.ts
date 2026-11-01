@@ -64,6 +64,10 @@ export const ASecondApp: Story = {
 	args: { layout: layoutFor({ sso: true, oidc: true }), currentStep: 'idp-recognises' }
 };
 
+export const AfterALogout: Story = {
+	args: { layout: layoutFor({ oidc: true, logout: true }), currentStep: 'session-ended' }
+};
+
 export const TimePassing: Story = {
 	args: { layout: layoutFor({ refresh: true }), currentStep: 'token-runs-out' }
 };

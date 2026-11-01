@@ -8,7 +8,7 @@ import { knownErrors } from '#lib/search/errors.ts';
 import { search } from '#lib/search/search.ts';
 
 /** The demo API's words, which nobody else's server will say. */
-const API_ANSWERS = new Set(['api-response', 'api-refused']);
+const API_ANSWERS = new Set(['api-response', 'api-refused', 'asks-after-logout-response']);
 
 const FOLDER = 'static/recordings/authorization-code';
 const files = readdirSync(FOLDER).filter((file) => file !== 'questions.json');

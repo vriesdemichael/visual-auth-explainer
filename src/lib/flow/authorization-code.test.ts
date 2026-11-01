@@ -6,6 +6,7 @@ import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import {
 	allValidSettings,
 	defaultSettings,
+	normalize,
 	unavailable,
 	type Settings
 } from '#lib/flow/settings.ts';
@@ -226,7 +227,8 @@ describe('who has seen what', () => {
 		for (const settings of allValidSettings()) {
 			const browser = heldAtEnd(settings).browser;
 			expect(browser).not.toContain('access-token');
-			expect(browser).not.toContain('id-token');
+			// Logging out is the one exception, and the step says so: the app sends it to say who this is.
+			if (!settings.logout) expect(browser).not.toContain('id-token');
 			expect(browser).not.toContain('secret');
 		}
 	});
@@ -623,6 +625,38 @@ describe('an attacker', () => {
 				theRealAppAfterwards: { status: 400 }
 			});
 		});
+	});
+});
+
+describe('logging out', () => {
+	const on = { oidc: true, logout: true } as const;
+
+	it('ends the session for everyone who held it, and leaves the tokens', () => {
+		const held = view(on);
+		const before = holdingsAt(held, 'end-session');
+		expect(before.browser).toContain('session');
+		expect(before.idp).toContain('session');
+		const after = holdingsAt(held, 'session-ended');
+		expect(after.browser).not.toContain('session');
+		expect(after.idp).not.toContain('session');
+		expect(after.app).toContain('access-token');
+		expect(after.app).toContain('refresh-token');
+		expect(after.api).toContain('access-token');
+	});
+
+	it('leaves the session alone if nobody logged out', () => {
+		expect(holdingsAt(view({ oidc: true }), 'api-response').browser).toContain('session');
+	});
+
+	it('tells the second app only if there is one', () => {
+		const ids = (settings: Partial<Settings>) => view(settings).steps.map((step) => step.id);
+		expect(ids(on)).not.toContain('backchannel-logout');
+		expect(ids({ ...on, sso: true })).toContain('backchannel-logout');
+	});
+
+	it('needs OpenID Connect, which is what it is part of', () => {
+		const { settings } = normalize({ ...defaultSettings, logout: true });
+		expect(settings.logout).toBe(false);
 	});
 });
 

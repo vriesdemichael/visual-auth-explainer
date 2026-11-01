@@ -25,6 +25,21 @@ export const REDIRECT_URI = `${APP}/callback`;
 export const SECOND_APP = 'http://localhost:9103';
 export const SECOND_CLIENT = 'demo-app-two';
 export const SECOND_REDIRECT_URI = `${SECOND_APP}/callback`;
+export const BACKCHANNEL_URL = 'http://host.docker.internal:9103/backchannel';
+export const API_CLIENT = 'demo-api';
+export const POST_LOGOUT_URI = `${APP}/bye`;
+
+/** So that the API is named in the token, which it has to be before the server will discuss it. */
+export const namesTheApi = {
+	name: 'names-the-api',
+	protocol: 'openid-connect',
+	protocolMapper: 'oidc-audience-mapper',
+	config: {
+		'included.client.audience': API_CLIENT,
+		'access.token.claim': 'true',
+		'id.token.claim': 'false'
+	}
+};
 // A default client's access token names this and nothing else, and the recordings use one (ADR-005).
 // A real API expects its own name, which takes the Audience mapper, as the note on that step says.
 export const API_AUDIENCE = 'account';
@@ -178,7 +193,12 @@ export async function setUpRealms(admin: Admin) {
 	await admin.call('POST', `/realms/${LOCAL_REALM}/users`, user);
 	await admin.call('POST', `/realms/${LOCAL_REALM}/clients`, {
 		...client(SECOND_CLIENT, confidential),
-		redirectUris: [SECOND_REDIRECT_URI]
+		redirectUris: [SECOND_REDIRECT_URI],
+		attributes: { 'backchannel.logout.url': BACKCHANNEL_URL }
+	});
+	await admin.call('POST', `/realms/${LOCAL_REALM}/clients`, {
+		...client(API_CLIENT, confidential),
+		standardFlowEnabled: false
 	});
 	await admin.call(
 		'POST',
@@ -261,7 +281,7 @@ export async function setUpFor(
 	admin: Admin,
 	realm: string,
 	settings: Pick<Settings, 'clientType' | 'consent' | 'upstreamTokens'> &
-		Partial<Pick<Settings, 'apiToken' | 'refresh' | 'reuse'>>
+		Partial<Pick<Settings, 'apiToken' | 'refresh' | 'reuse' | 'logout'>>
 ) {
 	const onClients = `/realms/${realm}/clients`;
 	const [old] = await admin.call<{ id: string }[]>(
@@ -289,7 +309,13 @@ export async function setUpFor(
 			// A second, so the demo app only has to wait a moment to have an expired one.
 			...(settings.apiToken === 'expired' ? { attributes: { 'access.token.lifespan': '1' } } : {}),
 			// Long enough for one call with the new token, and short enough not to wait five minutes.
-			...(settings.refresh ? { attributes: { 'access.token.lifespan': '3' } } : {})
+			...(settings.refresh ? { attributes: { 'access.token.lifespan': '3' } } : {}),
+			...(settings.logout
+				? {
+						attributes: { 'post.logout.redirect.uris': POST_LOGOUT_URI },
+						protocolMappers: [namesTheApi]
+					}
+				: {})
 		})
 	);
 	await admin.call('PUT', `/realms/${realm}`, { revokeRefreshToken: settings.reuse === 'ends' });

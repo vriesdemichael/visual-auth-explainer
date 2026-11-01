@@ -1,11 +1,53 @@
 import { describe, expect, it } from 'vitest';
-import { labelCentre, layHeld, layoutDiagram, SELF_LOOP, WIDTH } from '#lib/diagram/layout.ts';
+import {
+	layHeld,
+	layoutDiagram,
+	WIDTH,
+	LABEL_CHAR_WIDTH,
+	type DiagramLayout,
+	type LabelLine,
+	type RowLayout
+} from '#lib/diagram/layout.ts';
 import { interpolate, toFrame, type Frame } from '#lib/diagram/motion.ts';
 import { authorizationCode as flow } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup as setup } from '#lib/flow/authorization-code-setup.ts';
 import { evaluate, holdingsAt } from '#lib/flow/model.ts';
 import { allValidSettings, defaultSettings, type Settings } from '#lib/flow/settings.ts';
 import type { Mode } from '#lib/flow/vocabulary.ts';
+
+interface Box {
+	left: number;
+	right: number;
+	top: number;
+	bottom: number;
+}
+
+const overlap = (a: Box, b: Box) =>
+	a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+
+function lineBox(line: LabelLine): Box & { what: string } {
+	const width = line.text.length * LABEL_CHAR_WIDTH;
+	const left =
+		line.anchor === 'start' ? line.x : line.anchor === 'end' ? line.x - width : line.x - width / 2;
+	return { what: line.text, left, right: left + width, top: line.y - 13, bottom: line.y + 4 };
+}
+
+function boxesOf(layout: DiagramLayout) {
+	return [
+		...layout.rows.flatMap((row: RowLayout) =>
+			row.lines.map((line) => ({ ...lineBox(line), step: row.id, chip: false }))
+		),
+		...layout.chips.map((chip) => ({
+			what: chip.text,
+			step: chip.step,
+			chip: true,
+			left: chip.x,
+			right: chip.x + chip.width,
+			top: chip.y,
+			bottom: chip.y + 18
+		}))
+	];
+}
 
 const layout = (settings: Partial<Settings> = {}, mode: Mode = 'advanced') =>
 	layoutDiagram(evaluate(flow, { ...defaultSettings, ...settings }), mode);
@@ -59,11 +101,11 @@ describe('layout', () => {
 						expect(chip.x).toBeGreaterThanOrEqual(0);
 						expect(chip.x + chip.width).toBeLessThanOrEqual(result.width);
 					}
-					for (const row of result.rows.filter((candidate) => !candidate.self)) {
-						const half = (row.label.length * 7.3) / 2;
-						const centre = labelCentre(row.x1, row.x2, row.label, result.width);
-						expect(centre - half, row.label).toBeGreaterThanOrEqual(0);
-						expect(centre + half, row.label).toBeLessThanOrEqual(result.width);
+					for (const row of result.rows) {
+						for (const box of row.lines.map(lineBox)) {
+							expect(box.left, row.label).toBeGreaterThanOrEqual(0);
+							expect(box.right, row.label).toBeLessThanOrEqual(result.width);
+						}
 					}
 				}
 			}
@@ -122,41 +164,83 @@ describe('layout', () => {
 		});
 	});
 
-	it('keeps a label off its step number, and inside the diagram', () => {
-		const half = (label: string) => (label.length * 7.3) / 2;
-		const wrong = allValidSettings().flatMap((settings) =>
+	describe('what a message says and carries (#63)', () => {
+		const everyLayout = allValidSettings().flatMap((settings) =>
 			(['simple', 'advanced'] as const).flatMap((mode) =>
 				[flow, setup].flatMap((diagram) =>
-					layoutDiagram(evaluate(diagram, settings), mode)
-						.rows.filter((row) => !row.self)
-						.flatMap((row) => {
-							const centre = labelCentre(row.x1, row.x2, row.label);
-							const clear = Math.abs(centre - row.x1) - half(row.label) >= 10;
-							const inside = centre - half(row.label) >= 0 && centre + half(row.label) <= WIDTH;
-							return clear && inside ? [] : [`${mode} ${row.id}: ${row.label}`];
-						})
+					[undefined, { width: 640, height: 500 }, { width: 1280, height: 800 }].map((room) => ({
+						where: `${mode} ${room?.width ?? 880}`,
+						layout: layoutDiagram(evaluate(diagram, settings), mode, room)
+					}))
 				)
 			)
 		);
-		expect([...new Set(wrong)]).toEqual([]);
-	});
 
-	// A label on a message to itself has only the room beside the lane, and nothing wraps it.
-	it('keeps the label of a message to itself inside the diagram', () => {
-		const charWidth = 6.4;
-		for (const settings of allValidSettings()) {
-			for (const diagram of [flow, setup]) {
-				for (const mode of ['simple', 'advanced'] as const) {
-					const { rows } = layoutDiagram(evaluate(diagram, settings), mode);
-					for (const row of rows.filter((candidate) => candidate.self)) {
-						const room = SELF_LOOP.width + 8 + row.label.length * charWidth;
-						const edge = row.x1 + row.selfSide * room;
-						expect(edge, row.label).toBeGreaterThanOrEqual(0);
-						expect(edge, row.label).toBeLessThanOrEqual(WIDTH);
+		it('never has a label overlap a chip or another label', () => {
+			const wrong = new Set<string>();
+			for (const { where, layout } of everyLayout) {
+				const boxes = boxesOf(layout);
+				for (const [i, a] of boxes.entries()) {
+					for (const b of boxes.slice(i + 1)) {
+						if (a.step === b.step && a.chip && b.chip) continue;
+						if (overlap(a, b)) wrong.add(`${where}: ${a.what} and ${b.what}`);
 					}
 				}
 			}
-		}
+			expect([...wrong].slice(0, 10)).toEqual([]);
+		});
+
+		it('never has a label overrun its arrow, unless one word is longer than the arrow', () => {
+			const wrong = new Set<string>();
+			for (const { where, layout } of everyLayout) {
+				for (const row of layout.rows.filter((candidate) => !candidate.self)) {
+					const low = Math.min(row.x1, row.x2);
+					const high = Math.max(row.x1, row.x2);
+					const onThisRow = boxesOf(layout).filter((box) => box.step === row.id);
+					for (const box of onThisRow) {
+						const alone = !box.what.includes(' ') || box.chip;
+						if (alone && box.right - box.left > high - low) continue;
+						if (box.left < low || box.right > high) wrong.add(`${where}: ${box.what}`);
+					}
+				}
+			}
+			expect([...wrong].slice(0, 10)).toEqual([]);
+		});
+
+		it('keeps the words off the number of the step', () => {
+			const wrong = new Set<string>();
+			for (const { where, layout } of everyLayout) {
+				for (const row of layout.rows.filter((candidate) => !candidate.self)) {
+					const number = {
+						left: row.x1 - 9.5,
+						right: row.x1 + 9.5,
+						top: row.y - 9.5,
+						bottom: row.y + 9.5
+					};
+					for (const box of row.lines.map(lineBox)) {
+						const alone = !box.what.includes(' ');
+						if (!alone && overlap(box, number)) wrong.add(`${where}: ${row.label}`);
+					}
+				}
+			}
+			expect([...wrong].slice(0, 10)).toEqual([]);
+		});
+
+		it('moves no row when the mode changes', () => {
+			for (const settings of allValidSettings()) {
+				const view = evaluate(flow, settings);
+				const ys = (mode: 'simple' | 'advanced') =>
+					layoutDiagram(view, mode).rows.map((row) => row.y);
+				expect(ys('simple')).toEqual(ys('advanced'));
+			}
+		});
+
+		it('puts a chip on the line of the words when there is room', () => {
+			const { rows, chips } = layoutDiagram(evaluate(flow, defaultSettings), 'simple');
+			const row = rows.find((candidate) => candidate.id === 'submit-credentials');
+			const chip = chips.find((candidate) => candidate.step === 'submit-credentials');
+			expect(chip!.y + 13).toBe(row!.lines.at(-1)!.y);
+		});
 	});
 
 	it('keeps lanes inside the diagram, and slides them over for a new lifeline', () => {

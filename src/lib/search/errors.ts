@@ -23,6 +23,13 @@ const storedV2: Partial<Settings> = { broker: true, upstreamTokens: 'v2' };
 
 export const knownErrors: readonly KnownError[] = [
 	{
+		text: 'Session not active',
+		means:
+			'The session this refresh token belonged to is over, for example because someone logged out.',
+		step: 'refresh-after-logout-response',
+		settings: { oidc: true, logout: true }
+	},
+	{
 		text: 'login_required',
 		means:
 			'The app said not to show a form, and the user would have to log in, usually because this browser has no session.',
