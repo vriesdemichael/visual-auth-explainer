@@ -187,6 +187,15 @@
 		onnavigate(result.state, 'push');
 	}
 
+	// What was added can be further up than fits on screen with the current step.
+	function showAdded() {
+		const first = last.diff?.addedSteps[0];
+		if (!first) return;
+		window.document
+			.querySelector(`[data-step="${CSS.escape(first)}"]`)
+			?.scrollIntoView({ block: 'center' });
+	}
+
 	function go(next: AppState | null) {
 		if (next) onnavigate(next, 'replace');
 	}
@@ -418,6 +427,7 @@
 			{links}
 			{elsewhere}
 			changed={last.setting}
+			onshowadded={showAdded}
 			onexplainartifact={(id) => explain({ kind: 'artifact', id })}
 			{notes}
 			serverNamed={appState.serverNotes}

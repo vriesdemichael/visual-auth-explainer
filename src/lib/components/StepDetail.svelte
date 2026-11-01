@@ -36,6 +36,8 @@
 		known?: Known | null;
 		/** How the step before this one travelled, because the channel is only news when it changes. */
 		previousChannel?: Step['channel'] | null;
+		/** Brings what a setting added into view, without moving from this step. */
+		onshowadded?: () => void;
 		/** This is the last step, so say where to go from here. */
 		atEnd?: boolean;
 		onward?: { title: string; summary: string; href: string } | null;
@@ -58,6 +60,7 @@
 		serverNamed = true,
 		known = null,
 		previousChannel = null,
+		onshowadded,
 		atEnd = false,
 		onward = null,
 		mapHref = null
@@ -130,6 +133,13 @@
 			<h2>What changed</h2>
 			<ul>
 				{#each summary as line (line)}<li>{line}</li>{/each}
+				{#if change?.addedSteps.length && onshowadded}
+					<li>
+						<button type="button" class="show" data-testid="change-show" onclick={onshowadded}>
+							{change.addedSteps.length === 1 ? 'Show it' : 'Show them'}
+						</button>
+					</li>
+				{/if}
 				{#each resets as reset (reset.setting)}
 					<li>{labelOf(reset.setting)} was reset. {reset.because}</li>
 				{/each}
@@ -358,6 +368,15 @@
 		color: var(--chip);
 		font-size: 12px;
 		font-weight: 600;
+	}
+
+	.show {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--accent);
+		font-size: 12px;
+		text-decoration: underline;
 	}
 
 	.change ul {
