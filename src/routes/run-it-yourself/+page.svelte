@@ -71,6 +71,10 @@
 		<code>Listening on: http://0.0.0.0:8080</code>.
 	</p>
 	<CopyBlock text={commands.start} label="the commands that start the server" />
+	<p class="aside" data-testid="on-windows">
+		On Windows, use WSL or Git Bash. In Git Bash, put <code>MSYS_NO_PATHCONV=1</code> in front of
+		<code>docker run</code>, or it rewrites the path to the file.
+	</p>
 
 	<h2>2. Log in, in your browser</h2>
 	<p>
@@ -143,7 +147,8 @@
 		font-weight: 600;
 	}
 
-	.checked {
+	.checked,
+	.aside {
 		color: var(--muted);
 		font-size: 13px;
 	}

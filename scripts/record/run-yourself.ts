@@ -2,7 +2,6 @@
 // the page cannot go on promising something that stopped working. Exits 1 when a step does not work.
 import { execFileSync, spawn } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { chromium } from '@playwright/test';
 import { defaultSettings } from '#lib/flow/settings.ts';
@@ -44,8 +43,10 @@ function bodyOf(answer: string) {
 	return { status, body: JSON.parse(rest.join('\n\n')) as Record<string, unknown> };
 }
 
-async function serverIsUp() {
+async function serverIsUp(hasExited: () => boolean) {
 	for (let i = 0; i < 90; i++) {
+		// Not waiting three minutes for a server that has already given up.
+		if (hasExited()) throw new Error('The published command stopped before the server was up');
 		try {
 			if ((await fetch(`${KEYCLOAK}/realms/${LOCAL_REALM}`)).ok) return;
 		} catch {
@@ -60,10 +61,13 @@ const browser = await chromium.launch();
 let failed = false;
 for (const { name, settings, asks } of variants) {
 	const commands = runYourself({ ...defaultSettings, ...settings }, version);
-	const folder = mkdtempSync(join(tmpdir(), 'authlines-'));
+	// A real path, because Git Bash shows the temporary folder as /tmp, which means nothing to Docker.
+	const folder = mkdtempSync(join(process.cwd(), 'node_modules', '.run-yourself-'));
 	const server = spawn('bash', ['-c', commands.start], { cwd: folder, env, stdio: 'ignore' });
+	let exited = false;
+	server.on('exit', () => (exited = true));
 	try {
-		await serverIsUp();
+		await serverIsUp(() => exited);
 		const page = await browser.newPage();
 		let redirected = '';
 		page.on('request', (request) => {
@@ -72,10 +76,16 @@ for (const { name, settings, asks } of variants) {
 		await page.goto(commands.login);
 		await page.fill('input[name="username"]', USERNAME);
 		await page.fill('input[name="password"]', PASSWORD);
-		await page.click('[type="submit"]').catch(() => {});
-		if (asks) await page.click('input[name="accept"]').catch(() => {});
+		// The last of these ends at an address where nothing is listening, which is not a failure.
+		await page.click('#kc-login').catch(() => {});
+		if (asks)
+			await page
+				.locator('[name="accept"]')
+				.click()
+				.catch(() => {});
 		for (let i = 0; i < 50 && !redirected; i++) await page.waitForTimeout(100);
 		await page.close();
+		if (!redirected) throw new Error('The browser was never sent back');
 		const code = new URL(redirected).searchParams.get('code');
 		if (!code) throw new Error(`No code in the address the browser was sent to: ${redirected}`);
 
@@ -102,7 +112,8 @@ for (const { name, settings, asks } of variants) {
 			// It had gone already.
 		}
 		server.kill();
-		rmSync(folder, { recursive: true, force: true });
+		// Windows holds on to the folder until the shell has really gone.
+		rmSync(folder, { recursive: true, force: true, maxRetries: 20, retryDelay: 500 });
 	}
 }
 await browser.close();
