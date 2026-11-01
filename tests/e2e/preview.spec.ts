@@ -114,6 +114,18 @@ test.describe('pointing at a setting', () => {
 	});
 });
 
+test.describe('what it says to a screen reader', () => {
+	test('makes the page no taller, whatever the rail holds', async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 720 });
+		await open(page, 'step=authorize');
+		await expect(page.getByTestId('preview-said')).toBeAttached();
+		const overflow = await page.evaluate(
+			() => document.documentElement.scrollHeight - document.documentElement.clientHeight
+		);
+		expect(overflow).toBe(0);
+	});
+});
+
 test.describe('from the keyboard', () => {
 	test('focus does what pointing does, and a screen reader hears the same', async ({ page }) => {
 		await open(page, 'mode=simple&step=authorize');

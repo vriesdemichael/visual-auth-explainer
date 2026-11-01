@@ -272,8 +272,11 @@
 		font-weight: 600;
 	}
 
+	/* Fixed, because anywhere further down the rail it would make the whole page taller. */
 	.said {
-		position: absolute;
+		position: fixed;
+		top: 0;
+		left: 0;
 		width: 1px;
 		height: 1px;
 		overflow: hidden;
