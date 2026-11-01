@@ -175,7 +175,8 @@ describe('a message as text', () => {
 	});
 
 	it('does not take a code for a token', () => {
-		expect(jwtsIn(linesOn(recording, 'redirect-with-code'))).toEqual([]);
+		const names = jwtsIn(linesOn(recording, 'redirect-with-code')).map(({ name }) => name);
+		expect(names).not.toContain('code');
 	});
 
 	it('colours a value as the chip it is on the diagram', () => {

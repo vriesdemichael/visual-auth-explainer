@@ -61,11 +61,17 @@ function headerLines(headers: Record<string, string>): Line[] {
 		}
 		if (name === 'dpop') return [{ before: 'dpop: ', value, name, decoded: value }];
 		if (name === 'cookie' || name === 'set-cookie') {
-			const [pair, ...attributes] = value.split(/;s*/);
-			const at = pair.indexOf('=') + 1;
+			const start = value.indexOf('=') + 1;
+			const end = value.indexOf(';') < 0 ? value.length : value.indexOf(';');
+			const token = value.slice(start, end);
 			return [
-				{ before: `${name}: ${pair.slice(0, at)}`, value: pair.slice(at), name: 'session' },
-				...(attributes.length ? [{ before: `  ${attributes.join('; ')}` }] : [])
+				{
+					before: `${name}: ${value.slice(0, start)}`,
+					value: token,
+					after: value.slice(end),
+					name: 'session',
+					decoded: token
+				}
 			];
 		}
 		return [{ before: `${name}: ${value}` }];
