@@ -254,6 +254,32 @@ export const breakages = [
 		to: '\n'
 	},
 
+	// The check that lets a change merge and go live.
+	{
+		name: 'ci: the required check is skipped when a job before it fails',
+		file: '.github/workflows/ci.yml',
+		from: 'if: always()',
+		to: 'if: success()'
+	},
+	{
+		name: 'ci: the required check passes whatever came before it',
+		file: '.github/workflows/ci.yml',
+		from: 'test "$RESULTS" = "success success"',
+		to: 'test -n "$RESULTS"'
+	},
+	{
+		name: 'ci: the required check does not wait for the browsers',
+		file: '.github/workflows/ci.yml',
+		from: 'needs: [checks, click-through]',
+		to: 'needs: [checks]'
+	},
+	{
+		name: 'ci: a deploy does not wait for the required check',
+		file: '.github/workflows/ci.yml',
+		from: 'needs: complete',
+		to: 'needs: checks'
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',
