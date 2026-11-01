@@ -24,7 +24,7 @@ What a chat answer or a vendor's simulation cannot offer is that what is on scre
 
 - **Stitching together payloads for unrecorded combinations**: They would look real, and nothing would prove them.
 - **A stripped demo client**: It tells a cleaner story that nobody meets in practice.
-- **A recording per valid combination**: There are 76 and counting, while each message already appears in a named state. A combination with no recording says so.
+- **A recording per valid combination**: There are 168 and counting, while each message already appears in a named state. A combination with no recording says so.
 - **`Execute` on every step**: Most steps have nothing to add, and the button would stop meaning anything.
 - **A live backend**: It adds something to host, secure and have abused, for the same payloads.
 - **keycloak-operator or keycloak-gitops**: They are built for Kubernetes, and the maintainer does not want this project held to them.

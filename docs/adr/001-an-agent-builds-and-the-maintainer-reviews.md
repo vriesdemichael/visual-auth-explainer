@@ -1,8 +1,8 @@
 # ADR-001: An agent builds, and the maintainer reviews and steers
 
-Agents write the code, flow data and content here, and the maintainer reviews and steers. Work reaches `main` through a pull request the maintainer merges.
+Agents write the code, flow data and content here, and the maintainer reviews and steers. Work reaches `main` through a pull request that CI has to pass. The maintainer judges the result on the live site, and has allowed the agent to take issues from the backlog and merge its own green pull requests. So a wrong turn is corrected on what is deployed.
 
-A larger new implementation is discussed with the maintainer before it is built: a new part of the engine, a new base flow, a new tool, or a change to how the application is structured. Say what would be built, what is left out and what it will show, then wait for an answer. A small change inside what is already agreed needs no discussion first.
+A larger new implementation that is not in an issue yet is discussed with the maintainer before it is built: a new part of the engine, a new base flow, a new tool, or a change to how the application is structured. Say what would be built, what is left out and what it will show, then wait for an answer. An issue in the backlog has had that discussion, and a small change inside what is already agreed needs none. A decision the maintainer has kept, such as the name, still waits for them.
 
 Everything a contributor needs is written down where an agent finds it, because a session keeps nothing: `CLAUDE.md` for working in this repository, the premise for intent, and these records for rules. When you find a convention that is written nowhere, propose a record.
 

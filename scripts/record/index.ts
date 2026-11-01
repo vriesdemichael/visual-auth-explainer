@@ -2,7 +2,7 @@
 //
 //   pnpm record                    records against the pinned version and writes the files
 //   pnpm record --keycloak 27.0.0  records against another version
-//   pnpm record --check            records, writes nothing, and fails if the shape has changed
+//   pnpm record --check            records, writes nothing, and exits 2 if the shape has changed
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium, type Browser, type Request, type Response } from '@playwright/test';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
@@ -277,7 +277,7 @@ async function main() {
 		demo.stop();
 		stopKeycloak();
 	}
-	process.exit(failed ? 1 : 0);
+	process.exit(failed ? 2 : 0);
 }
 
 await main();

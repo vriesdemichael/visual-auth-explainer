@@ -1,6 +1,6 @@
 # ADR-015: Keycloak is an overlay on a neutral protocol
 
-What the protocol does and what Keycloak does about it are separate data. The flow, the settings and what things are called say nothing about one product, and a test fails if they do. Everything specific to Keycloak is a note in `src/lib/keycloak/notes.ts`, attached to a step, saying which setting controls what that step shows.
+What the protocol does and what Keycloak does about it are separate data. The flow, the settings and what things are called say nothing about one product, and a test fails if they do. What is specific to Keycloak is a note in `src/lib/keycloak/notes.ts`, attached to a step, saying which setting controls what that step shows. The exception is a feature flag a setting depends on, which is a badge on that setting and so lives in `settings.ts`.
 
 A note says where the setting is in the admin console, in the console's own words, or that it is a server option. It holds for the version the recordings were made with, and it says so. A note is only written after trying it on a real server: `pnpm record` changes the setting, does a real login before and after, and writes down what happened. It also goes through a real admin console to see that each path exists. A test holds every note to those answers, so a note whose setting changes nothing cannot exist, and neither can one naming a place that is not there. `pnpm record --check` catches both on a new release.
 

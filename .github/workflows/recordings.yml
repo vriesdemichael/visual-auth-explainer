@@ -23,24 +23,37 @@ jobs:
       KEYCLOAK_VERSION: ${{ inputs.keycloak || 'latest' }}
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.1.0
       - uses: actions/setup-node@v7
         with:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
+      # Exits 2 when the answers differ. Anything else is the run itself failing.
       - id: record
         shell: bash
-        run: pnpm record --keycloak "$KEYCLOAK_VERSION" --check 2>&1 | tee drift.txt
+        run: |
+          set +e
+          node scripts/record/index.ts --keycloak "$KEYCLOAK_VERSION" --check 2>&1 | tee drift.txt
+          code=${PIPESTATUS[0]}
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          exit "$code"
       - if: failure() && steps.record.conclusion == 'failure'
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          CODE: ${{ steps.record.outputs.code }}
         run: |
-          title="Recordings differ on Keycloak $KEYCLOAK_VERSION"
+          if [ "$CODE" = "2" ]; then
+            title="Recordings differ on Keycloak $KEYCLOAK_VERSION"
+            what="The weekly recording did not match what is committed, on Keycloak \`$KEYCLOAK_VERSION\`."
+          else
+            title="The recording run failed on Keycloak $KEYCLOAK_VERSION"
+            what="The weekly recording could not finish on Keycloak \`$KEYCLOAK_VERSION\`, so this says nothing about whether the answers changed. The server may not have started, or a step may have failed."
+          fi
           {
-            echo "The weekly recording did not match what is committed, on Keycloak \`$KEYCLOAK_VERSION\`."
+            echo "$what"
             echo
             echo "Run: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
             echo
