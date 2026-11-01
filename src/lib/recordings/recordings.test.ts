@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { authorizationCodeBase as base } from '#lib/flow/index.ts';
+import { authorizationCodeBase as base, flows } from '#lib/flow/index.ts';
 import { evaluate, type Field, type DiagramView, type Step } from '#lib/flow/model.ts';
 import { allValidSettings, defaultSettings, normalize, type Settings } from '#lib/flow/settings.ts';
 import type { ArtifactId } from '#lib/flow/vocabulary.ts';
@@ -243,6 +243,18 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			normalize({ ...defaultSettings, ...wanted.settings }).settings
 		);
 	});
+});
+
+describe('every base flow', () => {
+	it.each(Object.values(flows).map((flow) => [flow.id, flow] as const))(
+		'%s has its recordings, so the guards here cannot silently miss one',
+		(id, flow) => {
+			expect(recordedIndex.flows[id]?.presets).toEqual(flow.presets.map((preset) => preset.id));
+			for (const preset of flow.presets) {
+				expect(existsSync(`static/recordings/${id}/${preset.id}.json`), preset.id).toBe(true);
+			}
+		}
+	);
 });
 
 describe('the files', () => {

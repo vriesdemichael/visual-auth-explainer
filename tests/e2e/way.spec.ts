@@ -81,6 +81,7 @@ test.describe('the end of a flow', () => {
 	test('says where to go next, and goes there', async ({ page }) => {
 		await openNode(page, 'how-access-works');
 		const next = nextQuestion(node('how-access-works'))!;
+		expect(next.id).toBe('why-a-code');
 		await page.keyboard.press('End');
 		await expect(page.getByTestId('onward')).toContainText(next.title);
 		await page.getByTestId('next-question').click();

@@ -80,8 +80,17 @@ test.describe('the transition', () => {
 
 	test('animates when PKCE is flipped with the attacker on', async ({ page }) => {
 		await open(page, 'client=public&attacker=1&step=attacker-token-response');
+		// Watched from inside the page, because it can start and end between two looks from here.
+		const moved = page.getByTestId('diagram').evaluateHandle((diagram) => {
+			const seen = { animating: false };
+			new MutationObserver(() => {
+				seen.animating ||= diagram.getAttribute('data-animating') === 'true';
+			}).observe(diagram, { attributes: true });
+			return seen;
+		});
+		await (await moved).evaluate(() => {});
 		await pkce(page).check();
-		await expect(page.getByTestId('diagram')).toHaveAttribute('data-animating', 'true');
+		await expect.poll(async () => (await moved).evaluate((seen) => seen.animating)).toBe(true);
 		await expect(page.getByTestId('diagram')).toHaveAttribute('data-animating', 'false');
 		await expect(answer(page)).toContainText('400 invalid_grant');
 	});

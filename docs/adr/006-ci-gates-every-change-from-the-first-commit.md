@@ -8,6 +8,8 @@ The click-through runs on Chromium, Firefox and WebKit in CI. Working locally it
 
 Re-recording Keycloak traffic runs on demand and weekly, not on every pull request.
 
+Passing says little if the tests cannot fail, and a review once broke the code in 68 ways and 24 went unnoticed. So `pnpm test:breakages` makes a list of mistakes in `scripts/breakages.mjs`, one at a time, and checks that a unit test notices each. It runs weekly and on demand, and opens an issue when one goes unnoticed. A test added to catch a mistake adds that mistake to the list. The click-through retries a failed test once in CI, because a browser can stumble for no reason, and the job summary names any test that only passed the second time, so a flaky test stays visible. It never reuses a server that is already running, so it cannot test an old build by mistake.
+
 An automated click-through is why this repository exists. States multiply with every setting, and nobody can check them by hand.
 
 ## Not chosen
@@ -16,3 +18,5 @@ An automated click-through is why this repository exists. States multiply with e
 - **Re-record on every pull request**: A change to the view would fail for reasons that come from booting Keycloak.
 - **Visual regression from the very first commit**: While the prototype's look was still moving, every change would have failed it.
 - **Screenshots on each contributor's machine**: Baselines would differ per system, and a failure would say nothing about the change.
+- **A mutation testing tool such as Stryker**: It finds what nobody thought of, but most of what went unnoticed here was words in data, which it does not change. It can still be tried on `src/lib/flow`.
+- **Breakages on every pull request**: Each one runs the tests again.

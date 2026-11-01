@@ -128,6 +128,16 @@ test.describe('how we know', () => {
 		await expect(page.getByTestId('step-known')).not.toContainText('Recorded from');
 	});
 
+	test('someone new is still told what only came from the spec', async ({ page }) => {
+		await open(page, 'mode=simple&binding=dpop&nonce=1&step=nonce-challenge');
+		await expect(page.getByTestId('step-known')).toHaveAttribute('data-known', 'spec');
+	});
+
+	test('a step says which setting brought it here', async ({ page }) => {
+		await open(page, 'oidc=1&step=validate-id-token');
+		await expect(page.getByText('Here because of:')).toContainText('OpenID Connect');
+	});
+
 	test('it says when these settings were not recorded', async ({ page }) => {
 		await open(page, 'oidc=1&consent=1&step=token-response');
 		await expect(page.getByTestId('step-known')).toHaveAttribute('data-known', 'other-settings');

@@ -20,6 +20,15 @@ const answers: Record<string, unknown> = JSON.parse(
 
 const allSteps = [...flow.steps, ...setup.steps].map((step) => step.id);
 
+/** What these find out is what a server does, so there is no setting to change before and after. */
+const NOT_BEFORE_AND_AFTER = [
+	'intercepted-code',
+	'code-used-twice',
+	'no-dpop-nonce',
+	'issuer',
+	'brokering-api-flags'
+];
+
 describe('the protocol layer', () => {
 	const inEveryCombination = (diagram: DiagramDef) =>
 		allValidSettings().flatMap((settings) => {
@@ -164,9 +173,32 @@ describe('the notes', () => {
 			expect(answers[note.backedBy.question]).toMatchObject(note.backedBy.shows);
 		});
 
+		it('has something behind it', () => {
+			expect(Object.keys(note.backedBy.shows).length).toBeGreaterThan(0);
+		});
+
+		it('only states a status a real server gave', () => {
+			const shown = JSON.stringify(note.backedBy.shows);
+			for (const settings of allValidSettings()) {
+				for (const step of note.steps) {
+					for (const said of notesFor('authorization-code', step, settings)) {
+						if (said.id !== note.id) continue;
+						for (const [status] of said.text.matchAll(/\b[1-5]\d\d\b/g)) {
+							expect(shown, `${note.id} says ${status}`).toContain(status);
+						}
+					}
+				}
+			}
+		});
+
 		it('says changing the setting changes the behaviour, and it does', () => {
 			const { before, after } = note.backedBy.shows as { before?: unknown; after?: unknown };
-			if (before === undefined) return;
+			if (before === undefined) {
+				expect(NOT_BEFORE_AND_AFTER, 'a note with no before and after has to say why').toContain(
+					note.id
+				);
+				return;
+			}
 			expect(after).toBeDefined();
 			expect(JSON.stringify(before)).not.toBe(JSON.stringify(after));
 		});
@@ -183,7 +215,63 @@ describe('the notes', () => {
 			expect(seen, 'never looked for in a real console').toBeDefined();
 			expect(seen.missing).toEqual([]);
 			expect(note.place.path.length).toBeGreaterThan(1);
+			// The last thing it tells someone to find is one of the things the recorder looked for.
+			if (note.id !== 'client-scopes') {
+				expect(note.place.shows).toContain(note.place.path.at(-1));
+			}
 		});
+	});
+});
+
+describe('where each note is', () => {
+	it('is on the steps it is about', () => {
+		const where = Object.fromEntries(noteDefs.map((note) => [note.id, [...note.steps].sort()]));
+		expect(where).toMatchObject({
+			'valid-redirect-uris': expect.arrayContaining(['authorize']),
+			'consent-required': ['consent-page', 'submit-credentials'],
+			'client-authentication': ['create-client', 'token-request'],
+			'implicit-flow': ['redirect-with-code'],
+			'web-origins': ['token-request'],
+			'require-pkce': ['authorize'],
+			'intercepted-code': ['attacker-token-response', 'token-request'],
+			'code-used-twice': ['real-app-refused'],
+			'client-scopes': ['token-response'],
+			'token-lifespan': ['token-response'],
+			audience: ['api-check-token', 'token-response'],
+			'require-dpop': ['token-request'],
+			'no-dpop-nonce': ['nonce-challenge'],
+			issuer: ['configure-app', 'discover'],
+			'broker-redirector': ['redirect-to-upstream'],
+			'store-tokens': ['enable-token-storage', 'store-upstream-tokens'],
+			'stored-tokens-readable': ['enable-token-storage', 'retrieve-upstream-token'],
+			'allow-external-tokens': ['enable-token-storage', 'retrieve-upstream-token']
+		});
+	});
+
+	it('shows only with the settings it is about', () => {
+		const here = (step: string, id: string, settings: Partial<Settings>) =>
+			notesFor('authorization-code', step, { ...defaultSettings, ...settings }).some(
+				(note) => note.id === id
+			);
+		expect(here('token-request', 'web-origins', { clientType: 'public' })).toBe(true);
+		expect(here('token-request', 'web-origins', { clientType: 'confidential' })).toBe(false);
+		expect(here('token-request', 'require-dpop', { binding: 'bearer' })).toBe(false);
+		expect(here('redirect-to-upstream', 'broker-redirector', { broker: false })).toBe(false);
+		expect(here('real-app-refused', 'code-used-twice', { pkce: true })).toBe(false);
+		expect(here('real-app-refused', 'code-used-twice', { pkce: false })).toBe(true);
+		const brokered = { broker: true } as const;
+		expect(
+			here('retrieve-upstream-token', 'stored-tokens-readable', {
+				...brokered,
+				upstreamTokens: 'v2'
+			})
+		).toBe(false);
+		expect(
+			here('retrieve-upstream-token', 'allow-external-tokens', {
+				...brokered,
+				upstreamTokens: 'v1'
+			})
+		).toBe(false);
 	});
 });
 
