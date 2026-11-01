@@ -1,41 +1,46 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { flows, presets } from '#lib/flow/index.ts';
-	import { presetSearch } from '#lib/flow/state.ts';
+	import { page } from '$app/state';
+	import LearningMap from '#lib/components/LearningMap.svelte';
+	import { mapTracks, type MapNode } from '#lib/map/nodes.ts';
 
-	const link = (flow: string, settings: (typeof presets)[number]['settings']) => {
-		const search = presetSearch(flows[flow], settings);
-		return resolve('/[flow]/[[diagram]]', { flow }) + (search ? `?${search}` : '');
-	};
+	// The query string does not exist while prerendering, so where someone came from is marked after.
+	let mounted = $state(false);
+	onMount(() => {
+		mounted = true;
+	});
+
+	const current = $derived(mounted ? page.url.searchParams.get('at') : null);
+	const hrefOf = (node: MapNode) => resolve('/[flow]/[[view]]', { flow: node.flow, view: node.id });
+
+	$effect(() => {
+		if (!current) return;
+		document.querySelector('[aria-current="location"]')?.scrollIntoView({ block: 'center' });
+	});
 </script>
 
 <svelte:head>
 	<title>Visual auth explainer</title>
-	<meta name="description" content="Explore OAuth and OpenID Connect on one living diagram." />
+	<meta
+		name="description"
+		content="OAuth and OpenID Connect on one living diagram, checked against a real server. Pick a question and follow it, one message at a time."
+	/>
 </svelte:head>
 
 <main>
 	<h1>Visual auth explainer</h1>
 	<p class="lead">
-		OAuth and OpenID Connect on one living diagram. A prototype: the map comes later, so for now
-		these are the states to open.
+		OAuth and OpenID Connect on one living diagram, checked against a real server. Pick a question
+		and follow it, one message at a time. New to this? Start with the first one.
 	</p>
-	<ul>
-		{#each presets as preset (preset.id)}
-			<li>
-				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved in link() -->
-				<a href={link(preset.flow, preset.settings)} data-testid={`preset-${preset.id}`}>
-					{preset.title}
-				</a>
-			</li>
-		{/each}
-	</ul>
+	<LearningMap tracks={mapTracks} {hrefOf} {current} />
 </main>
 
 <style>
 	main {
-		max-width: 720px;
-		margin: 72px auto;
+		max-width: 1120px;
+		margin: 56px auto;
 		padding: 0 16px;
 	}
 
@@ -47,31 +52,9 @@
 	}
 
 	.lead {
-		margin: 0 0 28px;
+		max-width: 680px;
+		margin: 0 0 32px;
 		color: var(--muted);
 		font-size: 16px;
-	}
-
-	ul {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-		gap: 10px;
-		margin: 0;
-		padding: 0;
-		list-style: none;
-	}
-
-	a {
-		display: block;
-		padding: 12px 14px;
-		border: 1px solid var(--line);
-		border-radius: 10px;
-		background: var(--raised);
-		font-weight: 500;
-		text-decoration: none;
-	}
-
-	a:hover {
-		border-color: var(--accent);
 	}
 </style>

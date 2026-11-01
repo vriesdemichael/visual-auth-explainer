@@ -307,7 +307,7 @@
 <div class="workspace" data-ready={animate} data-diagram={appState.diagram}>
 	<header>
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
-		<a class="brand" href={homeHref}>Visual auth explainer</a>
+		<a class="brand" href={homeHref}>Map</a>
 		<span class="slash" aria-hidden="true">/</span>
 		<h1>{flow.title}</h1>
 		<ModeSwitch

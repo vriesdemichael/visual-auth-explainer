@@ -44,8 +44,9 @@ test.describe('the Storybook', () => {
 			const settled = 'body.sb-show-main, body.sb-show-errordisplay, body.sb-show-nopreview';
 			await page.locator(settled).waitFor({ state: 'attached' });
 			const shown = await page.locator('body.sb-show-main').count();
-			const text = (await page.locator('#storybook-root').innerText()).trim();
-			if (!shown || !text || errors.length) broken.push(`${id}: ${errors.join('; ')}`);
+			const root = page.locator('#storybook-root');
+			const hasContent = (await root.innerText()).trim() || (await root.locator('svg').count());
+			if (!shown || !hasContent || errors.length) broken.push(`${id}: ${errors.join('; ')}`);
 		}
 		expect(broken).toEqual([]);
 	});

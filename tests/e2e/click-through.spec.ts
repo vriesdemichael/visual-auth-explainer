@@ -67,14 +67,6 @@ test.describe('links', () => {
 		expect(response?.status()).toBe(404);
 		await expect(page.getByRole('heading', { level: 1 })).toHaveText('404');
 	});
-
-	test('the start page links to every preset', async ({ page }) => {
-		for (const preset of presets) {
-			await page.goto('./');
-			await page.getByTestId(`preset-${preset.id}`).click();
-			await expectMatchesModel(page, presetSearch(base, preset.settings));
-		}
-	});
 });
 
 test.describe('every valid combination', () => {
@@ -142,7 +134,7 @@ test.describe('walking the steps', () => {
 
 	test('moving between steps does not fill the browser history', async ({ page }) => {
 		await page.goto('./');
-		await page.getByTestId('preset-oauth').click();
+		await page.getByTestId('node-how-access-works').click();
 		await page.getByTestId('next').click();
 		await page.getByTestId('next').click();
 		await page.goBack();

@@ -6,6 +6,7 @@
 	import Workspace from '#lib/components/Workspace.svelte';
 	import { flows } from '#lib/flow/index.ts';
 	import { parseState, serializeState, type AppState } from '#lib/flow/state.ts';
+	import { nodeMatching, nodeSearch } from '#lib/map/nodes.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import { loadsOnce } from '#lib/recordings/load.ts';
 
@@ -23,19 +24,22 @@
 	});
 
 	const base = $derived(flows[data.flowId]);
-	const fromUrl = $derived(parseState(base, data.diagram, mounted ? page.url.search : ''));
+	const added = $derived(mounted ? page.url.search : '');
+	const fromUrl = $derived(
+		parseState(base, data.diagram, data.node ? nodeSearch(data.node, added) : added)
+	);
 
 	// The state changes at once and the URL catches up, so quick key presses are not lost.
 	let ahead = $state.raw<AppState | null>(null);
 	const appState = $derived(ahead ?? fromUrl);
 	const flow = $derived(base.diagrams[appState.diagram]);
 
+	const here = $derived(nodeMatching(appState));
+
 	function hrefFor(state: AppState) {
 		const search = serializeState(base, state);
-		const diagram = state.diagram === 'setup' ? 'setup' : undefined;
-		return (
-			resolve('/[flow]/[[diagram]]', { flow: base.id, diagram }) + (search ? `?${search}` : '')
-		);
+		const view = state.diagram === 'setup' ? 'setup' : undefined;
+		return resolve('/[flow]/[[view]]', { flow: base.id, view }) + (search ? `?${search}` : '');
 	}
 
 	async function loadText(file: string) {
@@ -67,15 +71,15 @@
 </script>
 
 <svelte:head>
-	<title>{flow.title}</title>
-	<meta name="description" content={flow.summary} />
+	<title>{data.node?.title ?? flow.title}</title>
+	<meta name="description" content={data.node?.summary ?? flow.summary} />
 </svelte:head>
 
 <Workspace
 	{base}
 	state={appState}
 	animate={settled}
-	homeHref={resolve('/')}
+	homeHref={resolve('/') + (here ? `?at=${here.id}` : '')}
 	{hrefFor}
 	{loadText}
 	{loadRecording}
