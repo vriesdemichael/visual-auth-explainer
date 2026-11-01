@@ -220,9 +220,27 @@ export const breakages = [
 
 	// The diagram and the state.
 	{
+		name: 'layout: a head runs off the side',
+		file: LAYOUT,
+		from: 'Math.max(TIGHT_MARGIN, headFor(TIGHT_MARGIN) / 2 + 4)',
+		to: 'TIGHT_MARGIN'
+	},
+	{
+		name: 'layout: scales up past what can be followed',
+		file: LAYOUT,
+		from: 'clamp(room?.width ?? WIDTH, MIN_WIDTH, MAX_WIDTH)',
+		to: 'Math.max(room?.width ?? WIDTH, MIN_WIDTH)'
+	},
+	{
+		name: 'layout: rows ignore the height there is',
+		file: LAYOUT,
+		from: 'if (height === undefined) return ROW_HEIGHT;',
+		to: 'return ROW_HEIGHT;'
+	},
+	{
 		name: 'layout: chips can run out of the diagram',
 		file: LAYOUT,
-		from: 'let x = clamp(center - total / 2, 6, Math.max(6, WIDTH - total - 6));',
+		from: 'let x = clamp(center - total / 2, 6, Math.max(6, width - total - 6));',
 		to: 'let x = center - total / 2;'
 	},
 	{

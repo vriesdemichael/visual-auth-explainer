@@ -2,6 +2,7 @@
 	import { untrack } from 'svelte';
 	import { ICONS } from '#lib/diagram/icons.ts';
 	import {
+		FULL_HEAD_WIDTH,
 		labelCentre,
 		layHeld,
 		ROW_OFFSET,
@@ -44,11 +45,13 @@
 	$effect(() => {
 		// The first frame is already this layout, so a new diagram appears without moving.
 		if (layout === drawn) return;
+		// A new window size is not a change to the flow, so nothing should look as if it changed.
+		const resized = layout.roomKey !== drawn.roomKey;
 		drawn = layout;
 		const target = toFrame(layout);
 		const start = untrack(() => $state.snapshot(frame)) as Frame;
 		const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-		if (!untrack(() => animate) || reduced) {
+		if (!untrack(() => animate) || reduced || resized) {
 			frame = target;
 			animating = false;
 			return;
@@ -131,63 +134,72 @@
 </script>
 
 <div class="diagram" data-testid="diagram" data-animating={animating}>
-	<svg
-		class="heads"
-		viewBox={`0 0 ${frame.width} ${frame.headHeight}`}
-		role="group"
-		aria-label="Who takes part, and what each has seen so far"
-		data-testid="diagram-heads"
-	>
-		{#each frame.lanes as lane (lane.id)}
-			<g
-				class="lane-head"
-				class:fresh={fresh.has(lane.id)}
-				class:active={currentRow && (lane.id === currentRow.from || lane.id === currentRow.to)}
-				style:opacity={lane.opacity}
-				data-lifeline={lane.leaving ? undefined : lane.id}
-				transform={`translate(${lane.x} 0)`}
-				role="button"
-				tabindex={lane.leaving ? -1 : 0}
-				aria-describedby={`seen-${lane.id}`}
-				onclick={() => {
-					// On its way out, so there is nothing left to explain.
-					if (!lane.leaving) onexplainlifeline?.(lane.id);
-				}}
-				onkeydown={(event) => activate(event, () => onexplainlifeline?.(lane.id))}
-			>
-				<desc id={`seen-${lane.id}`}>Has seen: {heldText(holdings[lane.id] ?? [])}.</desc>
-				<rect x="-72" y="5" width="144" height="46" rx="8" />
-				<path class="icon" d={ICONS[lane.icon]} transform="translate(-65 16) scale(0.95)" />
-				<text class="name" x="-38" y="25">{lane.name}</text>
-				<text class="role" x="-38" y="41">{lane.role}</text>
-				{#if !lane.leaving}
-					{#each layHeld(holdings[lane.id] ?? []) as chip (chip.artifact)}
-						<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
+	<div class="heads-band">
+		<svg
+			class="heads"
+			style:--laid-out-for={`${frame.width}px`}
+			viewBox={`0 0 ${frame.width} ${frame.headHeight}`}
+			role="group"
+			aria-label="Who takes part, and what each has seen so far"
+			data-testid="diagram-heads"
+		>
+			{#each frame.lanes as lane (lane.id)}
+				<g
+					class="lane-head"
+					class:fresh={fresh.has(lane.id)}
+					class:active={currentRow && (lane.id === currentRow.from || lane.id === currentRow.to)}
+					style:opacity={lane.opacity}
+					data-lifeline={lane.leaving ? undefined : lane.id}
+					transform={`translate(${lane.x} 0)`}
+					role="button"
+					tabindex={lane.leaving ? -1 : 0}
+					aria-describedby={`seen-${lane.id}`}
+					onclick={() => {
+						// On its way out, so there is nothing left to explain.
+						if (!lane.leaving) onexplainlifeline?.(lane.id);
+					}}
+					onkeydown={(event) => activate(event, () => onexplainlifeline?.(lane.id))}
+				>
+					<desc id={`seen-${lane.id}`}>Has seen: {heldText(holdings[lane.id] ?? [])}.</desc>
+					<rect x={-lane.headWidth / 2} y="5" width={lane.headWidth} height="46" rx="8" />
+					{#if lane.headWidth >= FULL_HEAD_WIDTH}
+						<path class="icon" d={ICONS[lane.icon]} transform="translate(-65 16) scale(0.95)" />
+						<text class="name" x="-38" y="25">{lane.name}</text>
+						<text class="role" x="-38" y="41">{lane.role}</text>
+					{:else}
+						<text class="name tight" y="25" text-anchor="middle">{lane.name}</text>
+						<text class="role tight" y="41" text-anchor="middle">{lane.role}</text>
+					{/if}
+					{#if !lane.leaving}
+						{#each layHeld(holdings[lane.id] ?? [], frame.heldWidth) as chip (chip.artifact)}
+							<!-- Inside a button, so only for the mouse. The keyboard gets to the same words through
 							     the lifeline's own explanation, which lists these as buttons. -->
-						<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-						<g
-							class="held"
-							data-artifact={chip.artifact}
-							data-held={`${lane.id}:${chip.artifact}`}
-							onclick={(event) => {
-								event.stopPropagation();
-								onexplainartifact?.(chip.artifact);
-							}}
-						>
-							<rect x={chip.x} y={chip.y} width={chip.width} height="16" rx="8" />
-							<text x={chip.x + chip.width / 2} y={chip.y + 11.5} text-anchor="middle">
-								{chip.text}
-							</text>
-						</g>
-					{/each}
-				{/if}
-			</g>
-		{/each}
-	</svg>
+							<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+							<g
+								class="held"
+								data-artifact={chip.artifact}
+								data-held={`${lane.id}:${chip.artifact}`}
+								onclick={(event) => {
+									event.stopPropagation();
+									onexplainartifact?.(chip.artifact);
+								}}
+							>
+								<rect x={chip.x} y={chip.y} width={chip.width} height="16" rx="8" />
+								<text x={chip.x + chip.width / 2} y={chip.y + 11.5} text-anchor="middle">
+									{chip.text}
+								</text>
+							</g>
+						{/each}
+					{/if}
+				</g>
+			{/each}
+		</svg>
+	</div>
 
 	<div class="scroller" bind:this={scroller}>
 		<svg
 			class="body"
+			style:--laid-out-for={`${frame.width}px`}
 			viewBox={`0 0 ${frame.width} ${frame.height}`}
 			role="group"
 			aria-label="The messages in this diagram"
@@ -241,7 +253,14 @@
 					}}
 				>
 					<desc id={`route-${row.id}`}>{row.route}</desc>
-					<rect class="hit" x="0" y={row.y - ROW_OFFSET} width={frame.width} height={row.band} />
+					<!-- Past the edges of the drawing, so the band reaches across however wide the window is. -->
+					<rect
+						class="hit"
+						x="-2000"
+						y={row.y - ROW_OFFSET}
+						width={frame.width + 4000}
+						height={row.band}
+					/>
 					{#if row.self}
 						<path
 							d={`M ${row.x1} ${row.y - 6} h ${row.selfSide * SELF_LOOP.width} v ${SELF_LOOP.height} h ${-row.selfSide * (SELF_LOOP.width - 6)}`}
@@ -284,7 +303,7 @@
 					{:else}
 						<text
 							class="label"
-							x={labelCentre(row.x1, row.x2, row.label)}
+							x={labelCentre(row.x1, row.x2, row.label, frame.width)}
 							y={row.y - 8}
 							text-anchor="middle"
 						>
@@ -329,17 +348,28 @@
 		min-height: 0;
 	}
 
-	.heads {
+	/* Laid out for the width it has, so no wider than that, and no scaling up past it. */
+	.heads,
+	.body {
+		max-width: var(--laid-out-for);
+		margin-inline: auto;
+	}
+
+	.heads-band {
 		flex: none;
-		display: block;
-		width: 100%;
 		border-bottom: 1px solid var(--line);
 		background: var(--panel);
+	}
+
+	.heads {
+		display: block;
+		width: 100%;
 	}
 
 	.scroller {
 		flex: 1;
 		min-height: 0;
+		overflow-x: hidden;
 		overflow-y: auto;
 	}
 
@@ -347,6 +377,7 @@
 		display: block;
 		width: 100%;
 		height: auto;
+		overflow: visible;
 	}
 
 	text {
@@ -378,6 +409,14 @@
 	.lane-head .role {
 		fill: var(--muted);
 		font-size: 11px;
+	}
+
+	.lane-head .tight {
+		font-size: 11.5px;
+	}
+
+	.lane-head .name.tight {
+		font-size: 12.5px;
 	}
 
 	.lane-head.active > rect {

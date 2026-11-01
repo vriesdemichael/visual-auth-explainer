@@ -26,6 +26,91 @@ describe('layout', () => {
 		}
 	);
 
+	describe('in the room it has', () => {
+		const rooms = [
+			[640, 400],
+			[710, 500],
+			[850, 620],
+			[1240, 900],
+			[2000, 1300]
+		] as const;
+		const allIn = (diagram: typeof flow, settings: Settings, width: number, height: number) =>
+			layoutDiagram(evaluate(diagram, settings), 'advanced', { width, height });
+
+		it.each(rooms)('keeps every head whole, and clear of the next, at %i wide', (width, height) => {
+			for (const settings of allValidSettings()) {
+				for (const diagram of [flow, setup]) {
+					const result = allIn(diagram, settings, width, height);
+					const lanes = result.lanes;
+					expect(lanes[0].x - lanes[0].headWidth / 2).toBeGreaterThanOrEqual(0);
+					expect(lanes.at(-1)!.x + lanes.at(-1)!.headWidth / 2).toBeLessThanOrEqual(result.width);
+					for (const [i, lane] of lanes.entries()) {
+						if (i) expect(lane.x - lanes[i - 1].x).toBeGreaterThanOrEqual(lane.headWidth);
+					}
+				}
+			}
+		});
+
+		it.each(rooms)('keeps labels and chips inside, at %i wide', (width, height) => {
+			for (const settings of allValidSettings()) {
+				for (const diagram of [flow, setup]) {
+					const result = allIn(diagram, settings, width, height);
+					for (const chip of result.chips) {
+						expect(chip.x).toBeGreaterThanOrEqual(0);
+						expect(chip.x + chip.width).toBeLessThanOrEqual(result.width);
+					}
+					for (const row of result.rows.filter((candidate) => !candidate.self)) {
+						const half = (row.label.length * 7.3) / 2;
+						const centre = labelCentre(row.x1, row.x2, row.label, result.width);
+						expect(centre - half, row.label).toBeGreaterThanOrEqual(0);
+						expect(centre + half, row.label).toBeLessThanOrEqual(result.width);
+					}
+				}
+			}
+		});
+
+		it('keeps what a lifeline has seen under its own head, however narrow', () => {
+			for (const settings of allValidSettings()) {
+				const view = evaluate(flow, settings);
+				const { headHeight, heldWidth, lanes } = layoutDiagram(view, 'simple', {
+					width: 640,
+					height: 400
+				});
+				const spacing = lanes[1].x - lanes[0].x;
+				for (const held of Object.values(holdingsAt(view, view.steps.at(-1)!.id))) {
+					for (const chip of layHeld(held, heldWidth)) {
+						expect(chip.y + 16).toBeLessThanOrEqual(headHeight);
+						expect(chip.x + chip.width).toBeLessThanOrEqual(spacing / 2 + 40);
+					}
+				}
+			}
+		});
+
+		it('never goes narrower than its lifelines need, or wider than can be followed', () => {
+			const view = evaluate(flow, { ...defaultSettings, oidc: true, broker: true });
+			expect(layoutDiagram(view, 'simple', { width: 300, height: 500 }).width).toBe(640);
+			expect(layoutDiagram(view, 'simple', { width: 5000, height: 500 }).width).toBe(1240);
+		});
+
+		it('gives rows the height there is, within limits', () => {
+			const view = evaluate(flow, defaultSettings);
+			const gap = (height: number) => {
+				const { rows } = layoutDiagram(view, 'simple', { width: 900, height });
+				const plain = rows.findIndex((row) => row.id === 'open-app');
+				return rows[plain + 1].y - rows[plain].y;
+			};
+			expect(gap(300)).toBe(36);
+			expect(gap(5000)).toBe(56);
+			expect(gap(800)).toBeGreaterThan(gap(600));
+		});
+
+		it('says what room it was for, so that a change of room can jump', () => {
+			const view = evaluate(flow, defaultSettings);
+			expect(layoutDiagram(view, 'simple', { width: 900, height: 700 }).roomKey).toBe('900x700');
+			expect(layoutDiagram(view).roomKey).toBe('');
+		});
+	});
+
 	it('keeps a label off its step number, and inside the diagram', () => {
 		const half = (label: string) => (label.length * 7.3) / 2;
 		const wrong = allValidSettings().flatMap((settings) =>

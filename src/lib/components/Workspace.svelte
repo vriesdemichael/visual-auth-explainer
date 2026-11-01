@@ -98,13 +98,37 @@
 	});
 	const mode = $derived(appState.mode);
 	const steps = $derived(view.steps);
-	const layout = $derived(layoutDiagram(view, mode));
+	// Measured, because the diagram is laid out for the room it has and not scaled to fit.
+	let canvasWidth = $state(0);
+	let canvasHeight = $state(0);
+	const room = $derived(canvasWidth ? { width: canvasWidth, height: canvasHeight } : undefined);
+	const layout = $derived(layoutDiagram(view, mode, room));
+
+	// Below this the settings do not fit beside the diagram, so they open over it when asked for.
+	let settingsDoNotFit = $state(false);
+	let settingsOpen = $state(false);
+	$effect(() => {
+		const query = window.matchMedia('(max-width: 1239px)');
+		const check = () => {
+			settingsDoNotFit = query.matches;
+			if (!query.matches) settingsOpen = false;
+		};
+		check();
+		query.addEventListener('change', check);
+		return () => query.removeEventListener('change', check);
+	});
+	const settingsShown = $derived(settingsDoNotFit ? settingsOpen : !appState.settingsHidden);
+	function toggleSettings() {
+		if (settingsDoNotFit) settingsOpen = !settingsOpen;
+		else onnavigate(withSettingsHidden(appState, !appState.settingsHidden), 'replace');
+	}
 	const position = $derived(steps.findIndex((step) => step.id === appState.step));
 	const current = $derived(steps[position]);
 	const holdings = $derived(holdingsAt(view, appState.step));
 	const channelsHere = $derived([...new Set(steps.map((step) => step.channel))]);
 	const origin = $derived(provenance(base, flow, appState.settings));
 
+	let statusLine = $state<HTMLElement>();
 	let last = $state.raw<LastChange>(NOTHING_CHANGED);
 	// Set by flipping a setting, until the screen has moved to what that asked for.
 	let flipping: Settings | null = null;
@@ -342,6 +366,7 @@
 	class="workspace"
 	data-testid="workspace"
 	class:settings-hidden={appState.settingsHidden}
+	class:settings-open={settingsOpen}
 	data-ready={animate}
 	data-diagram={appState.diagram}
 >
@@ -353,13 +378,13 @@
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
 		<a class="brand" href={homeHref}>Map</a>
 		<span class="slash" aria-hidden="true">/</span>
-		<h1 data-testid="title">{question ?? flow.title}</h1>
+		<h1 data-testid="title" title={question ?? flow.title}>{question ?? flow.title}</h1>
 		<ModeSwitch
 			mode={appState.mode}
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
 		/>
 		<p class="status" data-testid="provenance">
-			<span class="what">
+			<span class="what" bind:this={statusLine} title={statusLine?.textContent?.trim()}>
 				Prototype.
 				{#if appState.mode === 'advanced'}
 					{#if question}{flow.title}.{/if} Based on {origin.specs.join(', ')}.
@@ -412,17 +437,11 @@
 	<main class="diagram">
 		<div class="above">
 			<DiagramSwitch current={appState.diagram} {hrefs} caption={flow.caption} />
-			<button
-				type="button"
-				class="quiet"
-				data-testid="settings-toggle"
-				onclick={() =>
-					onnavigate(withSettingsHidden(appState, !appState.settingsHidden), 'replace')}
-			>
-				{appState.settingsHidden ? 'Show settings' : 'Hide settings'}
+			<button type="button" class="quiet" data-testid="settings-toggle" onclick={toggleSettings}>
+				{settingsShown ? 'Hide settings' : 'Show settings'}
 			</button>
 		</div>
-		<div class="canvas">
+		<div class="canvas" bind:clientWidth={canvasWidth} bind:clientHeight={canvasHeight}>
 			<!-- Two diagrams, not two states of one, so switching does not animate. -->
 			{#key appState.diagram}
 				<Diagram
@@ -437,7 +456,9 @@
 				/>
 			{/key}
 		</div>
-		<ChannelLegend present={channelsHere} />
+		<div class="legend">
+			<ChannelLegend present={channelsHere} />
+		</div>
 	</main>
 
 	<aside class="detail" aria-label="The current step">
@@ -563,9 +584,13 @@
 	}
 
 	h1 {
+		flex: 0 1 auto;
+		min-width: 0;
 		margin: 0;
+		overflow: hidden;
 		font-size: 16px;
 		font-weight: 600;
+		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 
@@ -667,6 +692,76 @@
 
 	.narrow-note {
 		display: none;
+	}
+
+	/* Too narrow for the settings beside the diagram at a readable size, so they open over it. */
+	@media (max-width: 1239px) {
+		.workspace,
+		.settings-hidden {
+			grid-template-columns: 0 minmax(0, 1fr) 330px;
+		}
+
+		.settings,
+		.settings-hidden .settings {
+			display: none;
+		}
+
+		.settings-open .settings {
+			display: block;
+			grid-area: 2 / 2 / 4 / 3;
+			z-index: 2;
+			justify-self: start;
+			width: 260px;
+			background: var(--bg);
+			box-shadow: 8px 0 24px rgb(0 0 0 / 0.12);
+		}
+	}
+
+	/* Too narrow for the step beside it as well, so it goes underneath. */
+	@media (max-width: 1023px) {
+		.workspace,
+		.settings-hidden {
+			grid-template:
+				'header' auto
+				'diagram' minmax(0, 1fr)
+				'detail' minmax(96px, 30%)
+				'controls' auto
+				/ minmax(0, 1fr);
+		}
+
+		.detail {
+			border-top: 1px solid var(--line);
+			border-left: 0;
+		}
+
+		.settings-open .settings {
+			grid-area: diagram;
+		}
+
+		.source {
+			grid-row: 2 / 5;
+			grid-column: 1;
+		}
+	}
+
+	/* Not much height: the rows need it more than these do. */
+	@media (max-height: 560px) {
+		.legend {
+			display: none;
+		}
+
+		header {
+			padding-block: 4px;
+		}
+
+		footer {
+			padding-block: 4px;
+		}
+
+		.workspace,
+		.settings-hidden {
+			grid-template-rows: auto minmax(0, 1fr) minmax(72px, 22%) auto;
+		}
 	}
 
 	/* Everything to read, on a screen too small for the diagram (ADR-008). */
