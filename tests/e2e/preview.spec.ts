@@ -52,8 +52,10 @@ test.describe('pointing at a setting', () => {
 	});
 
 	test('does not fire while someone is moving across the rail', async ({ page }) => {
+		// Paused, because a clock that is only installed goes on running between these lines.
 		await page.clock.install();
 		await open(page, 'mode=simple&step=authorize');
+		await page.clock.pauseAt(Date.now() + 60_000);
 		await setting(page, 'attacker').hover();
 		await page.clock.runFor(100);
 		await expect(preview(page)).toHaveCount(0);
