@@ -9,7 +9,9 @@ import { recordingFor } from '#lib/recordings/known.ts';
 import {
 	mapNodes,
 	mapTracks,
+	nextQuestion,
 	nodeMatching,
+	stillAnswers,
 	nodeSearch,
 	nodeSettings,
 	nodeState,
@@ -112,5 +114,34 @@ describe('where someone is', () => {
 	it('takes what a query adds on top of the node', () => {
 		const search = nodeSearch(start, 'step=callback');
 		expect(new URLSearchParams(search).get('step')).toBe('callback');
+	});
+});
+
+describe('going on from a question', () => {
+	const node = (id: string) => mapNodes.find((candidate) => candidate.id === id)!;
+
+	it('goes to the next one the map lays out', () => {
+		expect(nextQuestion(node('how-access-works'))?.id).toBe('why-a-code');
+		expect(nextQuestion(node('why-a-code'))?.id).toBe('who-logged-in');
+		expect(nextQuestion(mapNodes.at(-1)!)).toBeNull();
+	});
+});
+
+describe('whether what is on screen still answers a question', () => {
+	const question = mapNodes.find((candidate) => candidate.id === 'stolen-code')!;
+
+	it('holds wherever someone has stepped to', () => {
+		expect(stillAnswers(question, { ...nodeState(question), step: 'open-app' })).toBe(true);
+	});
+
+	it('stops when the settings change', () => {
+		const state = nodeState(question);
+		expect(stillAnswers(question, { ...state, settings: { ...state.settings, pkce: true } })).toBe(
+			false
+		);
+	});
+
+	it('stops on the other diagram', () => {
+		expect(stillAnswers(question, { ...nodeState(question), diagram: 'setup' })).toBe(false);
 	});
 });

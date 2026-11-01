@@ -12,7 +12,7 @@ The screen claims no more than that. The header says what is on screen was recor
 
 A line saying what a library or a gateway does is a claim too, and an easy one to get wrong. "A library does this" got past review twice, about `state` and then about DPoP. So `practice` on the step names one someone can go and read, one each way where they differ, and a test fails on a line without it. Those were read at their source, and they are examples of what people will meet, not advice on which to use.
 
-A workflow records against the latest Keycloak every week and on demand, compares the shape with what is committed, and opens an issue when it differs. The shape is which steps happened, which names they carried and which claims the tokens held, because codes, tokens and timestamps change on every run.
+A workflow records against the latest Keycloak every week and on demand, compares it with what is committed, and opens an issue when it differs, saying whether the answers differ or the run itself failed. It compares the shape, the feature flags, and whether each note's evidence and place in the console still hold. The shape is which steps happened in which order, which names they carried, which claims the tokens held, and the errors and token types the screen states, because codes, tokens and timestamps change on every run.
 
 `Execute` appears only on steps where it adds something, in advanced mode, and each step's data says whether it does. That means a step that sends something, where a later step uses what comes back. A step with no HTTP exchange never has it. Running one moves to the step with the answer and keeps nothing else, so the URL still only needs the step, and it says that nothing is really sent.
 

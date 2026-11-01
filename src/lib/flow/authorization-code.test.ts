@@ -372,6 +372,23 @@ describe('DPoP', () => {
 		expect(steps.indexOf('token-request-retry')).toBeLessThan(steps.indexOf('token-response'));
 	});
 
+	it('says which setting brought a field onto a message', () => {
+		const field = view({ binding: 'dpop' })
+			.steps.find((step) => step.id === 'authorize')
+			?.fields.find((candidate) => candidate.name.startsWith('dpop_jkt'));
+		expect(field?.causes).toEqual(['binding']);
+	});
+
+	it('says the words of whichever token type is on', () => {
+		const said = (binding: Settings['binding'], id: string) =>
+			view({ binding }).steps.find((step) => step.id === id)?.concept;
+		expect(said('bearer', 'api-request')).toContain('Whoever holds');
+		expect(said('dpop', 'api-request')).toContain('proof');
+		expect(said('dpop', 'api-request')).not.toContain('Whoever holds');
+		expect(said('bearer', 'api-check-token')).not.toContain('proof');
+		expect(said('dpop', 'api-check-token')).toContain('proof');
+	});
+
 	it('does not promise what only an API that checks the proof delivers', () => {
 		const dpop = view({ binding: 'dpop' }).steps;
 		const said = (id: string) => dpop.find((step) => step.id === id);

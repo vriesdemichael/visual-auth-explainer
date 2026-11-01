@@ -35,6 +35,16 @@ test.describe('every named state, walked in advanced mode', () => {
 			for (const step of steps) {
 				await expect(current(page)).toHaveAttribute('data-step', step.id);
 				const onTheWire = step.channel === 'front' || step.channel === 'back';
+				// Read straight from the file, because rawLines is also what the page itself uses.
+				const inTheFile = recording.messages.find((message) => message.step === step.id);
+				if (onTheWire && inTheFile) {
+					const first = page.locator('[data-testid="payload"] [data-line]').first();
+					await expect(first).toContainText(
+						inTheFile.direction === 'response'
+							? String(inTheFile.status)
+							: new URL(inTheFile.url!).pathname
+					);
+				}
 				const recorded = recording.messages.some((message) => message.step === step.id);
 				if (!onTheWire) {
 					await expect(page.getByTestId('on-the-wire')).toHaveCount(0);

@@ -125,6 +125,18 @@ describe('layout', () => {
 		expect(rows[2].route).toBe("User's browser to IdP");
 	});
 
+	it('keeps every chip inside the diagram, in every combination', () => {
+		for (const settings of allValidSettings()) {
+			for (const mode of ['simple', 'advanced'] as const) {
+				const { chips, width } = layoutDiagram(evaluate(flow, settings), mode);
+				for (const chip of chips) {
+					expect(chip.x, chip.id).toBeGreaterThanOrEqual(0);
+					expect(chip.x + chip.width, chip.id).toBeLessThanOrEqual(width);
+				}
+			}
+		}
+	});
+
 	it('leaves room on a row for its chips, and keeps them clear of the next row', () => {
 		const { rows, chips } = layout({ oidc: true, binding: 'dpop' });
 		for (const chip of chips) {

@@ -2,13 +2,14 @@
 //
 //   pnpm record                    records against the pinned version and writes the files
 //   pnpm record --keycloak 27.0.0  records against another version
-//   pnpm record --check            records, writes nothing, and exits 2 if the shape has changed
+//   pnpm record --check            records, writes nothing, and exits 2 if what the screen says no
+//                                  longer holds: the shape of a message, a flag, or a note's evidence
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { chromium, type Browser, type Request, type Response } from '@playwright/test';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
+import { whatChanged } from '#lib/recordings/check.ts';
 import { defaultSettings, flagsInSettings, normalize, type Settings } from '#lib/flow/settings.ts';
 import type { FlagStatus, Recording, RecordingIndex } from '#lib/recordings/format.ts';
-import { shapeDifferences, shapeOf } from '#lib/recordings/shape.ts';
 import { Demo, requestMessage, responseMessage, type Run } from './demo.ts';
 import {
 	Admin,
@@ -249,28 +250,31 @@ async function main() {
 		console.log(JSON.stringify(answers, null, '\t'));
 
 		if (checking) {
-			for (const recording of recordings) {
-				const file = `${FOLDER}/${recording.preset}.json`;
-				const committed = JSON.parse(readFileSync(file, 'utf8')) as Recording;
-				const differences = shapeDifferences(shapeOf(committed), shapeOf(recording));
-				if (differences.length) {
-					failed = true;
-					console.log(`\n${recording.preset} changed:\n${differences.join('\n')}`);
-				}
-			}
-			const committed = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
-			if (JSON.stringify(committed.flags) !== JSON.stringify(flags)) {
-				failed = true;
-				console.log(`\nFeature flags changed:\n${JSON.stringify(flags, null, '\t')}`);
-			}
-			console.log(failed ? '\nThe shape has changed.' : '\nThe shape has not changed.');
+			const committedIndex = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
+			const changes = whatChanged({
+				recordings: recordings.map((now) => ({
+					committed: JSON.parse(readFileSync(`${FOLDER}/${now.preset}.json`, 'utf8')) as Recording,
+					now
+				})),
+				flags: { committed: committedIndex.flags, now: flags },
+				answers
+			});
+			failed = changes.length > 0;
+			console.log(
+				failed
+					? `\nWhat the screen says no longer holds:\n${changes.join('\n')}`
+					: '\nWhat the screen says still holds.'
+			);
 		} else {
 			mkdirSync(FOLDER, { recursive: true });
 			const write = (path: string, value: unknown) =>
 				writeFileSync(path, `${JSON.stringify(value, null, '\t')}\n`);
 			for (const recording of recordings) write(`${FOLDER}/${recording.preset}.json`, recording);
 			write(`${FOLDER}/questions.json`, { keycloak, recordedAt, answers });
-			write(INDEX, indexOf(recordings, keycloak, recordedAt, flags));
+			// Only this flow's entry, because this run says nothing about another flow's recordings.
+			const others = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
+			const index = indexOf(recordings, keycloak, recordedAt, flags);
+			write(INDEX, { ...index, flows: { ...others.flows, ...index.flows } });
 		}
 	} finally {
 		await browser.close();

@@ -9,6 +9,7 @@ import {
 	previousStep,
 	resolveStep,
 	serializeState,
+	type AppState,
 	withDiagram,
 	withExplained,
 	withMode,
@@ -49,6 +50,36 @@ describe('the URL', () => {
 						settingsHidden: false
 					};
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
+				}
+			}
+		}
+	});
+
+	it('round-trips what else can be open, at every mode, across the settings', () => {
+		const explanations: AppState['explained'][] = [
+			null,
+			{ kind: 'lifeline', id: 'idp' },
+			{ kind: 'artifact', id: 'code' },
+			{ kind: 'setting', id: 'pkce' }
+		];
+		const source = settingDefs.pkce.sources[0].source;
+		for (const settings of allValidSettings()) {
+			for (const mode of ['simple', 'advanced'] as const) {
+				for (const explained of explanations) {
+					for (const onOff of [true, false]) {
+						const state: AppState = {
+							flow: base.id,
+							diagram: 'flow',
+							mode,
+							settings,
+							step: 'open-app',
+							source: onOff ? { id: source, setting: 'pkce', section: null } : null,
+							explained,
+							serverNotes: onOff,
+							settingsHidden: !onOff
+						};
+						expect(parseState(base, 'flow', serializeState(base, state))).toEqual(state);
+					}
 				}
 			}
 		}
