@@ -12,6 +12,22 @@
 				"says": null
 			}
 		},
+		"consentRequired": {
+			"before": {
+				"asked": false
+			},
+			"after": {
+				"asked": true,
+				"lists": [
+					"User roles",
+					"User profile",
+					"Email address"
+				],
+				"gotCode": true,
+				"secondLoginAsked": false,
+				"whenDeclined": "access_denied"
+			}
+		},
 		"clientAuthentication": {
 			"before": {
 				"status": 401,
@@ -35,7 +51,7 @@
 			"before": {
 				"hasName": true,
 				"hasEmail": true,
-				"scope": "email profile"
+				"scope": "profile email"
 			},
 			"after": {
 				"hasName": false,
@@ -288,6 +304,13 @@
 				"found": [
 					"Access settings",
 					"Valid redirect URIs"
+				],
+				"missing": []
+			},
+			"consent-required": {
+				"found": [
+					"Login settings",
+					"Consent required"
 				],
 				"missing": []
 			},

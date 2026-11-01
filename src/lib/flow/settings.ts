@@ -2,6 +2,7 @@ import type { SourceRef } from '#lib/sources/sources.ts';
 
 export interface Settings {
 	oidc: boolean;
+	consent: boolean;
 	clientType: 'public' | 'confidential';
 	pkce: boolean;
 	attacker: boolean;
@@ -103,6 +104,25 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 			{
 				source: 'oidc-core',
 				why: 'This switch adds what it defines on top of OAuth: the openid scope, the ID token and UserInfo.'
+			}
+		]
+	},
+	consent: {
+		kind: 'toggle',
+		label: 'Ask for consent',
+		param: 'consent',
+		default: false,
+		summary: 'The identity provider asks the user whether the app may have what it asks for.',
+		why: 'An app should only get what the user is willing to give it. So the identity provider, which the user already trusts with their password, asks them. What it lists are scopes: each one names some access or some information. Many identity providers skip the question for their own apps, so you may never have seen it.',
+		simple: {
+			label: 'Ask the user to agree',
+			summary: 'The identity provider asks whether the app may have what it asks for.'
+		},
+		sources: [
+			{
+				source: 'rfc6749',
+				section: '4.1',
+				why: 'Section 4.1 has this as a step of the flow: the server asks the resource owner to grant or deny the access.'
 			}
 		]
 	},

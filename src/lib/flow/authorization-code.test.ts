@@ -361,6 +361,39 @@ describe('PKCE', () => {
 	});
 });
 
+describe('consent', () => {
+	const change = diff({}, { consent: true });
+
+	it('adds the question and the answer, and nothing else', () => {
+		expect(change.addedSteps).toEqual(['consent-page', 'consent-grant']);
+		expect(change.addedLifelines).toEqual([]);
+		expect(change.addedFields).toEqual([]);
+	});
+
+	it('comes after the login and before the code, wherever the login happens', () => {
+		for (const settings of [{ consent: true }, { consent: true, broker: true }]) {
+			const steps = view(settings).steps.map((step) => step.id);
+			const signedIn = steps.indexOf(settings.broker ? 'match-user' : 'submit-credentials');
+			expect(steps.indexOf('consent-page')).toBe(signedIn + 1);
+			expect(steps.indexOf('consent-grant')).toBe(signedIn + 2);
+			expect(steps.indexOf('redirect-with-code')).toBe(signedIn + 3);
+		}
+	});
+
+	it('is the step Execute goes through', () => {
+		const stepOf = (settings: Partial<Settings>, id: string) =>
+			view(settings).steps.find((step) => step.id === id);
+		expect(stepOf({}, 'submit-credentials')?.execute).toBe('redirect-with-code');
+		expect(stepOf({ consent: true }, 'submit-credentials')?.execute).toBeUndefined();
+		expect(stepOf({ consent: true }, 'consent-grant')?.execute).toBe('redirect-with-code');
+	});
+
+	it('says what happens if the answer is no', () => {
+		const page = view({ consent: true }).steps.find((step) => step.id === 'consent-page');
+		expect(page?.pitfall?.text).toContain('access_denied');
+	});
+});
+
 describe('an attacker', () => {
 	const on = (settings: Partial<Settings>) => view({ attacker: true, ...settings });
 	const held = (settings: Partial<Settings>) => {

@@ -22,6 +22,12 @@ export interface Preset {
 export const presets: readonly Preset[] = [
 	{ id: 'oauth', title: 'OAuth', flow: authorizationCode.id, settings: {} },
 	{ id: 'oidc', title: 'OpenID Connect', flow: authorizationCode.id, settings: { oidc: true } },
+	{
+		id: 'consent',
+		title: 'Asking the user',
+		flow: authorizationCode.id,
+		settings: { consent: true }
+	},
 	{ id: 'pkce', title: 'PKCE', flow: authorizationCode.id, settings: { pkce: true } },
 	{
 		id: 'public',

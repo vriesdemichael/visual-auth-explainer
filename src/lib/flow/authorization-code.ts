@@ -4,6 +4,7 @@ import { all, any, is, not } from '#lib/flow/settings.ts';
 const oidc = is('oidc', true);
 const confidential = is('clientType', 'confidential');
 const pkce = is('pkce', true);
+const consent = is('consent', true);
 const attacker = is('attacker', true);
 // The code is one-time, and on a public client nothing stops someone else using it first.
 const codeGone = all(attacker, not(confidential));
@@ -249,7 +250,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Submit credentials',
 			concept: 'The user signs in at the identity provider. The app sees none of this.',
 			when: not(broker),
-			execute: { answer: 'redirect-with-code' },
+			execute: { answer: 'redirect-with-code', when: not(consent) },
 			fields: [{ name: 'username and password', place: 'body', artifact: 'password' }]
 		},
 		{
@@ -405,6 +406,45 @@ export const authorizationCode: FlowDef = {
 			concept:
 				'The identity provider links the external identity to a local user, creating one if needed.',
 			when: broker
+		},
+		{
+			id: 'consent-page',
+			from: 'idp',
+			to: 'browser',
+			kind: 'response',
+			plain: 'What the app is asking for',
+			label: 'Consent page',
+			concept:
+				'The identity provider asks the user whether this app may have what it asks for. What it lists are scopes: each one names some access or some information. This is between the user and the identity provider, and the app has no part in it.',
+			pitfall: {
+				title: 'What if the user says no?',
+				text: 'The browser still goes back to the app, but with error=access_denied in place of a code. So the app has to expect this, and has nothing to trade.'
+			},
+			when: consent
+		},
+		{
+			id: 'consent-grant',
+			from: 'browser',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The user agrees',
+			label: 'Grant access',
+			concept:
+				'The user says yes. The identity provider remembers that for this user and this app, so it does not ask again at the next login.',
+			when: consent,
+			execute: { answer: 'redirect-with-code' },
+			fields: [
+				{
+					name: 'accept',
+					place: 'body',
+					note: 'How this form says yes, which is up to the server'
+				},
+				{
+					name: 'code',
+					place: 'body',
+					note: "The server's own login session, not the code in this flow"
+				}
+			]
 		},
 		{
 			id: 'redirect-with-code',

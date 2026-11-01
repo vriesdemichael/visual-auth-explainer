@@ -4,6 +4,7 @@
 	"recordedAt": "2026-11-01",
 	"settings": {
 		"oidc": false,
+		"consent": false,
 		"clientType": "public",
 		"pkce": true,
 		"attacker": true,
@@ -279,18 +280,18 @@
 				"claims_parameter_supported": true,
 				"scopes_supported": [
 					"openid",
-					"address",
-					"web-origins",
-					"acr",
 					"basic",
-					"email",
 					"roles",
-					"phone",
-					"microprofile-jwt",
-					"organization",
-					"offline_access",
+					"acr",
+					"profile",
+					"web-origins",
+					"address",
 					"service_account",
-					"profile"
+					"offline_access",
+					"microprofile-jwt",
+					"phone",
+					"organization",
+					"email"
 				],
 				"request_parameter_supported": true,
 				"request_uri_parameter_supported": true,
@@ -382,14 +383,14 @@
 			"direction": "response",
 			"status": 302,
 			"headers": {
-				"location": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-public&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=RxvhrI2Zf0heKbcJZOwbZA&code_challenge=ajXQkQwIRkh4347MxdG8XCw3bU564quUqFOHYMmRvRU&code_challenge_method=S256"
+				"location": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-public&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=m0dhIRS3-m85s4lqB5g5bQ&code_challenge=flhiqOvlpM_pp5UL4na7iMvKXIimlWud3kZEIloJnGY&code_challenge_method=S256"
 			}
 		},
 		{
 			"step": "authorize",
 			"direction": "request",
 			"method": "GET",
-			"url": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-public&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=RxvhrI2Zf0heKbcJZOwbZA&code_challenge=ajXQkQwIRkh4347MxdG8XCw3bU564quUqFOHYMmRvRU&code_challenge_method=S256",
+			"url": "http://localhost:18080/realms/demo/protocol/openid-connect/auth?response_type=code&client_id=demo-public&redirect_uri=http%3A%2F%2Flocalhost%3A9100%2Fcallback&state=m0dhIRS3-m85s4lqB5g5bQ&code_challenge=flhiqOvlpM_pp5UL4na7iMvKXIimlWud3kZEIloJnGY&code_challenge_method=S256",
 			"headers": {}
 		},
 		{
@@ -405,7 +406,7 @@
 			"step": "submit-credentials",
 			"direction": "request",
 			"method": "POST",
-			"url": "http://localhost:18080/realms/demo/login-actions/authenticate?session_code=Ulmde0meLb-ZydTb8LnS7G5IzPHEMnyHpaMOsWO4Oxk&execution=48b050ea-36e8-4e55-8783-d636a952d7d8&client_id=demo-public&tab_id=ek51SNyWExI&client_data=eyJydSI6Imh0dHA6Ly9sb2NhbGhvc3Q6OTEwMC9jYWxsYmFjayIsInJ0IjoiY29kZSIsInN0IjoiUnh2aHJJMlpmMGhlS2JjSlpPd2JaQSJ9",
+			"url": "http://localhost:18080/realms/demo/login-actions/authenticate?session_code=FQOOY_rg4_ksh7LgATca_-AyODSv7yikZG5KnKRZVeY&execution=9e1638fc-1362-4aa8-b188-91c3a3f76076&client_id=demo-public&tab_id=Ugn0r5bJhNA&client_data=eyJydSI6Imh0dHA6Ly9sb2NhbGhvc3Q6OTEwMC9jYWxsYmFjayIsInJ0IjoiY29kZSIsInN0IjoibTBkaElSUzMtbTg1czRscUI1ZzViUSJ9",
 			"headers": {
 				"content-type": "application/x-www-form-urlencoded"
 			},
@@ -420,14 +421,14 @@
 			"direction": "response",
 			"status": 302,
 			"headers": {
-				"location": "http://localhost:9100/callback?state=RxvhrI2Zf0heKbcJZOwbZA&session_state=a38WQSnz9XsaMHxUSE4tCAXC&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=e265b7af-6f2a-9f82-ecca-aafb80355e4c.a38WQSnz9XsaMHxUSE4tCAXC.1390b63f-7739-4bff-9772-3880263087e4"
+				"location": "http://localhost:9100/callback?state=m0dhIRS3-m85s4lqB5g5bQ&session_state=TqADkr6T9HJ-LZ_MceP3ZREY&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=d04a3a1a-e324-e08f-6d7b-aabed321f4dc.TqADkr6T9HJ-LZ_MceP3ZREY.bfca37ca-b3de-4f0a-88db-071d9d154de9"
 			}
 		},
 		{
 			"step": "attacker-steals-code",
 			"direction": "request",
 			"method": "GET",
-			"url": "http://localhost:9100/callback?state=RxvhrI2Zf0heKbcJZOwbZA&session_state=a38WQSnz9XsaMHxUSE4tCAXC&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=e265b7af-6f2a-9f82-ecca-aafb80355e4c.a38WQSnz9XsaMHxUSE4tCAXC.1390b63f-7739-4bff-9772-3880263087e4",
+			"url": "http://localhost:9100/callback?state=m0dhIRS3-m85s4lqB5g5bQ&session_state=TqADkr6T9HJ-LZ_MceP3ZREY&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=d04a3a1a-e324-e08f-6d7b-aabed321f4dc.TqADkr6T9HJ-LZ_MceP3ZREY.bfca37ca-b3de-4f0a-88db-071d9d154de9",
 			"headers": {}
 		},
 		{
@@ -440,7 +441,7 @@
 			},
 			"body": {
 				"grant_type": "authorization_code",
-				"code": "e265b7af-6f2a-9f82-ecca-aafb80355e4c.a38WQSnz9XsaMHxUSE4tCAXC.1390b63f-7739-4bff-9772-3880263087e4",
+				"code": "d04a3a1a-e324-e08f-6d7b-aabed321f4dc.TqADkr6T9HJ-LZ_MceP3ZREY.bfca37ca-b3de-4f0a-88db-071d9d154de9",
 				"redirect_uri": "http://localhost:9100/callback",
 				"client_id": "demo-public"
 			}
@@ -461,7 +462,7 @@
 			"step": "callback",
 			"direction": "request",
 			"method": "GET",
-			"url": "http://localhost:9100/callback?state=RxvhrI2Zf0heKbcJZOwbZA&session_state=a38WQSnz9XsaMHxUSE4tCAXC&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=e265b7af-6f2a-9f82-ecca-aafb80355e4c.a38WQSnz9XsaMHxUSE4tCAXC.1390b63f-7739-4bff-9772-3880263087e4",
+			"url": "http://localhost:9100/callback?state=m0dhIRS3-m85s4lqB5g5bQ&session_state=TqADkr6T9HJ-LZ_MceP3ZREY&iss=http%3A%2F%2Flocalhost%3A18080%2Frealms%2Fdemo&code=d04a3a1a-e324-e08f-6d7b-aabed321f4dc.TqADkr6T9HJ-LZ_MceP3ZREY.bfca37ca-b3de-4f0a-88db-071d9d154de9",
 			"headers": {}
 		},
 		{
@@ -474,10 +475,10 @@
 			},
 			"body": {
 				"grant_type": "authorization_code",
-				"code": "e265b7af-6f2a-9f82-ecca-aafb80355e4c.a38WQSnz9XsaMHxUSE4tCAXC.1390b63f-7739-4bff-9772-3880263087e4",
+				"code": "d04a3a1a-e324-e08f-6d7b-aabed321f4dc.TqADkr6T9HJ-LZ_MceP3ZREY.bfca37ca-b3de-4f0a-88db-071d9d154de9",
 				"redirect_uri": "http://localhost:9100/callback",
 				"client_id": "demo-public",
-				"code_verifier": "5snsk4uhWaNX7J9OBMkY7QXEvqtJBLwImjnWwq0dUlPw"
+				"code_verifier": "mBFqbh8lG9hxSCL7RWcrQAadIge5COrRck4lh4sgMaYw"
 			}
 		},
 		{

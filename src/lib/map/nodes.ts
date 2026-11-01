@@ -57,6 +57,13 @@ export const mapTracks: readonly MapTrack[] = [
 					preset: 'oidc'
 				}),
 				node({
+					id: 'when-do-i-get-asked',
+					title: 'When does the user get asked?',
+					summary: 'What a scope is, and why you may never have seen the question.',
+					preset: 'consent',
+					step: 'consent-page'
+				}),
+				node({
 					id: 'getting-to-know-each-other',
 					title: 'How do an app and a provider get to know each other?',
 					summary: 'What people have to do before anyone can log in.',
@@ -232,7 +239,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'everything',
 					title: 'What does it all look like at once?',
-					summary: 'Every setting on, to see how far one diagram stretches.',
+					summary: 'As much as fits together, to see how far one diagram stretches.',
 					mode: 'advanced',
 					preset: 'everything'
 				})

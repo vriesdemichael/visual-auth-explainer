@@ -95,6 +95,28 @@ export const noteDefs: readonly NoteDef[] = [
 		}
 	},
 	{
+		id: 'consent-required',
+		steps: ['consent-page', 'submit-credentials'],
+		title: 'Consent required',
+		text: [
+			{
+				when: is('consent', true),
+				text: "On for this client. What the page lists are the client's scopes, by their display names. Once someone agrees, they are not asked again."
+			},
+			{
+				text: 'Off on a new client, which is why most logins through Keycloak never ask the user anything. Turn it on to get the question.'
+			}
+		],
+		place: clientSettings('Login settings', 'Consent required'),
+		backedBy: {
+			question: 'consentRequired',
+			shows: {
+				before: { asked: false },
+				after: { asked: true, secondLoginAsked: false, whenDeclined: 'access_denied' }
+			}
+		}
+	},
+	{
 		id: 'client-authentication',
 		steps: ['token-request', 'create-client'],
 		title: 'Client authentication',
