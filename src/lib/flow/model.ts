@@ -68,6 +68,13 @@ export interface Pitfall {
 	keycloak?: string;
 }
 
+/** This step sends something, and what comes back is used later, so running it adds something. */
+export interface ExecuteDef {
+	/** The step the answer is on. */
+	answer: string;
+	when?: Condition;
+}
+
 export interface StepDef {
 	id: string;
 	from: string;
@@ -81,6 +88,7 @@ export interface StepDef {
 	pitfall?: PitfallDef;
 	links?: readonly StepLink[];
 	fields?: readonly FieldDef[];
+	execute?: ExecuteDef;
 	/** Where this comes from, when a real Keycloak did not do it and so it could not be recorded. */
 	specOnly?: string;
 	when?: Condition;
@@ -141,6 +149,8 @@ export interface Step {
 	pitfall?: Pitfall;
 	links: readonly StepLink[];
 	fields: Field[];
+	/** The step with the answer, when executing this one adds something. */
+	execute?: string;
 	specOnly?: string;
 	causes: SettingId[];
 }
@@ -192,6 +202,8 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			group: step.group,
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
 			links: step.links ?? [],
+			execute:
+				step.execute && present(step.execute.when, settings) ? step.execute.answer : undefined,
 			specOnly: step.specOnly,
 			causes: causes(step.when),
 			fields: (step.fields ?? [])

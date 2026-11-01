@@ -8,7 +8,9 @@ A test holds the flow data to the recordings in both directions: every message a
 
 A workflow records against the latest Keycloak every week and on demand, compares the shape with what is committed, and opens an issue when it differs. The shape is which steps happened, which names they carried and which claims the tokens held, because codes, tokens and timestamps change on every run.
 
-`Execute` appears only on steps where it adds something, and each step's data says whether it does. A step with no HTTP exchange never has it.
+`Execute` appears only on steps where it adds something, in advanced mode, and each step's data says whether it does. That means a step that sends something, where a later step uses what comes back. A step with no HTTP exchange never has it. Running one moves to the step with the answer and keeps nothing else, so the URL still only needs the step, and it says that nothing is really sent.
+
+A recording belongs to exactly one set of settings, and is never adapted to another. What the application shows is formatted from the file and nothing else, and the click-through compares the screen with the file for every step of every named state. Recordings load when first asked for, so simple mode downloads none.
 
 What a chat answer or a vendor's simulation cannot offer is that what is on screen is what a real server did. A default client is what people meet: on one, the access token carries the same identity claims with or without `openid`, and a tidied-up demo client would hide that.
 

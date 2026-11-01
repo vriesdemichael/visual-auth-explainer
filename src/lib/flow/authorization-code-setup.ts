@@ -199,6 +199,7 @@ export const authorizationCodeSetup: FlowDef = {
 			kind: 'request',
 			plain: "The app looks up the provider's addresses",
 			label: 'GET /.well-known/…',
+			execute: { answer: 'discovery-document' },
 			concept:
 				'The app starts from the issuer URL and asks the identity provider where everything else is.',
 			fields: [

@@ -6,6 +6,8 @@
 	import Workspace from '#lib/components/Workspace.svelte';
 	import { flows } from '#lib/flow/index.ts';
 	import { parseState, serializeState, type AppState } from '#lib/flow/state.ts';
+	import type { Recording } from '#lib/recordings/format.ts';
+	import { loadsOnce } from '#lib/recordings/load.ts';
 
 	let { data } = $props();
 
@@ -42,6 +44,13 @@
 		return response.text();
 	}
 
+	const fetchRecording = loadsOnce(async (path) => {
+		const response = await fetch(asset(path as Parameters<typeof asset>[0]));
+		if (!response.ok) throw new Error(`${path}: ${response.status}`);
+		return (await response.json()) as Recording;
+	});
+	const loadRecording = (preset: string) => fetchRecording(`/recordings/${base.id}/${preset}.json`);
+
 	async function navigate(next: AppState, history: 'push' | 'replace') {
 		ahead = next;
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- hrefFor resolves it
@@ -69,5 +78,6 @@
 	homeHref={resolve('/')}
 	{hrefFor}
 	{loadText}
+	{loadRecording}
 	onnavigate={navigate}
 />

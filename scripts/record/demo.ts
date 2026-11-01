@@ -45,12 +45,13 @@ function kept(headers: Headers | Record<string, string>, names: string[]) {
 }
 
 export function parseBody(contentType: string | null, text: string): Partial<RecordedMessage> {
+	// The browser does not hand over a page it navigated to, and what is on it is not the protocol.
+	if (contentType?.includes('html')) return { bodyNote: 'An HTML page' };
 	if (!text) return {};
 	if (contentType?.includes('json')) return { body: JSON.parse(text) };
 	if (contentType?.includes('x-www-form-urlencoded')) {
 		return { body: Object.fromEntries(new URLSearchParams(text)) };
 	}
-	if (contentType?.includes('html')) return { bodyNote: 'An HTML page' };
 	return { body: text };
 }
 
@@ -62,6 +63,8 @@ export function requestMessage(
 	body = ''
 ): RecordedMessage {
 	const shown = kept(headers, KEPT_REQUEST_HEADERS);
+	// A browser that follows a redirect after a form still reports the form's type on the next GET.
+	if (!body) delete shown['content-type'];
 	return {
 		step,
 		direction: 'request',

@@ -1,7 +1,8 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte';
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
-	import { artifacts, channels, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
+	import { artifacts, channels, whyOf, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
 	import { knownFrom } from '#lib/recordings/known.ts';
 
 	/** A link the route has already resolved. */
@@ -24,6 +25,8 @@
 		/** The setting that was just changed, because a change alone does not say why it exists. */
 		changed?: SettingId | null;
 		onexplainartifact?: (id: ArtifactId) => void;
+		/** What this step looks like on the wire, ahead of what each part of it is for. */
+		wire?: Snippet;
 	}
 
 	let {
@@ -36,7 +39,8 @@
 		links = [],
 		elsewhere = null,
 		changed = null,
-		onexplainartifact
+		onexplainartifact,
+		wire
 	}: Props = $props();
 
 	const simple = $derived(mode === 'simple');
@@ -113,50 +117,54 @@
 	</section>
 {/if}
 
-<section data-testid="step-detail" aria-live="polite">
-	<p class="route">
-		{#if step.from === step.to}
-			{nameOf(step.from)}, internally
-		{:else}
-			{nameOf(step.from)} to {nameOf(step.to)}
-		{/if}
-	</p>
-	<h2 class="title">{simple ? step.plain : step.label}</h2>
-	{#if !simple && step.plain !== step.label}
-		<p class="plain">{step.plain}</p>
-	{/if}
-	<p>{step.concept}</p>
-	<p class="channel" data-channel={step.channel} data-testid="step-channel">
-		<strong>{channels[step.channel].label}.</strong>
-		{channels[step.channel].explains}
-	</p>
-	{#if known}
-		<p class="known" data-known={known.kind} data-testid="step-known">
-			{#if known.kind === 'recorded'}
-				Recorded from Keycloak {known.keycloak} on {known.date}.
-			{:else if known.kind === 'spec'}
-				From {known.source} only. Keycloak did not do this when it was recorded.
+<section data-testid="step-detail">
+	<div aria-live="polite">
+		<p class="route">
+			{#if step.from === step.to}
+				{nameOf(step.from)}, internally
 			{:else}
-				Not checked against a real server yet.
+				{nameOf(step.from)} to {nameOf(step.to)}
 			{/if}
 		</p>
-	{/if}
-	{#if step.causes.length}
-		<p class="cause">Here because of: {step.causes.map(labelOf).join(', ')}</p>
-	{/if}
-	{#if step.pitfall}
-		<details class="pitfall" data-testid="step-pitfall">
-			<summary>{step.pitfall.title}</summary>
-			<p>{step.pitfall.text}</p>
-			{#if step.pitfall.keycloak}<p class="keycloak">{step.pitfall.keycloak}</p>{/if}
-		</details>
-	{/if}
-	{#each links as link (link.href)}
-		<p>
-			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
-			<a href={link.href} data-testid="step-link">{link.text}</a>
+		<h2 class="title">{simple ? step.plain : step.label}</h2>
+		{#if !simple && step.plain !== step.label}
+			<p class="plain">{step.plain}</p>
+		{/if}
+		<p>{step.concept}</p>
+		<p class="channel" data-channel={step.channel} data-testid="step-channel">
+			<strong>{channels[step.channel].label}.</strong>
+			{channels[step.channel].explains}
 		</p>
-	{/each}
+		{#if known}
+			<p class="known" data-known={known.kind} data-testid="step-known">
+				{#if known.kind === 'recorded'}
+					Recorded from Keycloak {known.keycloak} on {known.date}.
+				{:else if known.kind === 'spec'}
+					From {known.source} only. Keycloak did not do this when it was recorded.
+				{:else}
+					Not checked against a real server yet.
+				{/if}
+			</p>
+		{/if}
+		{#if step.causes.length}
+			<p class="cause">Here because of: {step.causes.map(labelOf).join(', ')}</p>
+		{/if}
+		{#if step.pitfall}
+			<details class="pitfall" data-testid="step-pitfall">
+				<summary>{step.pitfall.title}</summary>
+				<p>{step.pitfall.text}</p>
+				{#if step.pitfall.keycloak}<p class="keycloak">{step.pitfall.keycloak}</p>{/if}
+			</details>
+		{/if}
+		{#each links as link (link.href)}
+			<p>
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+				<a href={link.href} data-testid="step-link">{link.text}</a>
+			</p>
+		{/each}
+	</div>
+
+	{@render wire?.()}
 
 	{#if simple && carried.length}
 		<h3>What it carries</h3>
@@ -183,7 +191,7 @@
 				<li class:changed={field.changed}>
 					<code>{field.name}</code>
 					<span class="place">{places[field.place]}</span>
-					{#if field.note}<span class="note">{field.note}</span>{/if}
+					<span class="note" data-field-why>{whyOf(field)}</span>
 					{#if field.changed}
 						<span class="note cause">From: {field.causes.map(labelOf).join(', ')}</span>
 					{/if}

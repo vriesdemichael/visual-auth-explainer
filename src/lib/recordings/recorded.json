@@ -7,6 +7,8 @@
 		"pkce",
 		"public",
 		"public-pkce",
+		"oidc-pkce",
+		"browser-app",
 		"dpop",
 		"dpop-nonce",
 		"broker",
@@ -40,5 +42,19 @@
 		"upstream-token-response",
 		"userinfo-request",
 		"userinfo-response"
-	]
+	],
+	"flags": {
+		"dpop": {
+			"type": "DEFAULT",
+			"enabled": true
+		},
+		"identity-brokering-api:v1": {
+			"type": "DEFAULT",
+			"enabled": true
+		},
+		"identity-brokering-api:v2": {
+			"type": "DISABLED_BY_DEFAULT",
+			"enabled": false
+		}
+	}
 }
