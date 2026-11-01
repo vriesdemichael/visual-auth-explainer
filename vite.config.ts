@@ -12,6 +12,9 @@ export default defineConfig({
 		})
 	],
 	test: {
-		include: ['src/**/*.test.ts', 'scripts/**/*.test.ts']
+		include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
+		// They work and wait for nothing, some across every combination, so a shorter limit than this
+		// only says how busy the machine was. CI takes several times as long as a laptop.
+		testTimeout: 60_000
 	}
 });
