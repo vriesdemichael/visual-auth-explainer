@@ -251,6 +251,17 @@ export const mapTracks: readonly MapTrack[] = [
 		chains: [
 			[
 				node({
+					id: 'what-api-checks',
+					answer:
+						'The signature, who issued the token, that it has not expired, and that it is for this API. Whether the token allows this request, and whether this user may see this thing, is your own code.',
+					title: 'What does my API have to check?',
+					summary: 'A token says nothing until someone has looked.',
+					preset: 'oauth',
+					step: 'api-check-token'
+				})
+			],
+			[
+				node({
 					id: 'web-app',
 					answer:
 						'It can keep a secret, so that is how it proves which app it is. OpenID Connect tells it who logged in, and PKCE protects the code as well.',
@@ -280,6 +291,58 @@ export const mapTracks: readonly MapTrack[] = [
 		title: 'Under the hood',
 		lead: 'For when you are looking at the real thing and something is off.',
 		chains: [
+			[
+				node({
+					id: 'why-401',
+					answer:
+						'The API does not accept the token: it is missing, expired, changed, from another issuer, or for someone else. A new token can help, if the reason is that it ran out.',
+					title: 'Why did my API say 401?',
+					summary: 'It does not accept the token, for one of several reasons that look the same.',
+					mode: 'advanced',
+					preset: 'api-expired',
+					step: 'api-response'
+				}),
+				node({
+					id: '401-or-403',
+					answer:
+						'A 401 means the API does not accept the token. A 403 means it does, and the token does not allow this, so a new token of the same kind will not help.',
+					title: 'What is the difference between 401 and 403?',
+					summary: 'One is about the token, and the other about what it allows.',
+					mode: 'advanced',
+					preset: 'api-no-scope',
+					step: 'api-response'
+				}),
+				node({
+					id: 'api-no-token',
+					answer:
+						'A 401, with WWW-Authenticate saying which kind of token it wants. There is no error in it, because there was no token to be wrong.',
+					title: 'What does an API say to a call with no token?',
+					summary: 'Which kind of token it wants, and no error.',
+					mode: 'advanced',
+					preset: 'api-no-token',
+					step: 'api-response'
+				}),
+				node({
+					id: 'api-changed',
+					answer:
+						'The API refuses it, because the signature no longer matches. Anyone can read a token like this and change it, but only the identity provider can sign one.',
+					title: 'What if someone changes what a token says?',
+					summary: 'Anyone can read one, and nobody else can sign it.',
+					mode: 'advanced',
+					preset: 'api-changed',
+					step: 'api-response'
+				}),
+				node({
+					id: 'api-elsewhere',
+					answer:
+						'Because it does not name this API. Its signature is good and it has not expired, but a token meant for one API should not open every other one.',
+					title: 'Why does my API refuse a token that is still good?',
+					summary: 'It has to be for this API, and a default client’s often is not.',
+					mode: 'advanced',
+					preset: 'api-elsewhere',
+					step: 'api-response'
+				})
+			],
 			[
 				node({
 					id: 'on-the-wire',

@@ -127,6 +127,14 @@ export function proofProblem(
 	return null;
 }
 
+/** Whether a token that was accepted allows this, which is a separate question (RFC 6750 section 3.1). */
+export function scopeProblem(authorization: string | undefined, needed: string): string | null {
+	const jwt = readJwt((authorization ?? '').split(' ')[1] ?? '');
+	if (!jwt) return 'not a token';
+	const scopes = String(jwt.claims.scope ?? '').split(' ');
+	return scopes.includes(needed) ? null : `does not allow ${needed}`;
+}
+
 export interface Trust {
 	issuers: readonly string[];
 	/** Who a token has to say it is for. */
@@ -137,8 +145,8 @@ export interface Trust {
 
 /**
  * What an API checks before it answers (RFC 9449 section 7.1). Not the token type RFC 9068 asks for,
- * because a default Keycloak's tokens say JWT. Whether the scope covers the request is not here: that
- * is the app's own business, and the step says so.
+ * because a default Keycloak's tokens say JWT. Whether the scope covers the request is a separate
+ * question with a different answer, which is scopeProblem.
  */
 export async function accessTokenProblem(
 	request: { authorization?: string; dpop?: string; method: string; url: string },

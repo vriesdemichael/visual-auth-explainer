@@ -189,8 +189,14 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 			return Object.entries(values).flatMap(([artifact, value]) => {
 				if (!value) return [];
 				const claimed = step.fields.some((field) => field.artifact === artifact);
+				const changedOnPurpose =
+					artifact === 'access-token' &&
+					recording.settings.apiToken === 'changed' &&
+					text.includes(value.slice(0, -6));
 				const there =
-					text.includes(value) || (artifact === 'secret' && text.includes(basicAuthOf(value)));
+					text.includes(value) ||
+					changedOnPurpose ||
+					(artifact === 'secret' && text.includes(basicAuthOf(value)));
 				return claimed === there
 					? []
 					: [`${step.id}: ${artifact} ${there ? 'is there' : 'is not there'}`];
@@ -242,6 +248,24 @@ describe.each(asCases)('the recording of %s', (preset, recording) => {
 		expect(recording.settings).toEqual(
 			normalize({ ...defaultSettings, ...wanted.settings }).settings
 		);
+	});
+});
+
+describe('the words on what an API answered', () => {
+	it.each([
+		['api-no-token', 401, 'Bearer', 'asks for a token', '401 with no error'],
+		['api-expired', 401, 'expired', 'has expired', '401 invalid_token'],
+		['api-changed', 401, 'bad signature', 'signature is wrong', '401 invalid_token'],
+		['api-elsewhere', 401, 'not for this API', 'for someone else', '401 invalid_token'],
+		['api-no-scope', 403, 'insufficient_scope', 'does not allow this', '403 insufficient_scope']
+	])('%s says what it really said', (preset, status, said, plain, label) => {
+		const recording = read(preset);
+		const answer = recording.messages.find((message) => message.step === 'api-response');
+		expect(answer?.status).toBe(status);
+		expect(answer?.headers['www-authenticate']).toContain(said);
+		const step = stepsOf(recording).find(({ id }) => id === 'api-response');
+		expect(step?.plain).toContain(plain);
+		expect(step?.label).toBe(label);
 	});
 });
 

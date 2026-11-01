@@ -37,9 +37,8 @@ test.describe('the two diagrams', () => {
 		await expect.poll(() => placeOf(page)).toMatch(/setup\/$/);
 		await expect(toSetup(page)).toHaveAttribute('aria-current', 'page');
 		await expectMatchesModel(page, '', 'setup');
-		expect(await lifelineIds(page)).toEqual(['app-team', 'app', 'idp', 'idp-admin']);
+		expect(await lifelineIds(page)).toEqual(['app-team', 'app', 'idp', 'idp-admin', 'api']);
 		await expect(page.locator('[data-lifeline="browser"]')).toHaveCount(0);
-		await expect(page.locator('[data-lifeline="api"]')).toHaveCount(0);
 		check();
 	});
 
@@ -118,10 +117,10 @@ test.describe('moving through a diagram', () => {
 		await page.keyboard.press('ArrowLeft');
 		await expectMatchesModel(page, '');
 
-		await open(page, 'step=discovery-document');
+		await open(page, 'step=keys');
 		await expect(page.getByTestId('next')).toBeDisabled();
 		await page.keyboard.press('ArrowRight');
-		await expect(current(page)).toHaveAttribute('data-step', 'discovery-document');
+		await expect(current(page)).toHaveAttribute('data-step', 'keys');
 	});
 
 	test('Next and Back cover every setup step', async ({ page }) => {
@@ -146,7 +145,7 @@ test.describe('moving through a diagram', () => {
 	});
 
 	test('the end of setup links to the user flow', async ({ page }) => {
-		await open(page, 'oidc=1&step=discovery-document', 'setup');
+		await open(page, 'oidc=1&step=keys', 'setup');
 		await page.getByTestId('step-link').click();
 		await expectMatchesModel(page, 'oidc=1');
 	});

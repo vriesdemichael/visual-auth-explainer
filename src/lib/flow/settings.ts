@@ -10,6 +10,7 @@ export interface Settings {
 	dpopNonce: boolean;
 	broker: boolean;
 	upstreamTokens: 'off' | 'v1' | 'v2';
+	apiToken: 'good' | 'none' | 'expired' | 'changed' | 'elsewhere' | 'noscope';
 }
 
 export type SettingId = keyof Settings;
@@ -295,6 +296,40 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 					because: 'API V2 only works with a confidential client and a Bearer token.'
 				}
 			}
+		]
+	},
+	apiToken: {
+		kind: 'choice',
+		label: 'What the API is sent',
+		param: 'send',
+		default: 'good',
+		summary: 'The same call to the API, and what it answers depending on the token.',
+		why: 'An API checks a token before it answers, and each way that fails looks alike from the app. A 401 means it does not accept the token, and a 403 that it does and the token does not allow this. A new token can help with the first, and not with the second.',
+		sources: [
+			{
+				source: 'rfc6750',
+				section: '3.1',
+				why: 'Section 3.1 says what an API answers in each of these cases, and in which status.'
+			}
+		],
+		requires: {
+			when: all(
+				is('binding', 'bearer'),
+				is('broker', false),
+				is('attacker', false),
+				is('oidc', false),
+				is('consent', false)
+			),
+			because: 'This shows the plain case, so other settings do not get in the way of the answer.',
+			sayWhenBlocked: true
+		},
+		options: [
+			{ value: 'good', label: 'A good token' },
+			{ value: 'none', label: 'No token' },
+			{ value: 'expired', label: 'An expired token' },
+			{ value: 'changed', label: 'A changed token' },
+			{ value: 'elsewhere', label: 'A token for another API' },
+			{ value: 'noscope', label: 'A token that does not allow this' }
 		]
 	}
 };

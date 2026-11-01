@@ -26,7 +26,8 @@ const NOT_BEFORE_AND_AFTER = [
 	'code-used-twice',
 	'no-dpop-nonce',
 	'issuer',
-	'brokering-api-flags'
+	'brokering-api-flags',
+	'how-an-api-says-no'
 ];
 
 describe('the protocol layer', () => {
@@ -207,7 +208,8 @@ describe('the notes', () => {
 			if (!note.place) {
 				// Two are about what the server does, with nothing in the console to change it.
 				expect(
-					Boolean(note.serverOption) || ['no-dpop-nonce', 'code-used-twice'].includes(note.id)
+					Boolean(note.serverOption) ||
+						['no-dpop-nonce', 'code-used-twice', 'how-an-api-says-no'].includes(note.id)
 				).toBe(true);
 				return;
 			}

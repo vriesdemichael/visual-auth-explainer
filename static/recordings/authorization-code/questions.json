@@ -59,8 +59,8 @@
 			"after": {
 				"asked": true,
 				"lists": [
-					"User roles",
 					"User profile",
+					"User roles",
 					"Email address"
 				],
 				"audience": "account",
@@ -73,8 +73,8 @@
 				"first": {
 					"asked": true,
 					"lists": [
-						"User roles",
 						"User profile",
+						"User roles",
 						"Email address"
 					]
 				},
@@ -333,6 +333,28 @@
 					"description": null,
 					"tokenType": "DPoP"
 				}
+			}
+		},
+		"howAnApiSaysNo": {
+			"goodToken": {
+				"status": 200,
+				"wwwAuthenticate": null
+			},
+			"noToken": {
+				"status": 401,
+				"wwwAuthenticate": "Bearer realm=\"demo\""
+			},
+			"notAToken": {
+				"status": 401,
+				"wwwAuthenticate": "Bearer realm=\"demo\", error=\"invalid_token\", error_description=\"Token verification failed\""
+			},
+			"changed": {
+				"status": 401,
+				"wwwAuthenticate": "Bearer realm=\"demo\", error=\"invalid_token\", error_description=\"Token verification failed\""
+			},
+			"withoutOpenid": {
+				"status": 403,
+				"wwwAuthenticate": "Bearer realm=\"demo\", error=\"insufficient_scope\", error_description=\"Missing openid scope\""
 			}
 		},
 		"stolenTokensAfterTheRealAppTried": {

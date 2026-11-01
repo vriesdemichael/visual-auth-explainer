@@ -5,6 +5,11 @@
 		"authorization-code": {
 			"presets": [
 				"oauth",
+				"api-no-token",
+				"api-expired",
+				"api-changed",
+				"api-elsewhere",
+				"api-no-scope",
 				"oidc",
 				"consent",
 				"pkce",
@@ -38,6 +43,8 @@
 				"consent-page",
 				"discover",
 				"discovery-document",
+				"fetch-keys",
+				"keys",
 				"login-page",
 				"open-app",
 				"real-app-refused",

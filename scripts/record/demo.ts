@@ -4,7 +4,7 @@ import { generateKeyPairSync, randomBytes, sign, type KeyObject } from 'node:cry
 import { createServer, type IncomingMessage, type Server } from 'node:http';
 import type { Settings } from '#lib/flow/settings.ts';
 import type { RecordedMessage } from '#lib/recordings/format.ts';
-import { accessTokenProblem, idTokenProblem, sha256, type Jwk } from './checks.ts';
+import { accessTokenProblem, idTokenProblem, scopeProblem, sha256, type Jwk } from './checks.ts';
 import {
 	API,
 	API_AUDIENCE,
@@ -213,6 +213,8 @@ export class Demo {
 		const url = `${KEYCLOAK}/realms/${run.realm}/.well-known/${name}`;
 		const answer = await call(run, ['discover', 'discovery-document'], 'GET', url);
 		this.#discovered = jsonOf<Discovered>(answer.text);
+		// What the API does when it starts, the same way, and nothing tells it to.
+		await call(run, ['fetch-keys', 'keys'], 'GET', this.#discovered.jwks_uri);
 	}
 
 	/** Bearer or DPoP, whichever the setting says. A proof is tied to the token it is sent with. */
@@ -321,15 +323,25 @@ export class Demo {
 			);
 		}
 
-		const resource = `${API}/resource`;
+		const { apiToken } = settings;
+		const resource = `${API}${{ elsewhere: '/my-api/resource', noscope: '/contacts' }[apiToken as string] ?? '/resource'}`;
+		// The token has a very short life for this one, set up in keycloak.ts, so it just has to wait.
+		if (apiToken === 'expired') await new Promise((resolve) => setTimeout(resolve, 2100));
+		const sent =
+			apiToken === 'changed' ? `${tokens.access_token.slice(0, -6)}AAAAAA` : tokens.access_token;
 		const answer = await call(
 			run,
 			['api-request', 'api-response'],
 			'GET',
 			resource,
-			this.#authorization('GET', resource, tokens.access_token)
+			apiToken === 'none' ? {} : this.#authorization('GET', resource, sent)
 		);
-		if (answer.status !== 200) throw new Error(`The API refused: ${answer.text}`);
+		if (answer.status !== 200 && apiToken === 'good') {
+			throw new Error(`The API refused: ${answer.text}`);
+		}
+		if (answer.status === 200 && apiToken !== 'good') {
+			throw new Error(`The API accepted what it should not: ${apiToken}`);
+		}
 
 		if (settings.upstreamTokens !== 'off') await this.#storedToken(tokens.access_token);
 		return 'Logged in';
@@ -422,6 +434,15 @@ export class Demo {
 
 		// A 200 from here has to mean it looked, because the diagram says it does.
 		const api = createServer(async (request, response) => {
+			// With nothing to be wrong, there is no error to name (RFC 6750 section 3.1).
+			if (!request.headers.authorization) {
+				response.writeHead(401, {
+					'content-type': 'application/json',
+					'www-authenticate': 'Bearer'
+				});
+				response.end(JSON.stringify({ error: 'no token' }));
+				return;
+			}
 			const problem = await accessTokenProblem(
 				{
 					authorization: request.headers.authorization,
@@ -431,18 +452,30 @@ export class Demo {
 				},
 				{
 					issuers: [LOCAL_REALM, BROKERED_REALM].map((realm) => `${KEYCLOAK}/realms/${realm}`),
-					audience: API_AUDIENCE,
+					// One API that expects its own name, as yours should, which a default client's token lacks.
+					audience: request.url?.startsWith('/my-api/') ? 'my-api' : API_AUDIENCE,
 					keysOf: (issuer) => keysAt(`${issuer}/protocol/openid-connect/certs`),
 					seenProofs: this.#seenProofs
 				}
 			);
 			if (problem) {
-				const scheme = (request.headers.authorization ?? '').split(' ')[0] || 'Bearer';
+				const scheme = request.headers.authorization.split(' ')[0];
 				response.writeHead(401, {
 					'content-type': 'application/json',
-					'www-authenticate': `${scheme} error="invalid_token"`
+					'www-authenticate': `${scheme} error="invalid_token", error_description="${problem}"`
 				});
 				response.end(JSON.stringify({ error: problem }));
+				return;
+			}
+			// One that needs a scope a default client's token does not have.
+			const notAllowed =
+				request.url === '/contacts' && scopeProblem(request.headers.authorization, 'contacts');
+			if (notAllowed) {
+				response.writeHead(403, {
+					'content-type': 'application/json',
+					'www-authenticate': `Bearer error="insufficient_scope", scope="contacts"`
+				});
+				response.end(JSON.stringify({ error: notAllowed }));
 				return;
 			}
 			response.writeHead(200, { 'content-type': 'application/json' });

@@ -350,6 +350,31 @@ export const noteDefs: readonly NoteDef[] = [
 		}
 	},
 	{
+		id: 'how-an-api-says-no',
+		steps: ['api-response'],
+		title: 'What its own API answers',
+		text: "This answer is from the demo API. Keycloak's own UserInfo answers the same way: a 401 with no error when there is no token, a 401 with invalid_token and Token verification failed when it does not accept one, and a 403 with insufficient_scope when the token does not have the openid scope.",
+		when: not(is('apiToken', 'good')),
+		backedBy: {
+			question: 'howAnApiSaysNo',
+			shows: {
+				goodToken: { status: 200 },
+				noToken: { status: 401, wwwAuthenticate: 'Bearer realm="demo"' },
+				changed: {
+					status: 401,
+					wwwAuthenticate:
+						'Bearer realm="demo", error="invalid_token", error_description="Token verification failed"'
+				},
+				withoutOpenid: {
+					status: 403,
+					wwwAuthenticate:
+						'Bearer realm="demo", error="insufficient_scope", error_description="Missing openid scope"'
+				}
+			}
+		},
+		seen: 'Tried each of these on'
+	},
+	{
 		id: 'require-dpop',
 		steps: ['token-request'],
 		title: 'Require DPoP bound tokens',

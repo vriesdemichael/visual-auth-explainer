@@ -76,6 +76,11 @@ export class Admin {
 
 	static async connect() {
 		const admin = new Admin();
+		await admin.#logIn();
+		return admin;
+	}
+
+	async #logIn() {
 		const response = await fetch(`${KEYCLOAK}/realms/master/protocol/openid-connect/token`, {
 			method: 'POST',
 			headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -87,19 +92,25 @@ export class Admin {
 			})
 		});
 		if (!response.ok) throw new Error(`Admin login failed: ${response.status}`);
-		admin.#token = ((await response.json()) as { access_token: string }).access_token;
-		return admin;
+		this.#token = ((await response.json()) as { access_token: string }).access_token;
 	}
 
 	async call<T = unknown>(method: string, path: string, body?: unknown): Promise<T> {
-		const response = await fetch(`${KEYCLOAK}/admin${path}`, {
-			method,
-			headers: {
-				authorization: `Bearer ${this.#token}`,
-				'content-type': 'application/json'
-			},
-			body: body === undefined ? undefined : JSON.stringify(body)
-		});
+		const send = () =>
+			fetch(`${KEYCLOAK}/admin${path}`, {
+				method,
+				headers: {
+					authorization: `Bearer ${this.#token}`,
+					'content-type': 'application/json'
+				},
+				body: body === undefined ? undefined : JSON.stringify(body)
+			});
+		let response = await send();
+		// An admin token lasts a minute, and a whole run takes longer than that.
+		if (response.status === 401) {
+			await this.#logIn();
+			response = await send();
+		}
 		if (!response.ok) {
 			throw new Error(`${method} ${path}: ${response.status} ${await response.text()}`);
 		}
@@ -242,7 +253,8 @@ const defaultsForQuestions: Pick<Settings, 'clientType' | 'consent' | 'upstreamT
 export async function setUpFor(
 	admin: Admin,
 	realm: string,
-	settings: Pick<Settings, 'clientType' | 'consent' | 'upstreamTokens'>
+	settings: Pick<Settings, 'clientType' | 'consent' | 'upstreamTokens'> &
+		Partial<Pick<Settings, 'apiToken'>>
 ) {
 	const onClients = `/realms/${realm}/clients`;
 	const [old] = await admin.call<{ id: string }[]>(
@@ -266,7 +278,9 @@ export async function setUpFor(
 							'external.token.idp': UPSTREAM_REALM
 						}
 					}
-				: {})
+				: {}),
+			// A second, so the demo app only has to wait a moment to have an expired one.
+			...(settings.apiToken === 'expired' ? { attributes: { 'access.token.lifespan': '1' } } : {})
 		})
 	);
 

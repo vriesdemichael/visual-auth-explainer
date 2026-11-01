@@ -226,6 +226,30 @@ const list: readonly Term[] = [
 		at: flowAt('generate-key', { binding: 'dpop' })
 	},
 	{
+		id: 'invalid-token',
+		name: 'invalid_token',
+		words: ['invalid_token'],
+		explains:
+			'What an API says when it does not accept a token, whichever check it failed: expired, changed, or for someone else.',
+		at: flowAt('api-response', { apiToken: 'expired' })
+	},
+	{
+		id: 'insufficient-scope',
+		name: 'insufficient_scope',
+		words: ['insufficient_scope'],
+		explains:
+			'What an API says when it accepts a token, and that token does not allow this. A new token of the same kind will not help.',
+		at: flowAt('api-response', { apiToken: 'noscope' })
+	},
+	{
+		id: 'www-authenticate',
+		name: 'WWW-Authenticate',
+		words: ['WWW-Authenticate'],
+		explains:
+			'A header on a refusal, saying what kind of token the server wants and what was wrong with this one.',
+		at: flowAt('api-response', { apiToken: 'expired' })
+	},
+	{
 		id: 'session',
 		name: 'Session',
 		words: ['session', 'sessions'],

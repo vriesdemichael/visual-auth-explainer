@@ -16,7 +16,7 @@ const pathOf = (id: string) => `authorization-code/${id}/`;
 const STABLE_NODES = [
 	{ id: 'how-access-works', step: 'open-app', stepCount: 12, mode: 'simple' },
 	{ id: 'who-logged-in', step: 'token-response', stepCount: 15, mode: 'simple' },
-	{ id: 'getting-to-know-each-other', step: 'register-client', stepCount: 6, mode: 'simple' },
+	{ id: 'getting-to-know-each-other', step: 'register-client', stepCount: 9, mode: 'simple' },
 	{ id: 'stolen-code', step: 'attacker-steals-code', stepCount: 14, mode: 'simple' },
 	{ id: 'pkce', step: 'make-verifier', stepCount: 14, mode: 'simple' },
 	{ id: 'redirect-uri-error', step: 'authorize', stepCount: 12, mode: 'advanced' }

@@ -109,7 +109,8 @@ const parameterWhy: Readonly<Record<string, string>> = {
 	authorization_endpoint: 'Where to send the browser to log in.',
 	token_endpoint: 'Where the app trades a code for tokens.',
 	jwks_uri: 'Where to get the keys that verify its tokens.',
-	userinfo_endpoint: 'Where to ask for details about the user.'
+	userinfo_endpoint: 'Where to ask for details about the user.',
+	keys: 'The public keys that check signatures.'
 };
 
 /** Why a field is there: what the step says about it, or else what it always means. */

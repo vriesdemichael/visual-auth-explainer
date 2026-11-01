@@ -25,8 +25,8 @@ const STABLE_URLS = [
 	{ search: 'broker=1&upstream=v1', step: 'open-app', stepCount: 22, lifelines: 5 },
 	{ search: 'broker=1&upstream=v2', step: 'open-app', stepCount: 22, lifelines: 5 },
 	{ search: 'oidc=1&step=token-response', step: 'token-response', stepCount: 15, lifelines: 4 },
-	{ search: 'setup=1', step: 'register-client', stepCount: 6, lifelines: 4 },
-	{ search: 'step=discover', step: 'discover', stepCount: 6, lifelines: 4 },
+	{ search: 'setup=1', step: 'register-client', stepCount: 9, lifelines: 5 },
+	{ search: 'step=discover', step: 'discover', stepCount: 9, lifelines: 5 },
 	{
 		search: 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1&step=call-upstream',
 		step: 'call-upstream',
