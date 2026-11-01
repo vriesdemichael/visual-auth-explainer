@@ -68,7 +68,11 @@ export function watchForErrors(page: Page) {
 	const errors: string[] = [];
 	page.on('pageerror', (error) => errors.push(String(error)));
 	page.on('console', (message) => {
-		if (message.type() === 'error') errors.push(message.text());
+		// Firefox reports a font it stopped fetching because the test had already moved on.
+		const leftBeforeItArrived = /downloadable font: download failed.*status=2152398850/;
+		if (message.type() === 'error' && !leftBeforeItArrived.test(message.text())) {
+			errors.push(message.text());
+		}
 	});
 	return () => expect(errors).toEqual([]);
 }

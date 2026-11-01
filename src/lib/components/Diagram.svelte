@@ -470,6 +470,22 @@
 		fill: var(--muted);
 	}
 
+	/* On paper there is no next step to wait for, so everything is spelled out. */
+	@media print {
+		.scroller {
+			overflow: visible !important;
+			height: auto !important;
+		}
+
+		.row.future line,
+		.row.future path,
+		.row.future polygon,
+		.row.future .label,
+		.chip.future:not(.fresh) {
+			opacity: 1 !important;
+		}
+	}
+
 	.row.current .hit,
 	.row.current:hover .hit {
 		fill: var(--accent-soft);

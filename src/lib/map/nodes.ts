@@ -81,14 +81,15 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'pkce',
-					title: 'How does PKCE stop that?',
-					summary: 'The app proves it started this login, with a value that never crossed.',
+					title: 'How does PKCE stop a stolen code?',
+					summary:
+						'The app proves it started this login, with a value that never crossed the browser.',
 					preset: 'public-pkce',
 					step: 'make-verifier'
 				}),
 				node({
 					id: 'pkce-with-a-secret',
-					title: 'Does an app with a secret need it too?',
+					title: 'Does an app with a secret need PKCE too?',
 					summary: 'Why current advice says yes, even when a stolen code is not enough alone.',
 					preset: 'pkce',
 					step: 'token-request'
@@ -134,7 +135,7 @@ export const mapTracks: readonly MapTrack[] = [
 				}),
 				node({
 					id: 'token-api-v2',
-					title: 'What changes with API V2?',
+					title: 'What changes with API V2 for stored tokens?',
 					summary: 'Only the access token, and the client has to be allowed to ask.',
 					mode: 'advanced',
 					preset: 'upstream-v2',

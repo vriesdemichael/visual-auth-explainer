@@ -33,4 +33,10 @@
 		font-size: 12px;
 		white-space: nowrap;
 	}
+
+	@media (max-width: 767px) {
+		p {
+			white-space: normal;
+		}
+	}
 </style>

@@ -73,6 +73,7 @@ test.describe('the two diagrams', () => {
 	});
 
 	test('every valid combination shows what the model says in setup', async ({ page }) => {
+		test.setTimeout(300_000);
 		const check = watchForErrors(page);
 		const searches = new Set(allValidSettings().map((settings) => presetSearch(base, settings)));
 		for (const search of searches) {

@@ -1,0 +1,220 @@
+import AxeBuilder from '@axe-core/playwright';
+import { expect, test, type Page } from '@playwright/test';
+import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
+import { evaluate } from '../../src/lib/flow/model.ts';
+import { defaultSettings } from '../../src/lib/flow/settings.ts';
+import { mapNodes } from '../../src/lib/map/nodes.ts';
+import { FLOW_PATH, open } from './helpers.ts';
+
+const ready = (page: Page) => page.locator('.workspace[data-ready="true"]').waitFor();
+const current = (page: Page) => page.locator('[data-step][data-state="current"]');
+
+test.describe('every named state, checked by an automated tool', () => {
+	test.skip(({ browserName }) => browserName !== 'chromium', 'The same rules in every browser');
+
+	for (const node of mapNodes) {
+		test(node.id, async ({ page }) => {
+			await page.goto(`authorization-code/${node.id}/`);
+			await page.waitForLoadState('networkidle');
+			const { violations } = await new AxeBuilder({ page }).analyze();
+			expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual(
+				[]
+			);
+		});
+	}
+});
+
+test.describe('by keyboard alone', () => {
+	test('the whole flow can be walked, from the map to the last step', async ({ page }) => {
+		const { steps } = evaluate(base.diagrams.flow, defaultSettings);
+		await page.goto('./');
+		await page.keyboard.press('Tab');
+		await page.keyboard.press('Enter');
+		await ready(page);
+
+		// Next is the obvious thing to reach, and the arrow keys do the same once it has been pressed.
+		await page.getByTestId('next').focus();
+		for (const step of steps.slice(1)) {
+			await page.keyboard.press('Enter');
+			await expect(current(page)).toHaveAttribute('data-step', step.id);
+		}
+		await expect(page.getByTestId('next')).toBeDisabled();
+	});
+
+	test('a setting can be flipped, and a message reached', async ({ page }) => {
+		await open(page);
+		await page.locator('[data-setting="oidc"] input').focus();
+		await page.keyboard.press('Space');
+		await expect(page.locator('[data-step="userinfo-request"]')).toBeVisible();
+
+		await page.locator('[data-step="authorize"]').focus();
+		await page.keyboard.press('Enter');
+		await expect(current(page)).toHaveAttribute('data-step', 'authorize');
+	});
+
+	test('Execute can be pressed', async ({ page }) => {
+		await open(page, 'step=token-request');
+		await page.getByTestId('execute').focus();
+		await page.keyboard.press('Enter');
+		await expect(current(page)).toHaveAttribute('data-step', 'token-response');
+		await expect(page.getByTestId('payload')).toBeFocused();
+	});
+});
+
+test.describe('for a screen reader', () => {
+	test('the step text is in the page and not only in the diagram', async ({ page }) => {
+		await open(page, 'mode=simple&step=token-request');
+		await expect(page.getByTestId('step-detail')).toContainText(
+			'The app trades the code for tokens'
+		);
+	});
+
+	test('what a setting just changed is announced', async ({ page }) => {
+		await open(page);
+		const status = page.getByRole('status');
+		await expect(status).toBeEmpty();
+		await page.locator('[data-setting="oidc"] input').check();
+		await expect(status).toContainText('What changed');
+		await expect(status).toContainText('3 steps added');
+	});
+
+	test('moving to another step is announced', async ({ page }) => {
+		await open(page);
+		await expect(page.locator('[aria-live="polite"]').first()).toContainText('Open the app');
+		await page.getByTestId('next').click();
+		await expect(page.locator('[aria-live="polite"]').first()).toContainText('302');
+	});
+
+	test('the raw traffic is not read out on every step', async ({ page }) => {
+		await open(page, 'step=token-request');
+		await expect(page.getByTestId('payload')).toBeVisible();
+		const live = page.locator('[aria-live="polite"]').first();
+		await expect(live.getByTestId('payload')).toHaveCount(0);
+	});
+});
+
+test.describe('in print', () => {
+	test.beforeEach(async ({ page }) => {
+		await page.emulateMedia({ media: 'print' });
+	});
+
+	test('shows the whole diagram with every message spelled out', async ({ page }) => {
+		await page.goto(`${FLOW_PATH}?oidc=1`);
+		await ready(page);
+		await expect(page.locator('[data-step="token-request"] .label')).toHaveCSS('opacity', '1');
+		await expect(page.locator('[data-step="token-request"] line').first()).toHaveCSS(
+			'opacity',
+			'1'
+		);
+		const scroller = page.locator('.scroller');
+		await expect(scroller).toHaveCSS('overflow-y', 'visible');
+		const fits = await scroller.evaluate((node) => node.scrollHeight <= node.clientHeight + 1);
+		expect(fits).toBe(true);
+	});
+
+	test('leaves out the controls, and keeps the words', async ({ page }) => {
+		await page.goto(`${FLOW_PATH}?step=token-request`);
+		await ready(page);
+		await expect(page.getByTestId('next')).toBeHidden();
+		await expect(page.locator('aside.settings')).toBeHidden();
+		await expect(page.getByTestId('step-detail')).toBeVisible();
+	});
+
+	test('lets the page grow, instead of cutting it off', async ({ page }) => {
+		await page.goto(FLOW_PATH);
+		await ready(page);
+		await expect(page.locator('.workspace')).toHaveCSS('display', 'block');
+	});
+});
+
+test.describe('without JavaScript', () => {
+	test.use({ javaScriptEnabled: false });
+
+	test('a named state still shows its diagram and its words', async ({ page }) => {
+		await page.goto('authorization-code/pkce/');
+		await expect(page.locator('[data-step="make-verifier"]')).toBeAttached();
+		await expect(page.getByTestId('step-detail')).toContainText('one-time secret');
+	});
+});
+
+test.describe('when a link is shared', () => {
+	test.use({ javaScriptEnabled: false });
+
+	const content = (page: Page, property: string) =>
+		page.locator(`meta[property="${property}"]`).getAttribute('content');
+
+	test('the map says what this is', async ({ page }) => {
+		await page.goto('./');
+		expect(await content(page, 'og:title')).toBe('Visual auth explainer');
+		expect(await content(page, 'og:image')).toMatch(/\/social\/home\.png$/);
+	});
+
+	for (const node of mapNodes) {
+		test(`${node.id} has its own title and image`, async ({ page, request }) => {
+			await page.goto(`authorization-code/${node.id}/`);
+			expect(await content(page, 'og:title')).toBe(node.title);
+			expect(await content(page, 'og:description')).toBe(node.summary);
+			expect(await content(page, 'og:image')).toMatch(new RegExp(`/social/${node.id}\\.png$`));
+			expect(await content(page, 'og:url')).toMatch(new RegExp(`/${node.id}/$`));
+			const image = await request.get(`social/${node.id}.png`);
+			expect(image.ok()).toBe(true);
+			expect(image.headers()['content-type']).toContain('image/png');
+		});
+	}
+});
+
+test.describe('on a phone', () => {
+	test.use({ viewport: { width: 375, height: 812 } });
+
+	const noSidewaysScroll = (page: Page) =>
+		page.evaluate(
+			() => document.documentElement.scrollWidth <= document.documentElement.clientWidth
+		);
+
+	test('says this is made for a bigger screen, and can still be read', async ({ page }) => {
+		await page.goto('authorization-code/stolen-code/');
+		await ready(page);
+		await expect(page.getByTestId('narrow-note')).toBeVisible();
+		await expect(page.getByTestId('step-detail')).toBeVisible();
+		await expect(page.getByTestId('diagram')).toBeHidden();
+		expect(await noSidewaysScroll(page)).toBe(true);
+	});
+
+	test('can be stepped through', async ({ page }) => {
+		await page.goto(FLOW_PATH);
+		await ready(page);
+		await expect(page.getByTestId('step-detail')).toContainText('The user opens the app');
+		await page.getByTestId('next').click();
+		await expect(page.getByTestId('step-detail')).toContainText(
+			'The app sends the browser to log in'
+		);
+		await expect(page.getByTestId('next')).toBeInViewport();
+	});
+
+	test('shows raw traffic without running off the screen', async ({ page }) => {
+		await page.goto(`${FLOW_PATH}?mode=advanced&oidc=1&step=token-response`);
+		await ready(page);
+		await expect(page.getByTestId('payload')).toBeVisible();
+		expect(await noSidewaysScroll(page)).toBe(true);
+	});
+
+	test('has the map, as a plain list', async ({ page }) => {
+		await page.goto('./');
+		await expect(page.getByTestId('map')).toBeVisible();
+		expect(await noSidewaysScroll(page)).toBe(true);
+	});
+
+	test('can open a source, and close it again', async ({ page }) => {
+		await page.goto(`${FLOW_PATH}?mode=advanced&source=rfc6749&for=client`);
+		await ready(page);
+		await expect(page.getByTestId('source-panel')).toBeVisible();
+		expect(await noSidewaysScroll(page)).toBe(true);
+	});
+});
+
+test.describe('on a desktop', () => {
+	test('does not say it needs a bigger screen', async ({ page }) => {
+		await open(page);
+		await expect(page.getByTestId('narrow-note')).toBeHidden();
+	});
+});

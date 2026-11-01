@@ -2,6 +2,12 @@ import { expect, test, type Page } from '@playwright/test';
 import { mapNodes, nodeSearch, nodeState, nodeView } from '../../src/lib/map/nodes.ts';
 import { expectMatchesModel, FLOW_PATH, open, visibleStepIds, watchForErrors } from './helpers.ts';
 
+/** A click before the page has hydrated is a full page load, which is not what this is testing. */
+async function openMap(page: Page) {
+	await page.goto('./');
+	await page.locator('main[data-ready="true"]').waitFor();
+}
+
 const nodeLink = (page: Page, id: string) => page.getByTestId(`node-${id}`);
 const pathOf = (id: string) => `authorization-code/${id}/`;
 
@@ -56,7 +62,7 @@ test.describe('every node', () => {
 	for (const node of mapNodes) {
 		test(`${node.id} opens the application at its exact state`, async ({ page }) => {
 			const check = watchForErrors(page);
-			await page.goto('./');
+			await openMap(page);
 			await nodeLink(page, node.id).click();
 			await page.locator('.workspace[data-ready="true"]').waitFor();
 			await expectMatchesModel(page, nodeSearch(node), node.diagram);

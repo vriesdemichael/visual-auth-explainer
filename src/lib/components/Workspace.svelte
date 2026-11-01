@@ -321,6 +321,11 @@
 		</p>
 	</header>
 
+	<p class="narrow-note" data-testid="narrow-note">
+		This is made for a bigger screen. Here you can read through it step by step, without the
+		diagram.
+	</p>
+
 	<aside class="settings" aria-label="Settings">
 		<SettingsPanel
 			settings={appState.settings}
@@ -518,5 +523,87 @@
 
 	.source.wide {
 		width: min(570px, 100%);
+	}
+
+	.narrow-note {
+		display: none;
+	}
+
+	/* Everything to read, on a screen too small for the diagram (ADR-008). */
+	@media (max-width: 767px) {
+		.workspace {
+			display: flex;
+			flex-direction: column;
+			height: auto;
+			min-height: 100dvh;
+		}
+
+		header {
+			flex-wrap: wrap;
+		}
+
+		.status,
+		.diagram {
+			display: none;
+		}
+
+		.narrow-note {
+			display: block;
+			margin: 0;
+			padding: 10px 16px;
+			background: var(--panel);
+			font-size: 13px;
+		}
+
+		.detail {
+			order: 1;
+			border-left: 0;
+			overflow-y: visible;
+		}
+
+		footer {
+			order: 2;
+			position: sticky;
+			bottom: 0;
+			background: var(--bg);
+		}
+
+		.settings {
+			order: 3;
+			border-right: 0;
+			border-top: 1px solid var(--line);
+			overflow-y: visible;
+		}
+
+		.source,
+		.source.wide {
+			position: fixed;
+			inset: 0;
+			width: 100%;
+		}
+	}
+
+	/* The diagram and its words, as much paper as that takes. */
+	@media print {
+		.workspace {
+			display: block;
+			height: auto;
+		}
+
+		.settings,
+		footer,
+		.source,
+		.narrow-note {
+			display: none;
+		}
+
+		.detail {
+			border: 0;
+			overflow: visible;
+		}
+
+		.diagram {
+			display: block;
+		}
 	}
 </style>

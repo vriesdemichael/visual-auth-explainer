@@ -1,15 +1,16 @@
-// Regenerates the screenshot baselines in the image CI runs in, since fonts render differently
-// elsewhere. Run this after a deliberate change to the look, and read the new images before committing.
+// Runs a command in the image CI runs in, which has every browser, and the fonts the screenshot
+// baselines were made with. Read new baselines before committing them.
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
 const image = readFileSync('.github/workflows/ci.yml', 'utf8').match(/container: (\S+)/)?.[1];
 if (!image) throw new Error('No container image in ci.yml');
 
+const command = process.argv.slice(2).join(' ');
 const inside = [
 	'corepack enable',
 	'pnpm install --frozen-lockfile --ignore-scripts --store-dir /tmp/pnpm-store',
-	'pnpm exec playwright test tests/e2e/visual.spec.ts --update-snapshots=all'
+	command
 ].join(' && ');
 
 execFileSync(

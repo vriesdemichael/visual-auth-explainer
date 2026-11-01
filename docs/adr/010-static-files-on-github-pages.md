@@ -1,5 +1,7 @@
 # ADR-010: The site is static files on GitHub Pages, with all state in the browser
 
+Search engines are kept out until the maintainer says otherwise. Setting the repository variable `ALLOW_INDEXING` to `true` lets a production build be indexed on its next deploy. Previews and Storybook never are. The address the site lives at for shared links is one constant, in `src/lib/site.ts`.
+
 The application builds to plain static files, and nothing about a visitor is kept anywhere but their browser. There is no backend, no rendering at request time and no accounts. It is hosted on GitHub Pages for now, and a dedicated place may come later, so nothing may depend on Pages beyond a base path set at build time.
 
 `pnpm build` produces what gets served: the site, with its Storybook under `storybook/` and the commit in `version.txt`. Production and pull request previews both deploy to the `gh-pages` branch. A merge to `main` deploys the build CI just tested, and the job then fails unless the live site and Storybook serve that commit. Each pull request gets a preview at `/pr-preview/pr-N/`, through pr-preview-action, which removes it when the pull request closes. `pnpm preview` serves a build locally the way Pages does.

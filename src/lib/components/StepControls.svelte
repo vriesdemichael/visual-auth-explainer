@@ -98,6 +98,17 @@
 		transition: width 0.25s;
 	}
 
+	@media (max-width: 767px) {
+		.track,
+		.hint {
+			display: none;
+		}
+
+		.controls {
+			flex-wrap: wrap;
+		}
+	}
+
 	.hint {
 		color: var(--muted);
 		font-size: 12px;

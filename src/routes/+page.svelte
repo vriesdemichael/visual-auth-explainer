@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import LearningMap from '#lib/components/LearningMap.svelte';
 	import { mapTracks, type MapNode } from '#lib/map/nodes.ts';
+	import { sharingTags } from '#lib/site.ts';
 
 	// The query string does not exist while prerendering, so where someone came from is marked after.
 	let mounted = $state(false);
@@ -12,6 +13,13 @@
 	});
 
 	const current = $derived(mounted ? page.url.searchParams.get('at') : null);
+	const DESCRIPTION =
+		'OAuth and OpenID Connect on one living diagram, checked against a real server. Pick a question and follow it, one message at a time.';
+	const sharing = sharingTags({
+		title: 'Visual auth explainer',
+		description: DESCRIPTION,
+		path: '/'
+	});
 	const hrefOf = (node: MapNode) => resolve('/[flow]/[[view]]', { flow: node.flow, view: node.id });
 
 	$effect(() => {
@@ -22,13 +30,13 @@
 
 <svelte:head>
 	<title>Visual auth explainer</title>
-	<meta
-		name="description"
-		content="OAuth and OpenID Connect on one living diagram, checked against a real server. Pick a question and follow it, one message at a time."
-	/>
+	<meta name="description" content={DESCRIPTION} />
+	{#each sharing as tag (tag.property ?? tag.name)}
+		<meta {...tag} />
+	{/each}
 </svelte:head>
 
-<main>
+<main data-ready={mounted}>
 	<h1>Visual auth explainer</h1>
 	<p class="lead">
 		OAuth and OpenID Connect on one living diagram, checked against a real server. Pick a question
