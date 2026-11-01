@@ -106,6 +106,7 @@ test.describe('what changed', () => {
 		await page.getByRole('radio', { name: 'DPoP' }).click();
 		await expect(why(page)).toContainText('bearer token');
 		await page.goBack();
+		await expect(page.getByRole('radio', { name: 'DPoP' })).not.toBeChecked();
 		await page.goBack();
 		await expect(oidc(page)).not.toBeChecked();
 		await expect(page.getByTestId('change-summary')).toBeVisible();

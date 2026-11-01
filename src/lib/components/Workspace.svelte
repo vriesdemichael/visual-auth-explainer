@@ -4,6 +4,7 @@
 	import Diagram from '#lib/components/Diagram.svelte';
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
+	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
 	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
 	import OnTheWire from '#lib/components/OnTheWire.svelte';
 	import SettingsPanel from '#lib/components/SettingsPanel.svelte';
@@ -62,6 +63,10 @@
 		animate?: boolean;
 		/** What someone came to find out, when this came from the map. */
 		question?: string | null;
+		/** The answer to it, in a sentence or two. */
+		answer?: string | null;
+		/** The question someone came with, once the settings no longer answer it. */
+		leftQuestion?: { title: string; href: string } | null;
 		/** The question to go on to, once this flow is done. */
 		onward?: { title: string; summary: string; href: string } | null;
 		homeHref: string;
@@ -76,6 +81,8 @@
 		state: appState,
 		animate = true,
 		question = null,
+		answer: questionAnswer = null,
+		leftQuestion = null,
 		onward = null,
 		homeHref,
 		hrefFor,
@@ -233,7 +240,8 @@
 	const explainedSetting = $derived(
 		appState.explained?.kind === 'setting' ? appState.explained.id : null
 	);
-	const intro = $derived(position === 0 ? flow.intro : null);
+	// Someone with a question has its answer, which already says what this would.
+	const intro = $derived(position === 0 && !questionAnswer ? flow.intro : null);
 	const notes = $derived(
 		appState.serverNotes ? notesFor(base.id, current.id, appState.settings) : []
 	);
@@ -379,6 +387,12 @@
 		<a class="brand" href={homeHref}>Map</a>
 		<span class="slash" aria-hidden="true">/</span>
 		<h1 data-testid="title" title={question ?? flow.title}>{question ?? flow.title}</h1>
+		{#if leftQuestion}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+			<a class="from" href={leftQuestion.href} data-testid="from-question">
+				From: {leftQuestion.title}
+			</a>
+		{/if}
 		<ModeSwitch
 			mode={appState.mode}
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
@@ -462,6 +476,12 @@
 	</main>
 
 	<aside class="detail" aria-label="The current step">
+		{#if questionAnswer}
+			<QuestionAnswer
+				answer={questionAnswer}
+				onrewind={position > 0 ? () => goToStep(steps[0].id) : null}
+			/>
+		{/if}
 		{#if explanation}
 			<Explanation
 				{...explanation}
@@ -590,6 +610,16 @@
 		overflow: hidden;
 		font-size: 16px;
 		font-weight: 600;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.from {
+		flex: 0 2 auto;
+		min-width: 0;
+		overflow: hidden;
+		color: var(--muted);
+		font-size: 12.5px;
 		text-overflow: ellipsis;
 		white-space: nowrap;
 	}

@@ -204,6 +204,20 @@ export const breakages = [
 		to: "if (kind === 'artifact' && id in artifacts) return { kind, id: id as ArtifactId };"
 	},
 
+	// Answers.
+	{
+		name: 'map: a question opens away from its answer, with no reason',
+		file: NODES,
+		from: "preset: 'broker',\n\t\t\t\t\tstep: 'redirect-to-upstream'",
+		to: "preset: 'broker'"
+	},
+	{
+		name: 'map: a question from another mode is where someone is',
+		file: NODES,
+		from: 'candidate.mode === state.mode &&',
+		to: ''
+	},
+
 	// The map.
 	{
 		name: 'map: the next question skips one',

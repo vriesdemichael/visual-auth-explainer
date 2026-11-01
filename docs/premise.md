@@ -187,6 +187,7 @@ Three things follow:
 - The map is the home screen.
 - A node is a named state, not a page: it opens the application screen at a base flow, settings, mode and step. So variants still never get a new page, and adding a toggle adds a node.
 - A node is named for a question someone brings, such as "What if someone steals the code?", not for a feature, because people arrive with a problem and the feature's name is what they are trying to learn.
+- A question says its answer in a sentence or two straight away, and opens on the step where it can be seen, or says why it starts at the beginning. Someone who wants the walk can rewind with one click, and someone who flips a switch keeps a way back to the question.
 - Nodes and presets are different things. A preset is a set of settings that gets a recording, and a node is a question, a mode and a step on top of one, so several questions can share a recording. A test keeps every recording reachable from the map.
 - Planned nodes do not show. Everything on the map opens, because a greyed-out node says nothing a visitor can use.
 - Each card draws its real diagram small, from the same model, so you can see how far each question goes.
