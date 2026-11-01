@@ -67,26 +67,30 @@ export function toFrame(layout: DiagramLayout): Frame {
 const easeInOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2);
 const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
 
-/** Progress through part of the transition, so leaving, moving and arriving overlap but stay in order. */
+/** Progress through part of the transition. */
 const within = (t: number, start: number, end: number) =>
 	easeInOut(Math.max(0, Math.min(1, (t - start) / (end - start))));
 
+// One after the other, because words still fading or just come would be crossed by a row going past.
 const leaveAt = (t: number) => within(t, 0, 0.3);
-const moveAt = (t: number) => within(t, 0.15, 0.7);
-// Only once the rows are where they are going, so nothing new has anything cross it on the way.
+const moveAt = (t: number) => within(t, 0.3, 0.7);
 const arriveAt = (t: number) => within(t, 0.7, 1);
+// Arrows and lifelines come as the rows part, so that the room they make is never just empty.
+const comeAt = (t: number) => within(t, 0.35, 0.8);
 const wordsAt = (t: number) => (t < 0.5 ? 1 - leaveAt(t) : arriveAt(t));
 const BEFORE_THE_SWAP = 0.5;
 
 const sameWords = (a: RowLayout, b: RowLayout) =>
-	a.lines.length === b.lines.length && a.lines.every((line, i) => line.text === b.lines[i].text);
+	a.lines.length === b.lines.length &&
+	a.lines.every((line, i) => line.text === b.lines[i].text && line.anchor === b.lines[i].anchor);
 
 function blend<T extends Visibility & { id: string }>(
 	from: readonly T[],
 	to: readonly T[],
 	t: number,
 	move: (a: T, b: T, p: number) => T,
-	showing: (item: T) => number = () => 1
+	showing: (item: T) => number = () => 1,
+	arriving: (t: number) => number = comeAt
 ): T[] {
 	const before = new Map(from.map((item) => [item.id, item]));
 	const after = new Set(to.map((item) => item.id));
@@ -97,7 +101,7 @@ function blend<T extends Visibility & { id: string }>(
 			const opacity = lerp(previous.opacity, 1, moveAt(t)) * showing(item);
 			return { ...moved, opacity, draw: 1, leaving: false };
 		}
-		const arrived = arriveAt(t);
+		const arrived = arriving(t);
 		return { ...item, opacity: arrived, draw: arrived, leaving: false };
 	});
 	const leaving = from
@@ -135,23 +139,28 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 			headWidth: lerp(a.headWidth, b.headWidth, p),
 			role: p < 0.5 ? a.role : b.role
 		})),
-		rows: blend(from.rows, to.rows, t, (a, b, p) => ({
-			...b,
-			y: lerp(a.y, b.y, p),
-			top: lerp(a.top, b.top, p),
-			band: lerp(a.band, b.band, p),
-			x1: lerp(a.x1, b.x1, p),
-			x2: lerp(a.x2, b.x2, p),
-			label: side(a.label, b.label),
-			words: reworded.has(b.id) ? wordsAt(t) : lerp(a.words, 1, p),
-			lines: reworded.has(b.id)
-				? side(a.lines, b.lines)
-				: b.lines.map((line, i) => ({
-						...line,
-						x: lerp(a.lines[i].x, line.x, p),
-						y: lerp(a.lines[i].y, line.y, p)
-					}))
-		})),
+		rows: blend(
+			from.rows,
+			to.rows.map((row) => (rowsBefore.has(row.id) ? row : { ...row, words: arriveAt(t) })),
+			t,
+			(a, b, p) => ({
+				...b,
+				y: lerp(a.y, b.y, p),
+				top: lerp(a.top, b.top, p),
+				band: lerp(a.band, b.band, p),
+				x1: lerp(a.x1, b.x1, p),
+				x2: lerp(a.x2, b.x2, p),
+				label: side(a.label, b.label),
+				words: reworded.has(b.id) ? wordsAt(t) : lerp(a.words, 1, p),
+				lines: reworded.has(b.id)
+					? side(a.lines, b.lines)
+					: b.lines.map((line, i) => ({
+							...line,
+							x: lerp(a.lines[i].x, line.x, p),
+							y: lerp(a.lines[i].y, line.y, p)
+						}))
+			})
+		),
 		chips: blend(
 			from.chips,
 			to.chips,
@@ -164,7 +173,8 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 							x: lerp(a.x, b.x, p),
 							y: lerp(a.y, b.y, p)
 						},
-			(chip) => (reworded.has(chip.step) ? wordsAt(t) : 1)
+			(chip) => (reworded.has(chip.step) ? wordsAt(t) : 1),
+			arriveAt
 		),
 		groups: blend(from.groups, to.groups, t, (a, b, p) => ({
 			...b,

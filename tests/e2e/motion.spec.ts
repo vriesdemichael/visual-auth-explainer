@@ -73,10 +73,10 @@ test.describe('sending a message', () => {
 		await expect(page.getByTestId('position')).toContainText('Step 3');
 		await expect(marker(page)).toHaveCount(0);
 		await page.locator('[data-step="token-request"]').click();
-		await expect(page.getByTestId('position')).toContainText('Step 7');
+		await expect(page.getByTestId('position')).toContainText('Step 8');
 		await expect(marker(page)).toHaveCount(0);
 		await page.getByTestId('timeline').locator('[data-tick="callback"]').click();
-		await expect(page.getByTestId('position')).toContainText('Step 6');
+		await expect(page.getByTestId('position')).toContainText('Step 7');
 		await expect(marker(page)).toHaveCount(0);
 	});
 
@@ -144,27 +144,27 @@ test.describe('sending a message', () => {
 });
 
 test.describe('filmed frame by frame', () => {
-	const films: [string, string, RegExp][] = [
-		['OpenID Connect', 'step=token-response', /Know who logged in/],
-		['an external provider', 'step=token-request', /Log in with another provider/],
-		['the attacker', 'step=token-request', /Show someone stealing the code/],
-		['the attacker, early on', 'step=authorize', /Show someone stealing the code/],
-		['PKCE', 'step=token-request', /Protect against a stolen code/]
+	const films: [string, string, string][] = [
+		['OpenID Connect', 'step=token-response', 'oidc'],
+		['an external provider', 'step=token-request', 'broker'],
+		['the attacker', 'step=token-request', 'attacker'],
+		['the attacker, early on', 'step=authorize', 'attacker'],
+		['PKCE', 'step=token-request', 'pkce']
 	];
 
 	const looks = () => {
 		const scroller = document.querySelector('.scroller')!;
 		const view = scroller.getBoundingClientRect();
-		const shown = (element: Element | null) => {
+		const opacityOf = (element: Element | null) => {
 			let opacity = 1;
 			for (let at = element; at && at !== scroller; at = at.parentElement) {
 				opacity *= Number(getComputedStyle(at).opacity);
 			}
-			return opacity > 0.15;
+			return opacity;
 		};
-		const boxes = (selector: string) =>
+		const boxes = (selector: string, enough = 0.15) =>
 			[...scroller.querySelectorAll(selector)]
-				.filter(shown)
+				.filter((element) => opacityOf(element) > enough)
 				.map((element) => element.getBoundingClientRect())
 				.filter((box) => box.width && box.bottom > view.top && box.top < view.bottom);
 		const words = boxes('.row .label tspan');
@@ -176,7 +176,8 @@ test.describe('filmed frame by frame', () => {
 					Math.min(chip.bottom, word.bottom) - Math.max(chip.top, word.top) > 2
 			)
 		).length;
-		const lowest = Math.max(0, ...boxes('.row line, .row polygon').map((box) => box.bottom));
+		// What is coming in counts as soon as it can be seen, and what is ahead is faint anyway.
+		const lowest = Math.max(0, ...boxes('.row line, .row polygon', 0.01).map((box) => box.bottom));
 		return { crossing, lowest: lowest - view.top };
 	};
 
@@ -185,7 +186,7 @@ test.describe('filmed frame by frame', () => {
 			await page.clock.install();
 			await open(page, query);
 			const before = await page.evaluate(looks);
-			await page.getByRole('checkbox', { name: setting }).click();
+			await page.locator(`[data-setting="${setting}"] input`).click();
 			for (let frame = 0; frame < 60; frame++) {
 				const { crossing, lowest } = await page.evaluate(looks);
 				expect.soft(crossing, `frame ${frame}`).toBe(0);

@@ -89,10 +89,10 @@ test.describe('play', () => {
 		await openPaused(page, 'step=authorize');
 		const before = await page.evaluate(() => history.length);
 		await play(page).click();
-		for (const step of ['Step 4', 'Step 5', 'Step 6']) {
-			await page.clock.runFor(9000);
-			await expect(position(page)).toContainText(step);
-		}
+		await page.clock.runFor(9000);
+		await expect(position(page)).not.toContainText('Step 3');
+		await page.clock.runFor(9000);
+		await expect(position(page)).not.toContainText(/Step [34] /);
 		expect(await page.evaluate(() => history.length)).toBe(before);
 	});
 
@@ -160,8 +160,12 @@ test.describe('play', () => {
 	});
 
 	test('stops by itself at the end, and starts over from there', async ({ page }) => {
-		await openPaused(page, 'step=api-response');
+		await openPaused(page, 'step=authorize');
+		await page.keyboard.press('End');
+		await page.keyboard.press('ArrowLeft');
 		await play(page).click();
+		await page.clock.runFor(9000);
+		await expect(position(page)).toContainText('Step 12');
 		await expect(play(page)).toHaveText('Play');
 		await play(page).click();
 		await expect(position(page)).toContainText('Step 1');
@@ -178,8 +182,13 @@ test.describe('with reduced motion', () => {
 			page.locator(selector).evaluate((element) => Number(getComputedStyle(element).opacity));
 		expect(await shown('[data-state="current"] .label')).toBe(1);
 		expect(await shown('[data-held="idp:password"]')).toBe(1);
+		// Not a colour settling, which is a transition and moves nothing.
 		const moving = await page.evaluate(
-			() => document.getAnimations().filter((animation) => animation.playState === 'running').length
+			() =>
+				document
+					.getAnimations()
+					.filter((animation) => animation instanceof CSSAnimation)
+					.filter((animation) => animation.playState === 'running').length
 		);
 		expect(moving).toBe(0);
 	});

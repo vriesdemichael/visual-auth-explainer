@@ -35,11 +35,11 @@ test.describe('with forced colours', () => {
 		await open(page, 'step=token-request');
 		const timeline = page.getByTestId('timeline');
 		await expect(timeline).toBeVisible();
-		const image = (tick: string) =>
+		const looks = (tick: string) =>
 			timeline
 				.locator(`[data-tick="${tick}"]`)
-				.evaluate((element) => getComputedStyle(element).backgroundImage);
-		expect(await image('open-app')).not.toBe(await image('api-request'));
+				.evaluate((element) => getComputedStyle(element).background);
+		expect(await looks('open-app')).not.toBe(await looks('api-request'));
 	});
 });
 

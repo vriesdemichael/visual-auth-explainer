@@ -108,6 +108,8 @@ The caveat is that the basic code flow is also the most saturated area, and a wa
 
 **Proposed: the transition is the centrepiece.** Stable step IDs let a toggle animate as a change, with an arrow sliding in and rows shifting, instead of a redraw. No precedent found does this for general OAuth, and it is the moment the idea either lands or does not. It has to work inside a message as well as between messages: OAuth to OIDC adds at most one arrow, and most of the change is in fields.
 
+**Proposed: stepping moves too, and only by one thing.** Next sends a message: a marker travels its arrow, and what it carries shows when it gets there ([ADR-014](adr/014-a-colour-means-one-thing-and-ahead-is-only-a-shape.md)). The step controls are a timeline of the diagram's named parts, such as Ask, Log in, Trade and Use, each with a sentence on why it is there, because why the steps exist is one of the most reported confusions. Play steps through by itself at a pace set by what there is to read, stops at any input, and writes no history.
+
 ### 5.3 Setup has its own diagram
 
 **Decided:** the application's view of setup is in scope, and it is a diagram of its own next to the user flow ([ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md)). The maintainer ruled out combining them, because "it makes it look like the setup is something the user does". The toggles in section 5.2 still act on one diagram at a time, and settings apply to both.
@@ -224,7 +226,7 @@ Toggles cut across messages. DPoP touches several steps and PAR changes what cro
 
 ### A toggle shows what changed, not why (Proposed)
 
-Turning on PKCE adds parameters, and the learner still does not know what they are for. "Why" is the most reported confusion, so each toggle must show the problem it solves, ideally what goes wrong when it is off. Showing an attacker's path when a protection is off is one way to do this, and it is built for a stolen code: a setting brings an attacker onto the diagram, and flipping PKCE or the client type changes the answer on the same arrow, with what a real server said ([#26](https://github.com/vriesdemichael/visual-auth-explainer/issues/26)).
+Turning on PKCE adds parameters, and the learner still does not know what they are for. "Why" is the most reported confusion, so each toggle must show the problem it solves, ideally what goes wrong when it is off. Showing an attacker's path when a protection is off is one way to do this, and it is built for a stolen code: a setting brings an attacker onto the diagram, and flipping PKCE or the client type changes the answer on the same arrow, with what a real server said ([#26](https://github.com/vriesdemichael/visual-auth-explainer/issues/26)). A refusal travels with nothing in it and leaves nothing under the attacker, and an answer with tokens leaves them there.
 
 ### User federation and brokering are different (Proposed, from Keycloak's docs)
 

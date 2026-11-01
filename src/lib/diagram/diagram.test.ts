@@ -406,9 +406,27 @@ describe('transitions', () => {
 		expect(row(early, 'upstream-authorize')?.opacity).toBe(0);
 		expect(row(early, 'upstream-authorize')?.draw).toBe(0);
 
+		const coming = interpolate(before, after, 0.6);
+		expect(row(coming, 'upstream-authorize')?.draw).toBeGreaterThan(0);
+		expect(row(coming, 'upstream-authorize')?.draw).toBeLessThan(1);
+		expect(row(coming, 'upstream-authorize')?.words).toBe(0);
+
 		const late = interpolate(before, after, 0.85);
-		expect(row(late, 'upstream-authorize')?.draw).toBeGreaterThan(0);
-		expect(row(late, 'upstream-authorize')?.draw).toBeLessThan(1);
+		expect(row(late, 'upstream-authorize')?.draw).toBe(1);
+		expect(row(late, 'upstream-authorize')?.words).toBeGreaterThan(0);
+		expect(row(late, 'upstream-authorize')?.words).toBeLessThan(1);
+	});
+
+	it('have something coming into the room before what made room has gone', () => {
+		const start = toFrame(layout());
+		const end = toFrame(layout({ attacker: true }));
+		const added = end.rows
+			.filter(({ id }) => !start.rows.some((row) => row.id === id))
+			.map(({ id }) => id);
+		expect(added.length).toBeGreaterThan(0);
+		// By the time the rows after them are half way, they are on their way.
+		const halfway = interpolate(start, end, 0.5);
+		for (const id of added) expect(row(halfway, id)?.opacity).toBeGreaterThan(0.05);
 	});
 
 	it('bring in a new field on a message that stays', () => {
