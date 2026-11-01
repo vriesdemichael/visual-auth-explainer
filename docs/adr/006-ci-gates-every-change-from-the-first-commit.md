@@ -4,7 +4,7 @@ From the first code commit, a pull request can merge only when the formatting an
 
 CI also compares screenshots of key states in both themes, and checks each screen with an automated accessibility tool. It runs in one Linux image, because fonts render differently elsewhere, so the screenshot tests skip anywhere else. After a deliberate change to the look, `pnpm test:visual:update` regenerates the baselines in that image, and the new images get read before they are committed.
 
-The click-through runs on Chromium, Firefox and WebKit in CI, in a job for each, because every test runs in all three and there are more with each setting. A job called `CI Complete` comes after them and is the one check branch protection requires. It says no unless they all passed, and it always runs, because GitHub counts a skipped check as passed. Working locally it runs on Chromium, and `pnpm test:browsers` runs all three in CI's image. Screenshots and stories are Chromium only, because a screenshot is only valid in one browser and a story only needs rendering once.
+The click-through runs on Chromium, Firefox and WebKit in CI, in jobs of their own, because most tests run in all three and there are more with each setting. Chromium is split over two jobs, and Firefox and WebKit over three each because they are slower, so that they finish at about the same time, since every merge waits for the slowest. A job called `CI Complete` comes after them and is the one check branch protection requires. It says no unless they all passed, and it always runs, because GitHub counts a skipped check as passed. Working locally it runs on Chromium, and `pnpm test:browsers` runs all three in CI's image. Screenshots, stories and opening every valid combination are Chromium only, because a screenshot is only valid in one browser, a story only needs rendering once, and the view draws whatever the model returns. Setup opens one page for each different diagram, worked out from the model, because most settings do not change it.
 
 Re-recording Keycloak traffic runs on demand and weekly, not on every pull request.
 
@@ -14,6 +14,7 @@ An automated click-through is why this repository exists. States multiply with e
 
 ## Not chosen
 
+- **Every combination in every browser**: It was about 400 seconds of each run. Only one line of the components reads a named setting, the recordings and questions walked in all three browsers already show nearly everything they could, and no real bug was ever found this way.
 - **One job for all three browsers, with a longer time limit**: It reached its 30 minutes on a day with no slow test in it, and a merge that goes live has to wait for it too.
 - **Add CI once the application has settled**: Each setting added before then is one more state nothing has ever checked.
 - **Re-record on every pull request**: A change to the view would fail for reasons that come from booting Keycloak.

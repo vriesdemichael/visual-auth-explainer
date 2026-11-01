@@ -247,8 +247,8 @@ export const breakages = [
 	{
 		name: 'notes: a console path nobody looked for',
 		file: NOTES,
-		from: "'Client scopes',\n\t\t\t\t'your client-dedicated',\n\t\t\t\t'Configure a new mapper',\n\t\t\t\t'Audience'",
-		to: "'Client scopes',\n\t\t\t\t'your client-dedicated',\n\t\t\t\t'Configure a new mapper',\n\t\t\t\t'Audience thing'"
+		from: "'Configure a new mapper',\n\t\t\t\t'Audience'\n\t\t\t],\n\t\t\tpage: 'client-dedicated-scope',\n\t\t\topens: 'Configure a new mapper',\n\t\t\tshows: ['Audience']\n\t\t},\n\t\tbackedBy: {\n\t\t\tquestion: 'audience'",
+		to: "'Configure a new mapper',\n\t\t\t\t'Audience thing'\n\t\t\t],\n\t\t\tpage: 'client-dedicated-scope',\n\t\t\topens: 'Configure a new mapper',\n\t\t\tshows: ['Audience']\n\t\t},\n\t\tbackedBy: {\n\t\t\tquestion: 'audience'"
 	},
 
 	// The weekly check itself.
@@ -445,6 +445,20 @@ export const breakages = [
 		to: ''
 	},
 
+	// The list of combinations.
+	{
+		name: 'combinations: the list is worked out again for each test',
+		file: 'src/lib/flow/settings.ts',
+		from: 'everyValid ??= Object.freeze(',
+		to: 'everyValid = Object.freeze('
+	},
+	{
+		name: 'combinations: a test can change what the others are given',
+		file: 'src/lib/flow/settings.ts',
+		from: 'validCombinations(ids).map((settings) => Object.freeze(settings))',
+		to: 'validCombinations(ids)'
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',
@@ -522,7 +536,7 @@ export const breakages = [
 	// Answers.
 	{
 		name: 'map: a question opens away from its answer, with no reason',
-		file: NODES,
+		file: 'src/lib/map/tracks.ts',
 		from: "preset: 'broker',\n\t\t\t\t\tstep: 'redirect-to-upstream'",
 		to: "preset: 'broker'"
 	},
@@ -565,12 +579,6 @@ export const breakages = [
 		file: LAYOUT,
 		from: 'if (height === undefined) return ROW_HEIGHT;',
 		to: 'return ROW_HEIGHT;'
-	},
-	{
-		name: 'layout: chips can run out of the diagram',
-		file: LAYOUT,
-		from: 'let x = clamp(center - total / 2, 6, Math.max(6, width - total - 6));',
-		to: 'let x = center - total / 2;'
 	},
 	{
 		name: 'state: an explanation does not survive a link',

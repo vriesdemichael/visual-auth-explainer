@@ -64,6 +64,9 @@ describe('constraints', () => {
 		const withASecondApp = 2 * 2 * (1 + 3);
 		// With OpenID Connect, on the plain flow, and with or without a second app to tell.
 		const withLogout = 2 * 2 * 2;
+		expect(allValidSettings()).toBe(allValidSettings());
+		expect(Object.isFrozen(allValidSettings())).toBe(true);
+		expect(allValidSettings().every((settings) => Object.isFrozen(settings))).toBe(true);
 		expect(allValidSettings()).toHaveLength(
 			withConsent * (2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker) +
 				withApiAnswers +

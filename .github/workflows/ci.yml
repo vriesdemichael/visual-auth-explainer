@@ -31,9 +31,10 @@ jobs:
       - run: pnpm check
       - run: pnpm test:unit
 
-  # A job for each browser, because every test runs in all three and there are more with each setting.
+  # Jobs of their own, because most tests run in all three browsers and there are more with each
+  # setting. Every merge waits for the slowest, so they are split to finish at about the same time.
   click-through:
-    name: Click-through (${{ matrix.browser }})
+    name: Click-through (${{ matrix.browser }} ${{ matrix.part }} of ${{ matrix.parts }})
     runs-on: ubuntu-latest
     # The screenshot baselines come from this image. Keep its version the same as @playwright/test.
     container: mcr.microsoft.com/playwright:v1.64.1-noble
@@ -42,7 +43,15 @@ jobs:
       # A failure in one browser says more next to what the others did.
       fail-fast: false
       matrix:
-        browser: [chromium, firefox, webkit]
+        include:
+          - { browser: chromium, part: 1, parts: 2 }
+          - { browser: chromium, part: 2, parts: 2 }
+          - { browser: firefox, part: 1, parts: 3 }
+          - { browser: firefox, part: 2, parts: 3 }
+          - { browser: firefox, part: 3, parts: 3 }
+          - { browser: webkit, part: 1, parts: 3 }
+          - { browser: webkit, part: 2, parts: 3 }
+          - { browser: webkit, part: 3, parts: 3 }
     steps:
       - uses: actions/checkout@v7
       # A container runs as another user than the one who checked out, which git refuses by default.
@@ -53,7 +62,7 @@ jobs:
           node-version-file: .node-version
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm test:e2e --project=${{ matrix.browser }}
+      - run: pnpm test:e2e --project=${{ matrix.browser }} --shard=${{ matrix.part }}/${{ matrix.parts }}
         env:
           # Firefox will not run as root with a HOME that belongs to someone else, which is what a
           # container job gets.
@@ -63,14 +72,14 @@ jobs:
       - uses: actions/upload-artifact@v7
         if: failure()
         with:
-          name: playwright-report-${{ matrix.browser }}
+          name: playwright-report-${{ matrix.browser }}-${{ matrix.part }}
           path: |
             playwright-report/
             test-results/
           retention-days: 7
       # A build the click-through just tested is the one that goes live.
       - uses: actions/upload-artifact@v7
-        if: github.event_name == 'push' && matrix.browser == 'chromium'
+        if: github.event_name == 'push' && matrix.browser == 'chromium' && matrix.part == 1
         with:
           name: pages
           path: build/
