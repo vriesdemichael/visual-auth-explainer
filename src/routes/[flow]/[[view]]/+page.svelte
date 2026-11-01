@@ -7,6 +7,7 @@
 	import { flows } from '#lib/flow/index.ts';
 	import { parseState, serializeState, type AppState } from '#lib/flow/state.ts';
 	import { nodeMatching, nodeSearch } from '#lib/map/nodes.ts';
+	import { sharingTags } from '#lib/site.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import { loadsOnce } from '#lib/recordings/load.ts';
 
@@ -35,6 +36,16 @@
 	const flow = $derived(base.diagrams[appState.diagram]);
 
 	const here = $derived(nodeMatching(appState));
+	const title = $derived(data.node?.title ?? flow.title);
+	const description = $derived(data.node?.summary ?? flow.summary);
+	const sharing = $derived(
+		sharingTags({
+			title,
+			description,
+			path: data.node ? `/${data.flowId}/${data.node.id}/` : `/${data.flowId}/`,
+			image: data.node?.id
+		})
+	);
 
 	function hrefFor(state: AppState) {
 		const search = serializeState(base, state);
@@ -71,8 +82,11 @@
 </script>
 
 <svelte:head>
-	<title>{data.node?.title ?? flow.title}</title>
-	<meta name="description" content={data.node?.summary ?? flow.summary} />
+	<title>{title}</title>
+	<meta name="description" content={description} />
+	{#each sharing as tag (tag.property ?? tag.name)}
+		<meta {...tag} />
+	{/each}
 </svelte:head>
 
 <Workspace

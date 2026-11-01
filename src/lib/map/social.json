@@ -1,0 +1,19 @@
+{
+	"how-access-works": "How does an app get access?|An app acts for a user, without ever seeing their password.|12|4",
+	"who-logged-in": "How does an app know who logged in?|Access is not identity, which is what OpenID Connect adds.|15|4",
+	"getting-to-know-each-other": "How do an app and a provider get to know each other?|What people have to do before anyone can log in.|6|4",
+	"stolen-code": "What if someone steals the code?|An app with no secret, and a code that crosses the browser.|12|4",
+	"pkce": "How does PKCE stop a stolen code?|The app proves it started this login, with a value that never crossed the browser.|14|4",
+	"pkce-with-a-secret": "Does an app with a secret need PKCE too?|Why current advice says yes, even when a stolen code is not enough alone.|14|4",
+	"stolen-token": "What if someone steals the token?|DPoP ties a token to a key that never leaves the app.|13|4",
+	"dpop-nonce": "How can a proof be stopped from being used later?|A nonce from the server. The spec allows it, and Keycloak did not ask.|15|4",
+	"another-provider": "How do you log in with another provider?|The app does not notice, and that is the point.|18|5",
+	"calling-the-other-provider": "How does the app call the other provider's API?|The identity provider kept its tokens, and hands them over.|22|5",
+	"token-api-v2": "What changes with API V2 for stored tokens?|Only the access token, and the client has to be allowed to ask.|22|5",
+	"web-app": "A web app, set up the way it should be|On a server that can keep a secret, with OpenID Connect and PKCE.|17|4",
+	"browser-app": "An app that runs in the browser|No secret to keep, so PKCE does the work.|17|4",
+	"on-the-wire": "What really goes over the wire?|The raw request and answer, from one real run.|12|4",
+	"redirect-uri-error": "Why do I get Invalid parameter: redirect_uri?|Where the address is checked, and where it was registered.|12|4",
+	"what-is-in-my-token": "Why does my access token say that?|Open it, and see which setting put each thing there.|12|4",
+	"everything": "What does it all look like at once?|Every setting on, to see how far one diagram stretches.|30|5"
+}

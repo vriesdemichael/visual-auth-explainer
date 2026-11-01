@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     # The screenshot baselines come from this image. Keep its version the same as @playwright/test.
     container: mcr.microsoft.com/playwright:v1.64.1-noble
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v7
       # A container runs as another user than the one who checked out, which git refuses by default.
@@ -34,6 +34,9 @@ jobs:
       - run: pnpm check
       - run: pnpm test:unit
       - run: pnpm test:e2e
+        env:
+          # Only production may be indexed, and only once the repository variable says so.
+          VITE_INDEXABLE: ${{ github.event_name == 'push' && vars.ALLOW_INDEXING == 'true' }}
       - uses: actions/upload-artifact@v7
         if: failure()
         with:

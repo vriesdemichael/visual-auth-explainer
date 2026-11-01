@@ -16,7 +16,9 @@ test.describe('what gets published', () => {
 	for (const path of ['./', FLOW_PATH, 'no-such-flow/', 'storybook/', 'storybook/iframe.html']) {
 		test(`${path} asks not to be indexed`, async ({ page }) => {
 			await page.goto(path);
-			await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+			if (process.env.VITE_INDEXABLE !== 'true') {
+				await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', 'noindex');
+			}
 		});
 	}
 });

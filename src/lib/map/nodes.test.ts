@@ -1,7 +1,10 @@
+import { statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { flows, presets } from '#lib/flow/index.ts';
 import { allValidSettings, defaultSettings } from '#lib/flow/settings.ts';
 import { parseState } from '#lib/flow/state.ts';
+import { socialKey } from '#lib/map/social.ts';
+import social from '#lib/map/social.json';
 import { recordingFor } from '#lib/recordings/known.ts';
 import {
 	mapNodes,
@@ -66,6 +69,13 @@ describe.each(asCases)('the node %s', (_, node) => {
 
 	it('has a recording to show when it opens in advanced mode', () => {
 		expect(recordingFor(nodeSettings(node))?.id).toBe(node.preset);
+	});
+
+	it('has an image for a shared link, which says what the node says', () => {
+		const keys: Record<string, string> = social;
+		expect(keys[node.id], 'run pnpm social').toBe(socialKey(node));
+		const bytes = statSync(`static/social/${node.id}.png`);
+		expect(bytes.size).toBeLessThan(120 * 1024);
 	});
 
 	it('is what the application says it is at', () => {

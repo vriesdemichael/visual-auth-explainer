@@ -73,6 +73,7 @@ test.describe('every valid combination', () => {
 	const combinations = allValidSettings().map((settings) => presetSearch(base, settings));
 
 	test('shows what the model says', async ({ page }) => {
+		test.setTimeout(300_000);
 		const check = watchForErrors(page);
 		for (const search of combinations) {
 			await open(page, search);

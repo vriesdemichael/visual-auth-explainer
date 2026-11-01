@@ -102,27 +102,29 @@
 	<p class="intro" data-testid="intro">{intro}</p>
 {/if}
 
-{#if showChange}
-	<section class="change" data-testid="change-summary">
-		<h2>What changed</h2>
-		{#if changed}
-			<p class="why" data-testid="change-why">{settingDefs[changed].why}</p>
-		{/if}
-		<ul>
-			{#each summary as line (line)}<li>{line}</li>{/each}
-			{#each resets as reset (reset.setting)}
-				<li>{labelOf(reset.setting)} was reset. {reset.because}</li>
-			{/each}
-			{#if elsewhere}
-				<li>
-					Nothing in this diagram.
-					<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
-					<a href={elsewhere.href} data-testid="changed-elsewhere">{elsewhere.text}</a>
-				</li>
+<div role="status">
+	{#if showChange}
+		<section class="change" data-testid="change-summary">
+			<h2>What changed</h2>
+			{#if changed}
+				<p class="why" data-testid="change-why">{settingDefs[changed].why}</p>
 			{/if}
-		</ul>
-	</section>
-{/if}
+			<ul>
+				{#each summary as line (line)}<li>{line}</li>{/each}
+				{#each resets as reset (reset.setting)}
+					<li>{labelOf(reset.setting)} was reset. {reset.because}</li>
+				{/each}
+				{#if elsewhere}
+					<li>
+						Nothing in this diagram.
+						<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+						<a href={elsewhere.href} data-testid="changed-elsewhere">{elsewhere.text}</a>
+					</li>
+				{/if}
+			</ul>
+		</section>
+	{/if}
+</div>
 
 <section data-testid="step-detail">
 	<div aria-live="polite">

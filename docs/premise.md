@@ -369,7 +369,9 @@ Still to settle:
 
 - **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). Named states have a path of their own so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md), and how presets relate to nodes by section 5.9.
-- **Name and domain:** `visual-auth-explainer` is a working name only.
+- **Name and domain:** `visual-auth-explainer` is a working name only. Moving means changing `SITE_URL` in `src/lib/site.ts`, regenerating nothing else, and setting up the redirect.
+- **Whether to measure use.** Section 12 wants to know whether people come back, and [ADR-010](adr/010-static-files-on-github-pages.md) keeps nothing about a visitor outside their browser. **Proposed:** start without it, and go by GitHub stars and what people say.
+- **When to let search engines in.** Everything is ready: set the repository variable `ALLOW_INDEXING` to `true`, and the next production deploy can be indexed. Better after the name is settled, because the address gets indexed too.
 
 ## 12. How to know it is working
 
