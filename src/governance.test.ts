@@ -36,6 +36,25 @@ describe('the screenshot baselines (ADR-006)', () => {
 	});
 });
 
+describe('the check branch protection requires (ADR-006)', () => {
+	const workflow = readFileSync('.github/workflows/ci.yml', 'utf8');
+	const job = (name: string) =>
+		workflow.match(new RegExp(`name: ${name}\\n[\\s\\S]*?(\\n\\n|$)`))?.[0];
+
+	it('runs whatever happened before it, because a skipped check counts as passed', () => {
+		expect(job('CI Complete')).toContain('if: always()');
+	});
+
+	it('says no unless every job before it passed', () => {
+		expect(job('CI Complete')).toContain('needs: [checks, click-through]');
+		expect(job('CI Complete')).toContain('test "$RESULTS" = "success success"');
+	});
+
+	it('is what a deploy waits for', () => {
+		expect(job('Deploy')).toContain('needs: complete');
+	});
+});
+
 describe('decision records (ADR-002)', () => {
 	const folder = 'docs/adr';
 	const index = readFileSync(join(folder, 'index.md'), 'utf8');
