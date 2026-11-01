@@ -60,8 +60,8 @@
 				"asked": true,
 				"lists": [
 					"User roles",
-					"Email address",
-					"User profile"
+					"User profile",
+					"Email address"
 				],
 				"audience": "account",
 				"hasRoles": true,
@@ -74,8 +74,8 @@
 					"asked": true,
 					"lists": [
 						"User roles",
-						"Email address",
-						"User profile"
+						"User profile",
+						"Email address"
 					]
 				},
 				"second": {
@@ -121,7 +121,7 @@
 			"before": {
 				"hasName": true,
 				"hasEmail": true,
-				"scope": "email profile"
+				"scope": "profile email"
 			},
 			"after": {
 				"hasName": false,
@@ -357,6 +357,50 @@
 				"wwwAuthenticate": "Bearer realm=\"demo\", error=\"insufficient_scope\", error_description=\"Missing openid scope\""
 			}
 		},
+		"singleSignOn": {
+			"first": {
+				"sawForm": true
+			},
+			"second": {
+				"sawForm": false,
+				"gotACode": true
+			},
+			"sameSession": true,
+			"sameLoginTime": true,
+			"audiences": [
+				"note-sso-one",
+				"note-sso-two"
+			],
+			"insists": {
+				"sawForm": true
+			},
+			"told": {
+				"withASession": {
+					"sawForm": false,
+					"gotACode": true
+				},
+				"inANewBrowser": {
+					"sawForm": false,
+					"error": "login_required"
+				}
+			},
+			"cookie": {
+				"name": "KEYCLOAK_IDENTITY",
+				"httpOnly": true,
+				"domain": "localhost"
+			}
+		},
+		"ssoSessionMax": {
+			"before": {
+				"idle": 1800,
+				"max": 36000,
+				"secondSawForm": false
+			},
+			"after": {
+				"max": 3,
+				"secondSawForm": true
+			}
+		},
 		"refreshTokens": {
 			"accessTokenLifespan": 300,
 			"first": {
@@ -374,7 +418,8 @@
 			},
 			"pastItsLife": {
 				"userinfo": 401,
-				"thenARefresh": 200
+				"thenARefresh": 200,
+				"idTokenAgain": true
 			}
 		},
 		"revokeRefreshToken": {
@@ -599,6 +644,13 @@
 			"audience": {
 				"found": [
 					"Audience"
+				],
+				"missing": []
+			},
+			"sso-session-max": {
+				"found": [
+					"SSO Session Idle",
+					"SSO Session Max"
 				],
 				"missing": []
 			},
