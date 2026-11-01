@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import Execute from '#lib/components/Execute.svelte';
+	import Timeline from '#lib/components/Timeline.svelte';
+	import type { Part } from '#lib/flow/model.ts';
 
 	interface Props {
 		position: number;
@@ -8,6 +10,13 @@
 		canGoBack: boolean;
 		onback: () => void;
 		onnext: () => void;
+		/** The diagram's parts and where someone is in them, to go anywhere at a click. */
+		parts: readonly Part[];
+		current: string;
+		onjump: (step: string) => void;
+		/** Whether it is stepping by itself. */
+		playing?: boolean;
+		onplay?: () => void;
 		/** The step's answer, when running this step adds something. */
 		answerAt?: number | null;
 		onexecute?: () => void;
@@ -21,6 +30,11 @@
 		canGoBack,
 		onback,
 		onnext,
+		parts,
+		current,
+		onjump,
+		playing = false,
+		onplay = () => {},
 		answerAt = null,
 		onexecute = () => {},
 		onwardHref = null
@@ -75,10 +89,9 @@
 			Next
 		</button>
 	{/if}
+	<button class="play" data-testid="play" onclick={onplay}>{playing ? 'Stop' : 'Play'}</button>
 	<span class="position" data-testid="position">Step {position} of {total}</span>
-	<div class="track" aria-hidden="true">
-		<div class="fill" style:width={`${(position / total) * 100}%`}></div>
-	</div>
+	<Timeline {parts} {current} {onjump} />
 	{#if answerAt !== null}
 		<Execute {answerAt} {onexecute} />
 	{:else}
@@ -110,7 +123,7 @@
 
 	/* On the first step, the one thing to do next should be obvious. */
 	.invite {
-		animation: invite 2.4s ease-in-out infinite;
+		animation: invite 2.4s ease-in-out 3;
 	}
 
 	@keyframes invite {
@@ -131,36 +144,13 @@
 		white-space: nowrap;
 	}
 
-	.track {
-		flex: 1;
-		min-width: 60px;
-		height: 4px;
-		margin: 0 8px;
-		border-radius: 2px;
-		background: var(--line);
-		overflow: hidden;
-	}
-
-	.fill {
-		height: 100%;
-		border-radius: 2px;
-		background: var(--accent);
-		transition: width 0.25s;
-	}
-
-	@media (forced-colors: active) {
-		.track {
-			border: 1px solid CanvasText;
-		}
-
-		.fill {
-			background: Highlight;
-			forced-color-adjust: none;
-		}
+	/* Same width either way, so that what is beside it does not move when it changes. */
+	.play {
+		min-width: 3.6em;
 	}
 
 	@media (max-width: 767px) {
-		.track,
+		.controls :global([data-testid='timeline']),
 		.hint {
 			display: none;
 		}

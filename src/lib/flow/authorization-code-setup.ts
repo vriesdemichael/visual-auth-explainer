@@ -90,6 +90,23 @@ export const authorizationCodeSetup: DiagramDef = {
 		}
 	],
 	groups: [],
+	parts: [
+		{
+			label: 'Register',
+			why: 'The identity provider has to know an app before it will deal with it.',
+			from: 'register-client'
+		},
+		{
+			label: 'Set up the app',
+			why: 'The app has to know which provider to trust, and where to find it.',
+			from: 'configure-app'
+		},
+		{
+			label: 'Set up the API',
+			why: 'The API has to know who to trust, and the keys that prove it.',
+			from: 'configure-api'
+		}
+	],
 	steps: [
 		{
 			id: 'register-client',

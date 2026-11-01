@@ -8,6 +8,16 @@ import type {
 
 export const TRANSITION_MS = 900;
 
+const SLOWEST_STEP_MS = 9000;
+const QUICKEST_STEP_MS = 2000;
+const MS_PER_WORD = 260;
+
+/** How long to leave some words on screen when the flow plays by itself. */
+export function readingTime(text: string) {
+	const words = text.trim().split(/\s+/).length;
+	return Math.max(QUICKEST_STEP_MS, Math.min(SLOWEST_STEP_MS, words * MS_PER_WORD));
+}
+
 /** Fades, and for an arrow how far it has drawn, on top of the layout's geometry. */
 interface Visibility {
 	opacity: number;
@@ -16,7 +26,11 @@ interface Visibility {
 }
 
 export type FrameLane = LaneLayout & Visibility;
-export type FrameRow = RowLayout & Visibility;
+export type FrameRow = RowLayout &
+	Visibility & {
+		/** How far its words are showing, because words that change go and come back. */
+		words: number;
+	};
 export type FrameChip = ChipLayout & Visibility;
 export type FrameGroup = GroupLayout & Visibility;
 
@@ -44,7 +58,7 @@ export function toFrame(layout: DiagramLayout): Frame {
 		heldWidth: layout.heldWidth,
 		headHeight: layout.headHeight,
 		lanes: layout.lanes.map(settled),
-		rows: layout.rows.map(settled),
+		rows: layout.rows.map((row) => ({ ...settled(row), words: 1 })),
 		chips: layout.chips.map(settled),
 		groups: layout.groups.map(settled)
 	};
@@ -53,19 +67,30 @@ export function toFrame(layout: DiagramLayout): Frame {
 const easeInOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - (-2 * p + 2) ** 3 / 2);
 const lerp = (a: number, b: number, p: number) => a + (b - a) * p;
 
-/** Progress through part of the transition, so leaving, moving and arriving overlap but stay in order. */
+/** Progress through part of the transition. */
 const within = (t: number, start: number, end: number) =>
 	easeInOut(Math.max(0, Math.min(1, (t - start) / (end - start))));
 
+// One after the other, because words still fading or just come would be crossed by a row going past.
 const leaveAt = (t: number) => within(t, 0, 0.3);
-const moveAt = (t: number) => within(t, 0.15, 0.7);
-const arriveAt = (t: number) => within(t, 0.55, 1);
+const moveAt = (t: number) => within(t, 0.3, 0.7);
+const arriveAt = (t: number) => within(t, 0.7, 1);
+// Arrows and lifelines come as the rows part, so that the room they make is never just empty.
+const comeAt = (t: number) => within(t, 0.35, 0.8);
+const wordsAt = (t: number) => (t < 0.5 ? 1 - leaveAt(t) : arriveAt(t));
+const BEFORE_THE_SWAP = 0.5;
+
+const sameWords = (a: RowLayout, b: RowLayout) =>
+	a.lines.length === b.lines.length &&
+	a.lines.every((line, i) => line.text === b.lines[i].text && line.anchor === b.lines[i].anchor);
 
 function blend<T extends Visibility & { id: string }>(
 	from: readonly T[],
 	to: readonly T[],
 	t: number,
-	move: (a: T, b: T, p: number) => T
+	move: (a: T, b: T, p: number) => T,
+	showing: (item: T) => number = () => 1,
+	arriving: (t: number) => number = comeAt
 ): T[] {
 	const before = new Map(from.map((item) => [item.id, item]));
 	const after = new Set(to.map((item) => item.id));
@@ -73,9 +98,10 @@ function blend<T extends Visibility & { id: string }>(
 		const previous = before.get(item.id);
 		if (previous) {
 			const moved = move(previous, item, moveAt(t));
-			return { ...moved, opacity: lerp(previous.opacity, 1, moveAt(t)), draw: 1, leaving: false };
+			const opacity = lerp(previous.opacity, 1, moveAt(t)) * showing(item);
+			return { ...moved, opacity, draw: 1, leaving: false };
 		}
-		const arrived = arriveAt(t);
+		const arrived = arriving(t);
 		return { ...item, opacity: arrived, draw: arrived, leaving: false };
 	});
 	const leaving = from
@@ -90,6 +116,16 @@ function blend<T extends Visibility & { id: string }>(
  */
 export function interpolate(from: Frame, to: Frame, t: number): Frame {
 	if (t >= 1) return to;
+	const rowsBefore = new Map(from.rows.map((row) => [row.id, row]));
+	const reworded = new Set(
+		to.rows
+			.filter((row) => {
+				const before = rowsBefore.get(row.id);
+				return before && !sameWords(before, row);
+			})
+			.map((row) => row.id)
+	);
+	const side = <T>(a: T, b: T) => (t < BEFORE_THE_SWAP ? a : b);
 	return {
 		width: to.width,
 		viewX: to.viewX,
@@ -103,31 +139,43 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 			headWidth: lerp(a.headWidth, b.headWidth, p),
 			role: p < 0.5 ? a.role : b.role
 		})),
-		rows: blend(from.rows, to.rows, t, (a, b, p) => ({
-			...b,
-			y: lerp(a.y, b.y, p),
-			top: lerp(a.top, b.top, p),
-			band: lerp(a.band, b.band, p),
-			x1: lerp(a.x1, b.x1, p),
-			x2: lerp(a.x2, b.x2, p),
-			label: p < 0.5 ? a.label : b.label,
-			lines:
-				a.lines.length === b.lines.length
-					? b.lines.map((line, i) => ({
+		rows: blend(
+			from.rows,
+			to.rows.map((row) => (rowsBefore.has(row.id) ? row : { ...row, words: arriveAt(t) })),
+			t,
+			(a, b, p) => ({
+				...b,
+				y: lerp(a.y, b.y, p),
+				top: lerp(a.top, b.top, p),
+				band: lerp(a.band, b.band, p),
+				x1: lerp(a.x1, b.x1, p),
+				x2: lerp(a.x2, b.x2, p),
+				label: side(a.label, b.label),
+				words: reworded.has(b.id) ? wordsAt(t) : lerp(a.words, 1, p),
+				lines: reworded.has(b.id)
+					? side(a.lines, b.lines)
+					: b.lines.map((line, i) => ({
 							...line,
 							x: lerp(a.lines[i].x, line.x, p),
-							y: lerp(a.lines[i].y, line.y, p),
-							text: p < 0.5 ? a.lines[i].text : line.text
+							y: lerp(a.lines[i].y, line.y, p)
 						}))
-					: p < 0.5
-						? a.lines
-						: b.lines
-		})),
-		chips: blend(from.chips, to.chips, t, (a, b, p) => ({
-			...b,
-			x: lerp(a.x, b.x, p),
-			y: lerp(a.y, b.y, p)
-		})),
+			})
+		),
+		chips: blend(
+			from.chips,
+			to.chips,
+			t,
+			(a, b, p) =>
+				reworded.has(b.step)
+					? side(a, b)
+					: {
+							...b,
+							x: lerp(a.x, b.x, p),
+							y: lerp(a.y, b.y, p)
+						},
+			(chip) => (reworded.has(chip.step) ? wordsAt(t) : 1),
+			arriveAt
+		),
 		groups: blend(from.groups, to.groups, t, (a, b, p) => ({
 			...b,
 			x: lerp(a.x, b.x, p),

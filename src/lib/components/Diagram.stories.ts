@@ -41,6 +41,23 @@ export const OpenIdConnectJustChanged: Story = {
 	}
 };
 
+export const AMessageOnItsWay: Story = {
+	args: {
+		currentStep: 'submit-credentials',
+		sending: 'submit-credentials',
+		landing: new Set(['idp:password']),
+		holdings: holdingsAt(evaluate(flow, defaultSettings), 'submit-credentials')
+	}
+};
+
+export const ARefusalOnItsWay: Story = {
+	args: {
+		layout: layoutFor({ attacker: true, clientType: 'public', pkce: true }),
+		currentStep: 'attacker-token-response',
+		sending: 'attacker-token-response'
+	}
+};
+
 export const DPoP: Story = {
 	args: { layout: layoutFor({ binding: 'dpop' }), currentStep: 'token-request' }
 };

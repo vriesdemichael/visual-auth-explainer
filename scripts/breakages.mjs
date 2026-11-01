@@ -8,6 +8,7 @@ const NODES = 'src/lib/map/nodes.ts';
 const LAYOUT = 'src/lib/diagram/layout.ts';
 const STATE = 'src/lib/flow/state.ts';
 const MODEL = 'src/lib/flow/model.ts';
+const MOTION = 'src/lib/diagram/motion.ts';
 
 export const breakages = [
 	// The attacker, in the words simple mode uses.
@@ -336,6 +337,80 @@ export const breakages = [
 		file: '.github/workflows/ci.yml',
 		from: 'needs: complete',
 		to: 'needs: checks'
+	},
+
+	// How it moves.
+	{
+		name: 'motion: new words and chips arrive while rows still move',
+		file: MOTION,
+		from: 'const arriveAt = (t: number) => within(t, 0.7, 1);',
+		to: 'const arriveAt = (t: number) => within(t, 0.4, 1);'
+	},
+	{
+		name: 'motion: rows move while old chips are still going',
+		file: MOTION,
+		from: 'const moveAt = (t: number) => within(t, 0.3, 0.7);',
+		to: 'const moveAt = (t: number) => within(t, 0.05, 0.7);'
+	},
+	{
+		name: 'motion: words that change are swapped in plain sight',
+		file: MOTION,
+		from: 'const wordsAt = (t: number) => (t < 0.5 ? 1 - leaveAt(t) : arriveAt(t));',
+		to: 'const wordsAt = (t: number) => (t < 0.5 ? 1 : 1);'
+	},
+	{
+		name: 'motion: a line that changes its anchor slides across a chip',
+		file: MOTION,
+		from: ' && line.anchor === b.lines[i].anchor',
+		to: ''
+	},
+	{
+		name: 'motion: the room new rows need stays empty until the end',
+		file: MOTION,
+		from: 'const comeAt = (t: number) => within(t, 0.35, 0.8);',
+		to: 'const comeAt = (t: number) => within(t, 0.7, 1);'
+	},
+	{
+		name: 'play: waits for ever on a long step',
+		file: MOTION,
+		from: 'Math.max(QUICKEST_STEP_MS, Math.min(SLOWEST_STEP_MS, words * MS_PER_WORD))',
+		to: 'Math.max(QUICKEST_STEP_MS, words * MS_PER_WORD)'
+	},
+	{
+		name: 'play: rushes a short step',
+		file: MOTION,
+		from: 'Math.max(QUICKEST_STEP_MS, Math.min(SLOWEST_STEP_MS, words * MS_PER_WORD))',
+		to: 'Math.min(SLOWEST_STEP_MS, words * MS_PER_WORD)'
+	},
+	{
+		name: 'parts: one starts from a step that does not exist',
+		file: AC,
+		from: "from: 'token-runs-out'",
+		to: "from: 'token-runs-outt'"
+	},
+	{
+		name: 'parts: one holds steps that are not there',
+		file: MODEL,
+		from: 'if (here.has(step.id)) parts[parts.length - 1]',
+		to: 'parts[parts.length - 1]'
+	},
+	{
+		name: 'parts: an empty one is left on the timeline',
+		file: MODEL,
+		from: 'return parts.filter((part) => part.steps.length);',
+		to: 'return parts;'
+	},
+	{
+		name: 'parts: a reason too long to read in passing',
+		file: AC,
+		from: "why: 'The app does not handle the password, so it sends the user to whoever does.',",
+		to: "why: 'The app does not handle the password at all and never should, because that is the whole point of all this, so it sends the user to whoever does.',"
+	},
+	{
+		name: 'landing: what someone had already seen lands again',
+		file: MODEL,
+		from: 'held.filter((artifact) => !before[line].includes(artifact))',
+		to: 'held'
 	},
 
 	// The list of combinations.

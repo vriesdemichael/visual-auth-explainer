@@ -14,6 +14,7 @@
 	import StepDetail from '#lib/components/StepDetail.svelte';
 	import { freshIds } from '#lib/diagram/fresh.ts';
 	import { layoutDiagram } from '#lib/diagram/layout.ts';
+	import { readingTime } from '#lib/diagram/motion.ts';
 	import {
 		afterFlip,
 		afterMove,
@@ -22,6 +23,7 @@
 		type LastChange
 	} from '#lib/flow/changes.ts';
 	import {
+		arrivalsAt,
 		diffViews,
 		evaluate,
 		holdingsAt,
@@ -212,6 +214,7 @@
 			result.resets
 		);
 		flipping = result.state.settings;
+		sending = null;
 		onnavigate(result.state, 'push');
 	}
 
@@ -238,7 +241,17 @@
 			?.focus();
 
 	const back = () => go(previousStep(base, appState));
-	const forward = () => go(nextStep(base, appState));
+	// Next and Execute send a message. Back and a jump only show where it was, so nothing moves.
+	let sending = $state<string | null>(null);
+	$effect.pre(() => {
+		if (appState.step !== untrack(() => sending)) sending = null;
+	});
+	const landing = $derived(sending ? arrivalsAt(view, sending) : new Set<string>());
+	const forward = () => {
+		const next = nextStep(base, appState);
+		sending = next?.step ?? null;
+		go(next);
+	};
 
 	const explain = (explained: Explained | null) =>
 		onnavigate(withExplained(appState, explained), 'push');
@@ -252,6 +265,10 @@
 	);
 	// Someone with a question has its answer, which already says what this would.
 	const intro = $derived(position === 0 && !questionAnswer ? flow.intro : null);
+	// Said once, on the step someone enters it by, and the first step has more to say than this.
+	const partWhy = $derived(
+		position > 0 ? view.parts.find((part) => part.steps[0] === current.id)?.why : null
+	);
 	const notes = $derived(
 		appState.serverNotes ? notesFor(base.id, current.id, appState.settings) : []
 	);
@@ -309,6 +326,34 @@
 		if (numberOf(step) !== null) onnavigate({ ...appState, step }, 'replace');
 	};
 
+	// For presenting, and for someone who only wants to watch. Anything anyone does stops it, and a
+	// step replaces the last one in the history, so Back still leaves the page.
+	let playing = $state(false);
+	function togglePlaying() {
+		if (!playing && position === steps.length - 1) goToStep(steps[0].id);
+		playing = !playing;
+	}
+	$effect(() => {
+		if (!playing) return;
+		if (!nextStep(base, appState)) {
+			playing = false;
+			return;
+		}
+		const words = `${mode === 'simple' ? current.plain : current.label} ${current.concept}`;
+		const moving = setTimeout(forward, readingTime(words));
+		const stop = (event: Event) => {
+			const onPlay = (event.target as Element).closest?.('[data-testid="play"]');
+			const pressesIt = !(event instanceof KeyboardEvent) || [' ', 'Enter'].includes(event.key);
+			if (!onPlay || !pressesIt) playing = false;
+		};
+		const inputs = ['pointerdown', 'keydown', 'wheel', 'popstate'];
+		for (const input of inputs) window.addEventListener(input, stop, true);
+		return () => {
+			clearTimeout(moving);
+			for (const input of inputs) window.removeEventListener(input, stop, true);
+		};
+	});
+
 	// The answer stays marked until someone moves on. A link to the step just shows the step.
 	let executed = $state<{ from: string; to: string } | null>(null);
 	// Only while that step is still there, which a setting changed since may have ended.
@@ -318,6 +363,7 @@
 	function execute() {
 		if (!answer) return;
 		executed = { from: appState.step, to: answer };
+		sending = answer;
 		goToStep(answer);
 		// The button is gone now, and what came back is what to read next.
 		tick().then(() =>
@@ -498,6 +544,8 @@
 					{fresh}
 					{holdings}
 					{lit}
+					{sending}
+					{landing}
 					currentStep={appState.step}
 					onexplainlifeline={(id) => explain({ kind: 'lifeline', id })}
 					onexplainartifact={(id: ArtifactId) => explain({ kind: 'artifact', id })}
@@ -539,6 +587,7 @@
 			lifelines={view.lifelines}
 			mode={appState.mode}
 			{intro}
+			{partWhy}
 			previousChannel={steps[position - 1]?.channel ?? null}
 			atEnd={position === steps.length - 1}
 			{onward}
@@ -580,6 +629,11 @@
 			canGoBack={previousStep(base, appState) !== null}
 			onback={back}
 			onnext={forward}
+			parts={view.parts}
+			current={current.id}
+			onjump={goToStep}
+			{playing}
+			onplay={togglePlaying}
 			answerAt={answer ? numberOf(answer) : null}
 			onexecute={execute}
 			onwardHref={onward?.href ?? null}
