@@ -42,6 +42,8 @@
 	--access-soft: light-dark(#e7eefe, #1a2647);
 	--identity: light-dark(#14763a, #4ade80);
 	--identity-soft: light-dark(#e5f6ea, #12301d);
+	--refresh: light-dark(#86198f, #e9a6f5);
+	--refresh-soft: light-dark(#fbeefc, #35173a);
 	--proof: light-dark(#0e7490, #38d6ee);
 	--proof-soft: light-dark(#e0f5f9, #0f2f37);
 	--upstream: light-dark(#4b5563, #aab2bf);
@@ -97,6 +99,11 @@ body {
 [data-artifact='id-token'] {
 	--chip: var(--identity);
 	--chip-soft: var(--identity-soft);
+}
+
+[data-artifact='refresh-token'] {
+	--chip: var(--refresh);
+	--chip-soft: var(--refresh-soft);
 }
 
 [data-artifact='proof'] {
