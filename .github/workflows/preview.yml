@@ -43,7 +43,9 @@ jobs:
           preview-branch: gh-pages
           umbrella-dir: pr-preview
           comment: false
-          wait-for-pages-deployment: true
+          # Not waiting for Pages: when two previews deploy within seconds, Pages abandons the older
+          # build and the newer one includes both, so that job would go red for nothing.
+          wait-for-pages-deployment: false
       - uses: marocchino/sticky-pull-request-comment@v3.0.5
         if: steps.preview.outputs.deployment-action == 'deploy'
         with:
