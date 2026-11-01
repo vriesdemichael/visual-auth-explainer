@@ -35,6 +35,9 @@ jobs:
       - run: pnpm test:unit
       - run: pnpm test:e2e
         env:
+          # Firefox will not run as root with a HOME that belongs to someone else, which is what a
+          # container job gets.
+          HOME: /root
           # Only production may be indexed, and only once the repository variable says so.
           VITE_INDEXABLE: ${{ github.event_name == 'push' && vars.ALLOW_INDEXING == 'true' }}
       - uses: actions/upload-artifact@v7
