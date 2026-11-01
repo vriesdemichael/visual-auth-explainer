@@ -29,7 +29,7 @@ export const authorizationCode: FlowDef = {
 	title: 'Authorization code flow',
 	summary: 'An app gets access on behalf of a user, without ever seeing their password.',
 	intro:
-		'An app wants to do something for a user, such as read their calendar, without ever seeing their password. OAuth is how it gets permission. OpenID Connect adds who the user is. Press Next to follow it, one message at a time.',
+		'An app wants to do something for a user, such as read their calendar, without ever seeing their password. OAuth is how it gets permission. OpenID Connect adds who the user is, which is what logging in with an account elsewhere comes down to. Press Next to follow it, one message at a time.',
 	specs: ['rfc6749', 'rfc6750'],
 	lifelines: [
 		{
@@ -127,6 +127,8 @@ export const authorizationCode: FlowDef = {
 			plain: 'The user opens the app',
 			label: 'Open the app',
 			concept: 'The user wants something from the app, and the app needs them logged in first.',
+			inPractice:
+				'Which pages need a login is your code. For most of what follows, a library does the work, and you give it a few values.',
 			links: [
 				{
 					diagram: 'setup',
@@ -144,6 +146,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Generate a key pair',
 			concept:
 				'DPoP ties tokens to a key only this app holds, so a stolen token is useless without the key.',
+			inPractice: 'A library does this, if it supports DPoP. Not all of them do yet.',
 			when: dpop
 		},
 		{
@@ -155,6 +158,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Generate the verifier and challenge',
 			concept:
 				'The app makes up a random value for this login, the verifier, and keeps it to itself. From it, it works out a fingerprint, the challenge, that cannot be turned back. Only the fingerprint goes through the browser.',
+			inPractice: 'A library does this for you, often once you turn it on.',
 			when: pkce,
 			fields: [
 				{
@@ -180,6 +184,7 @@ export const authorizationCode: FlowDef = {
 			label: '302 to the identity provider',
 			concept:
 				'The app sends the browser to the identity provider, because the password must never reach the app.',
+			inPractice: 'A library does this, from the values you gave it in setup.',
 			fields: [{ name: 'code_challenge', place: 'query', artifact: 'challenge', when: pkce }]
 		},
 		{
@@ -269,6 +274,7 @@ export const authorizationCode: FlowDef = {
 			label: '303 to the other provider',
 			concept:
 				'The identity provider does not log the user in itself. It sends the browser on to the other provider.',
+			inPractice: 'Nothing changes for your app. It does not know this is happening.',
 			when: broker
 		},
 		{
@@ -602,6 +608,8 @@ export const authorizationCode: FlowDef = {
 				},
 				{ text: 'The code reaches the app. On its own it is worth little, which is the point.' }
 			],
+			inPractice:
+				'A library handles this, at the address you registered. That address has to exist in your app, and match exactly.',
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query', note: 'Must match what the app sent' },
@@ -616,6 +624,13 @@ export const authorizationCode: FlowDef = {
 			plain: 'The app trades the code for tokens',
 			label: 'POST /token',
 			execute: { answer: 'token-response', when: stillGoing },
+			inPractice: [
+				{
+					when: confidential,
+					text: 'A library does this. Keep the secret in your configuration, and out of your code.'
+				},
+				{ text: 'A library does this. There is no secret to keep, because there could not be one.' }
+			],
 			concept: [
 				{
 					when: all(confidential, pkce),
@@ -721,6 +736,7 @@ export const authorizationCode: FlowDef = {
 			kind: 'response',
 			plain: 'The real app is refused',
 			label: '400 invalid_grant',
+			inPractice: 'A library reports this as an error. Your app should offer to start again.',
 			concept: [
 				{
 					when: pkce,
@@ -771,6 +787,8 @@ export const authorizationCode: FlowDef = {
 				},
 				{ text: 'The access token lets the app call the API. It is meant for the API to read.' }
 			],
+			inPractice:
+				'A library takes these. Where they are kept is up to you, and worth thinking about, because whoever gets them can use them.',
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'access-token' },
 				{ name: 'token_type=Bearer', place: 'body', when: bearer },
@@ -794,6 +812,7 @@ export const authorizationCode: FlowDef = {
 			label: 'Validate the ID token',
 			concept:
 				'The app checks signature, issuer, audience, expiry and nonce before it trusts the token.',
+			inPractice: 'A library does this. Do not skip it, and do not write it yourself.',
 			when: all(oidc, stillGoing),
 			fields: [
 				{ name: 'iss', place: 'token' },
@@ -810,6 +829,7 @@ export const authorizationCode: FlowDef = {
 			plain: 'The app asks about the user',
 			label: 'GET /userinfo',
 			concept: 'The app can ask for more about the user, using the access token.',
+			inPractice: 'Often not needed, because the ID token may already say enough.',
 			when: all(oidc, stillGoing),
 			fields: [
 				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: bearer },
@@ -850,6 +870,8 @@ export const authorizationCode: FlowDef = {
 				},
 				{ text: 'The app sends the access token. Whoever holds a bearer token can use it.' }
 			],
+			inPractice:
+				'This part is your code, though a library can add the token to each call for you.',
 			fields: [
 				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: bearer },
 				{ name: 'Authorization: DPoP', place: 'header', artifact: 'access-token', when: dpop },
@@ -877,6 +899,8 @@ export const authorizationCode: FlowDef = {
 				},
 				{ text: 'The API checks the signature, that the token has not expired, and who it is for.' }
 			],
+			inPractice:
+				'A library or a gateway does this, once you tell it the issuer and who tokens have to be for. Forgetting the second is a common mistake.',
 			fields: [
 				{ name: 'aud', place: 'token' },
 				{ name: 'exp', place: 'token' },
@@ -891,7 +915,8 @@ export const authorizationCode: FlowDef = {
 			kind: 'response',
 			plain: 'The API answers',
 			label: '200 with the resource',
-			concept: 'The app has what it came for, and the user never gave it their password.'
+			concept: 'The app has what it came for, and the user never gave it their password.',
+			inPractice: 'What it answers is up to whoever built that API, which may be you.'
 		},
 		{
 			id: 'retrieve-upstream-token',
@@ -899,6 +924,7 @@ export const authorizationCode: FlowDef = {
 			to: 'idp',
 			kind: 'request',
 			execute: { answer: 'upstream-token' },
+			inPractice: "Your code asks for this, when it needs the other provider's API.",
 			plain: "The app asks for the other provider's token",
 			label: [
 				{ when: apiV2, text: 'POST /broker/{alias}/token' },
@@ -980,6 +1006,7 @@ export const authorizationCode: FlowDef = {
 			plain: 'The app calls the other provider',
 			label: "Call the upstream's API",
 			concept: "With that token, the app can call the upstream provider's APIs directly.",
+			inPractice: 'This part is your code, using the token as that API asks.',
 			when: all(storedTokens, stillGoing),
 			fields: [{ name: 'Authorization: Bearer', place: 'header', artifact: 'upstream-token' }]
 		}

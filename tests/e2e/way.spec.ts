@@ -110,6 +110,43 @@ test.describe('what is on every step', () => {
 	});
 });
 
+test.describe('someone told to add login', () => {
+	test('finds their question on the map, and it starts with what they have to do', async ({
+		page
+	}) => {
+		await page.goto('./');
+		await page.locator('main[data-ready="true"]').waitFor();
+		await page.getByTestId('node-adding-login').click();
+		await expect(title(page)).toHaveText('I have to add login to an app. What do I do?');
+		await expect(page.locator('.workspace')).toHaveAttribute('data-diagram', 'setup');
+		await expect(page.locator('[data-lifeline="app-team"]')).toContainText('You');
+		await expect(page.getByTestId('step-practice')).toContainText('once per place the app runs');
+	});
+
+	test('is told which part is theirs and which a library does', async ({ page }) => {
+		await open(page, 'mode=simple&step=configure-app', 'setup');
+		await expect(page.getByTestId('step-practice')).toContainText('most of what you write');
+		await open(page, 'mode=simple&step=token-request');
+		await expect(page.getByTestId('step-practice')).toContainText('A library does this');
+		await expect(page.getByTestId('step-practice')).toContainText('out of your code');
+		await open(page, 'mode=simple&client=public&pkce=1&step=token-request');
+		await expect(page.getByTestId('step-practice')).toContainText('no secret to keep');
+		await open(page, 'mode=simple&step=api-request');
+		await expect(page.getByTestId('step-practice')).toContainText('your code');
+	});
+
+	test('is told which setting is login', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await expect(page.locator('[data-setting="oidc"]')).toContainText('If you are adding login');
+		await expect(page.getByTestId('intro')).toContainText('OpenID Connect adds who the user is');
+	});
+
+	test('is not told about their app on a step that has nothing to do with it', async ({ page }) => {
+		await open(page, 'mode=simple&step=login-page');
+		await expect(page.getByTestId('step-practice')).toHaveCount(0);
+	});
+});
+
 test.describe('a token', () => {
 	test('says which setting put what in it', async ({ page }) => {
 		await openNode(page, 'what-is-in-my-token');

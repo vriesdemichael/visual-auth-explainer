@@ -84,6 +84,8 @@ export interface StepDef {
 	concept: Text;
 	group?: string;
 	pitfall?: PitfallDef;
+	/** What this means for someone building an app: who writes this part, and what is left to them. */
+	inPractice?: Text;
 	links?: readonly StepLink[];
 	fields?: readonly FieldDef[];
 	execute?: ExecuteDef;
@@ -146,6 +148,7 @@ export interface Step {
 	concept: string;
 	group?: string;
 	pitfall?: Pitfall;
+	inPractice?: string;
 	links: readonly StepLink[];
 	fields: Field[];
 	/** The step with the answer, when executing this one adds something. */
@@ -204,6 +207,7 @@ export function evaluate(flow: FlowDef, settings: Settings): FlowView {
 			concept: resolveText(step.concept, settings),
 			group: step.group,
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
+			inPractice: step.inPractice && resolveText(step.inPractice, settings),
 			links: step.links ?? [],
 			execute:
 				step.execute && present(step.execute.when, settings) ? step.execute.answer : undefined,

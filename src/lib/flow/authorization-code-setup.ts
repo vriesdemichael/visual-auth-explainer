@@ -23,12 +23,13 @@ export const authorizationCodeSetup: FlowDef = {
 	lifelines: [
 		{
 			id: 'app-team',
-			plainName: 'App team',
-			plainRole: 'People',
+			plainName: 'You',
+			plainRole: 'The app team',
 			name: 'App team',
 			role: 'People',
 			icon: 'people',
-			concept: 'The people who build and run the app. They know where it runs.'
+			concept:
+				'The people who build and run the app, which is probably you. They know where it runs, so they are the ones who know what to register.'
 		},
 		{
 			id: 'app',
@@ -56,11 +57,12 @@ export const authorizationCodeSetup: FlowDef = {
 		{
 			id: 'idp-admin',
 			plainName: 'Admin',
-			plainRole: 'People',
+			plainRole: 'Runs the provider',
 			name: 'IdP admin',
 			role: 'People',
 			icon: 'people',
-			concept: 'The people who run the identity provider. They register apps in its admin console.'
+			concept:
+				'The people who run the identity provider. They register apps in its admin console. On a small team, or a provider you pay for, this may be you as well.'
 		},
 		{
 			id: 'upstream',
@@ -83,7 +85,9 @@ export const authorizationCodeSetup: FlowDef = {
 			plain: 'Ask to register the app',
 			label: 'Ask to register the app',
 			concept:
-				"The app team gives an admin the app's redirect URIs and client type. People do this, so there is no HTTP message.",
+				'The app team tells an admin where users may be sent back to, the redirect URIs, and whether the app can keep a secret, the client type. People do this, so there is no HTTP message.',
+			inPractice:
+				'You do this once per place the app runs, because a test address and a live address are registered separately.',
 			links: [{ diagram: 'flow', step: 'authorize', text: 'See where this address gets checked' }],
 			fields: [
 				{ name: 'redirect_uris', place: 'setting', note: 'Checked again during every login' },
@@ -123,6 +127,13 @@ export const authorizationCodeSetup: FlowDef = {
 					text: 'The admin passes the client ID and secret back to the app team.'
 				},
 				{ text: 'The admin passes the client ID back. A public client has no secret to keep.' }
+			],
+			inPractice: [
+				{
+					when: confidential,
+					text: 'Keep the secret out of your code and your repository, as you would a password.'
+				},
+				{ text: 'The client ID is not a secret, so it can go in your code.' }
 			],
 			fields: [
 				{ name: 'client_id', place: 'setting' },
@@ -186,6 +197,8 @@ export const authorizationCodeSetup: FlowDef = {
 				},
 				{ text: 'The team gives the app the issuer URL and the client ID.' }
 			],
+			inPractice:
+				'This is most of what you write: these values in your configuration, and a library that takes them. It does what comes next.',
 			fields: [
 				{ name: 'issuer', place: 'setting' },
 				{ name: 'client_id', place: 'setting' },
@@ -200,6 +213,7 @@ export const authorizationCodeSetup: FlowDef = {
 			plain: "The app looks up the provider's addresses",
 			label: 'GET /.well-known/…',
 			execute: { answer: 'discovery-document' },
+			inPractice: 'A library does this when it starts.',
 			concept:
 				'The app starts from the issuer URL and asks the identity provider where everything else is.',
 			fields: [

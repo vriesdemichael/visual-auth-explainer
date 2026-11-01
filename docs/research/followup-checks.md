@@ -162,6 +162,7 @@ What else the recordings changed or showed:
 - **A stand-in:** the app that runs in the browser is recorded from a server. The messages are the same, and where they come from is not. A real call from a page is in `webOrigins`, for what the browser adds.
 - **Read in RFC 9449, not seen on Keycloak:** the nonce retry with `use_dpop_nonce` and `DPoP-Nonce`. The nonce is the server's choice, so it is a setting and not part of DPoP itself, and the application marks these messages.
 - **Not on the wire, so not recorded:** what people do in setup, which the recorder does through the admin API instead. So a note's "changed this" means through that API, and the console was only checked to have the label on that page.
+- **General knowledge, not checked against anything here:** the "In practice" lines, about what a library usually does and what is left to your code. They say what is common, and no library is named.
 - **Audited once, not held by a test:** the concept texts. A reader who had not seen the project compared them with the RFCs and the recordings on 2026-11-01, and the corrections are in pull requests 34 and 35. OpenID Connect Core is not in the repository, so what rests on it is from memory.
 
 ## The entry and the format

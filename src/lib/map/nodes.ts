@@ -70,6 +70,16 @@ export const mapTracks: readonly MapTrack[] = [
 					diagram: 'setup',
 					preset: 'oauth'
 				})
+			],
+			[
+				node({
+					id: 'adding-login',
+					title: 'I have to add login to an app. What do I do?',
+					summary:
+						'The part you do once, which part of your code is left, and what a library does.',
+					diagram: 'setup',
+					preset: 'oidc'
+				})
 			]
 		]
 	},

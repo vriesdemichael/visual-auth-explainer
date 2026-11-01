@@ -103,7 +103,8 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 		why: 'OAuth tells an app what it may do, not who the user is. An access token is for the API, and nothing promises the app can read it, even where it happens to name the user. OpenID Connect adds an ID token, made for the app, that says who logged in.',
 		simple: {
 			label: 'Know who logged in',
-			summary: 'Turns on OpenID Connect, so the app also gets proof of who the user is.'
+			summary:
+				'If you are adding login, this is the part you want. Turns on OpenID Connect, so the app also gets proof of who the user is.'
 		},
 		sources: [
 			{
