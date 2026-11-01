@@ -27,7 +27,8 @@ export function nodeState(of: MapNode): AppState {
 		explained: null,
 		serverNotes: true,
 		settingsHidden: false,
-		eyes: of.eyes ?? null
+		eyes: of.eyes ?? null,
+		follow: null
 	};
 }
 

@@ -29,6 +29,8 @@
 		landing?: ReadonlySet<string>;
 		/** The one party whose view to show. What it never saw is not drawn, only how much there was. */
 		eyes?: string | null;
+		/** The steps one thing goes through, and what forms it takes, to light up that path. */
+		followed?: { steps: ReadonlySet<string>; forms: readonly ArtifactId[] } | null;
 		onselect?: (step: string) => void;
 		onexplainlifeline?: (id: string) => void;
 		onexplainartifact?: (id: ArtifactId) => void;
@@ -44,6 +46,7 @@
 		sending = null,
 		landing = new Set(),
 		eyes = null,
+		followed = null,
 		onselect,
 		onexplainlifeline,
 		onexplainartifact
@@ -233,6 +236,8 @@
 								<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 								<g
 									class="held"
+									class:followed={followed?.forms.includes(chip.artifact)}
+									class:off-path={followed && !followed.forms.includes(chip.artifact)}
 									class:landing={travelling && landing.has(`${lane.id}:${chip.artifact}`)}
 									data-artifact={chip.artifact}
 									data-held={`${lane.id}:${chip.artifact}`}
@@ -297,6 +302,8 @@
 					class:lit={lit?.step === row.id}
 					class:sending={travelling === row.id}
 					class:unseen={hiddenRows.has(row.id)}
+					class:on-path={followed?.steps.has(row.id)}
+					class:off-path={followed && !followed.steps.has(row.id)}
 					style:opacity={row.opacity}
 					data-step={row.leaving ? undefined : row.id}
 					data-state={state}
@@ -406,6 +413,15 @@
 						class={`chip ${state}`}
 						class:fresh={fresh.has(chip.id) || fresh.has(chip.step)}
 						class:sending={travelling === chip.step}
+						class:followed={followed?.steps.has(chip.step) &&
+							chip.artifact &&
+							followed.forms.includes(chip.artifact)}
+						class:off-path={followed &&
+							!(
+								followed.steps.has(chip.step) &&
+								chip.artifact &&
+								followed.forms.includes(chip.artifact)
+							)}
 						style:opacity={chip.opacity}
 						data-chip={chip.leaving ? undefined : chip.id}
 						data-artifact={chip.artifact}
@@ -941,6 +957,49 @@
 
 	.chip.future:not(.fresh) {
 		opacity: 0 !important;
+	}
+
+	/* Following one thing: its path stays, ahead as well because that is what was asked for, and the
+	   rest goes quiet. Nothing gets a colour of its own. */
+	.row.off-path line,
+	.row.off-path path,
+	.row.off-path polygon,
+	.row.off-path .label,
+	.row.off-path .number text,
+	.held.off-path {
+		opacity: 0.25;
+	}
+
+	/* Its circle stays solid, so that a lifeline does not run through the number. */
+	.row.off-path .number circle {
+		stroke-opacity: 0.25;
+	}
+
+	.chip.off-path {
+		opacity: 0.25 !important;
+	}
+
+	.chip.off-path.future:not(.fresh) {
+		opacity: 0 !important;
+	}
+
+	.row.on-path line,
+	.row.on-path path,
+	.row.on-path polygon {
+		opacity: 1;
+	}
+
+	.row.on-path.future .label {
+		opacity: var(--words, 1);
+	}
+
+	.chip.followed.future {
+		opacity: 1 !important;
+	}
+
+	.chip.followed rect,
+	.held.followed rect {
+		stroke-width: 2;
 	}
 
 	/* What someone never saw, which is how much there was and nothing of what it said. */

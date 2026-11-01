@@ -5,6 +5,7 @@
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
 	import EyesSwitch from '#lib/components/EyesSwitch.svelte';
+	import FollowPath from '#lib/components/FollowPath.svelte';
 	import Mark from '#lib/components/Mark.svelte';
 	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
 	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
@@ -40,6 +41,7 @@
 		withSettingsHidden,
 		withExplained,
 		withEyes,
+		withFollow,
 		withMode,
 		withServerNotes,
 		withSetting,
@@ -51,7 +53,8 @@
 	} from '#lib/flow/state.ts';
 	import { explanationOf, litBy, stateShowing } from '#lib/flow/explain.ts';
 	import { sees } from '#lib/flow/eyes.ts';
-	import type { ArtifactId } from '#lib/flow/vocabulary.ts';
+	import { formsOf, pathOf } from '#lib/flow/follow.ts';
+	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
 		knownFrom,
@@ -73,6 +76,8 @@
 		question?: string | null;
 		/** The answer to it, in a sentence or two. */
 		answer?: string | null;
+		/** What to follow through the flow, when its path is the answer. */
+		questionFollows?: ArtifactId | null;
 		/** The question someone came with, once the settings no longer answer it. */
 		leftQuestion?: { title: string; href: string } | null;
 		/** The question to go on to, once this flow is done. */
@@ -90,6 +95,7 @@
 		animate = true,
 		question = null,
 		answer: questionAnswer = null,
+		questionFollows = null,
 		leftQuestion = null,
 		onward = null,
 		homeHref,
@@ -269,6 +275,14 @@
 	};
 	const stepsSeen = $derived(steps.filter((step) => seesStep(step.id)).length);
 	const seeAs = (party: string | null) => onnavigate(withEyes(appState, party), 'push');
+
+	const stops = $derived(appState.follow ? pathOf(view, appState.follow) : []);
+	const followed = $derived(
+		appState.follow
+			? { steps: new Set(stops.map(({ step }) => step)), forms: formsOf(appState.follow) }
+			: null
+	);
+	const follow = (thing: ArtifactId | null) => onnavigate(withFollow(appState, thing), 'push');
 
 	const explain = (explained: Explained | null) =>
 		onnavigate(withExplained(appState, explained), 'push');
@@ -565,6 +579,7 @@
 					{sending}
 					{landing}
 					eyes={appState.eyes}
+					{followed}
 					currentStep={appState.step}
 					onexplainlifeline={(id) => explain({ kind: 'lifeline', id })}
 					onexplainartifact={(id: ArtifactId) => explain({ kind: 'artifact', id })}
@@ -590,9 +605,21 @@
 				</button>
 			</section>
 		{/if}
+		{#if appState.follow}
+			<FollowPath
+				label={artifacts[appState.follow].label}
+				{stops}
+				current={appState.step}
+				{numberOf}
+				onstep={goToStep}
+				onstop={() => follow(null)}
+			/>
+		{/if}
 		{#if questionAnswer}
 			<QuestionAnswer
 				answer={questionAnswer}
+				follows={questionFollows && !appState.follow ? artifacts[questionFollows].label : null}
+				onfollow={() => follow(questionFollows)}
 				onrewind={position > 0 ? () => goToStep(steps[0].id) : null}
 				onterm={explainTerm}
 				serverNamed={appState.serverNotes}
@@ -610,6 +637,10 @@
 					? () => seeAs(appState.eyes === explanation.party ? null : explanation.party!)
 					: null}
 				seeingOnly={appState.eyes === explanation.party}
+				onfollow={explanation.follows
+					? () => follow(appState.follow === explanation.follows ? null : explanation.follows!)
+					: null}
+				following={appState.follow === explanation.follows}
 				onclose={() => explain(null)}
 				onexplainartifact={(id) => explain({ kind: 'artifact', id })}
 				onopensource={(ref) => {

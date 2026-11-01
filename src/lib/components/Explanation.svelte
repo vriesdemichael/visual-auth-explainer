@@ -22,6 +22,9 @@
 		/** It is about a party, whose view can be shown, and whether it is. */
 		onseeonly?: (() => void) | null;
 		seeingOnly?: boolean;
+		/** It is about something with a path to follow, and whether that is being done. */
+		onfollow?: (() => void) | null;
+		following?: boolean;
 		onexplainartifact?: (id: ArtifactId) => void;
 		onopensource?: (ref: SourceRef) => void;
 		onclose: () => void;
@@ -40,6 +43,8 @@
 		onleaveout = null,
 		onseeonly = null,
 		seeingOnly = false,
+		onfollow = null,
+		following = false,
 		onexplainartifact,
 		onopensource,
 		onclose
@@ -83,6 +88,13 @@
 		<p class="seen">
 			<button type="button" class="chip" data-testid="see-only" onclick={onseeonly}>
 				{seeingOnly ? 'See everything again' : 'See only what this one saw'}
+			</button>
+		</p>
+	{/if}
+	{#if onfollow}
+		<p class="seen">
+			<button type="button" class="chip" data-testid="follow-it" onclick={onfollow}>
+				{following ? 'Stop following' : 'Follow it through the flow'}
 			</button>
 		</p>
 	{/if}

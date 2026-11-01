@@ -136,6 +136,8 @@ Three things follow:
 
 **Proposed: the whole flow through one party's eyes.** Pick the browser, and what it was never sent is a muted bar, in the diagram and in the raw view, with the value gone from the page and not just covered. "Seen" means what a party was sent or sent itself, and the screen says so: not what it could work out, or what anything else running there could read. It comes from the same fields as the chips, and it changes no flow ([ADR-004](adr/004-modes-never-change-the-flow.md)).
 
+**Proposed: one thing followed through the flow.** Select a code, and its path lights up across the diagram and is listed by step, with the rest quiet, because the answer to "why a code and then a token" is the path it takes. Two forms of one thing, a verifier and its challenge, follow together, which is PKCE in one picture. The path comes from the fields on the steps. "Used up" is only said where a recording backs it, and a test holds it to that.
+
 ### 5.5 Simple mode and advanced mode
 
 **Decided:** the application has a simple mode and an advanced mode. In the maintainer's words, the advanced mode is there "to toggle more settings", at "the advanced level as in authplayground". So this is an application-wide mode that changes which settings are on offer and how much each step shows.

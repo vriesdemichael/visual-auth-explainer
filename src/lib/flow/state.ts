@@ -1,3 +1,4 @@
+import { pathOf } from '#lib/flow/follow.ts';
 import { terms } from '#lib/flow/glossary.ts';
 import {
 	evaluate,
@@ -48,18 +49,25 @@ export interface AppState {
 	settingsHidden: boolean;
 	/** The one party whose view to show, when it is not everyone's. */
 	eyes: string | null;
+	/** The one thing whose path through the diagram to light up. */
+	follow: ArtifactId | null;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
 const SERVER_NOTES_PARAM = 'keycloak';
 const SETTINGS_PANEL_PARAM = 'settings';
 const EYES_PARAM = 'eyes';
+const FOLLOW_PARAM = 'follow';
 
 const diagramOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
 const viewOf = (base: BaseFlow, state: AppState) =>
 	evaluate(diagramOf(base, state), state.settings);
 const onTheDiagram = (view: DiagramView, party: string | null) =>
 	view.lifelines.some((line) => line.id === party) ? party : null;
+const onTheWay = (view: DiagramView, thing: string | null): ArtifactId | null =>
+	thing && Object.hasOwn(artifacts, thing) && pathOf(view, thing as ArtifactId).length
+		? (thing as ArtifactId)
+		: null;
 
 /** The requested step if it is on screen, otherwise the nearest earlier one that is (ADR-003). */
 export function resolveStep(flow: DiagramDef, view: DiagramView, requested: string | null): string {
@@ -129,7 +137,8 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 		explained: parseExplained(base, diagram, params.get('explain')),
 		serverNotes: params.get(SERVER_NOTES_PARAM) !== 'off',
 		settingsHidden: params.get(SETTINGS_PANEL_PARAM) === 'off',
-		eyes: onTheDiagram(view, params.get(EYES_PARAM))
+		eyes: onTheDiagram(view, params.get(EYES_PARAM)),
+		follow: onTheWay(view, params.get(FOLLOW_PARAM))
 	};
 }
 
@@ -152,6 +161,7 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	if (!state.serverNotes) params.set(SERVER_NOTES_PARAM, 'off');
 	if (state.settingsHidden) params.set(SETTINGS_PANEL_PARAM, 'off');
 	if (state.eyes) params.set(EYES_PARAM, state.eyes);
+	if (state.follow) params.set(FOLLOW_PARAM, state.follow);
 	return params.toString();
 }
 
@@ -176,7 +186,8 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		explained: null,
 		serverNotes: true,
 		settingsHidden: false,
-		eyes: null
+		eyes: null,
+		follow: null
 	});
 }
 
@@ -190,7 +201,16 @@ export function withSetting<K extends SettingId>(
 	const flow = diagramOf(base, state);
 	const view = evaluate(flow, settings);
 	const step = resolveStep(flow, view, state.step);
-	return { state: { ...state, settings, step, eyes: onTheDiagram(view, state.eyes) }, resets };
+	return {
+		state: {
+			...state,
+			settings,
+			step,
+			eyes: onTheDiagram(view, state.eyes),
+			follow: onTheWay(view, state.follow)
+		},
+		resets
+	};
 }
 
 /** Switching diagrams keeps the settings. A step only means something in its own diagram. */
@@ -207,6 +227,7 @@ export function withDiagram(
 		diagram,
 		step: resolveStep(flow, view, step),
 		eyes: onTheDiagram(view, state.eyes),
+		follow: onTheWay(view, state.follow),
 		// A lifeline only means something in its own diagram.
 		explained: state.explained?.kind === 'lifeline' ? null : state.explained
 	};
@@ -228,6 +249,10 @@ export function withSettingsHidden(state: AppState, settingsHidden: boolean): Ap
 
 export function withEyes(state: AppState, eyes: string | null): AppState {
 	return { ...state, eyes };
+}
+
+export function withFollow(state: AppState, follow: ArtifactId | null): AppState {
+	return { ...state, follow };
 }
 
 export function withExplained(state: AppState, explained: Explained | null): AppState {

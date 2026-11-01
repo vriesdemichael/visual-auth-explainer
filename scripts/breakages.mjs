@@ -459,6 +459,32 @@ export const breakages = [
 		to: 'validCombinations(ids)'
 	},
 
+	// Following one thing.
+	{
+		name: 'follow: a step on the way is left out',
+		file: 'src/lib/flow/follow.ts',
+		from: 'const here = forms.filter((form) => step.fields.some((field) => field.artifact === form));',
+		to: 'const here = forms.filter((form) => step.kind === "response" && step.fields.some((field) => field.artifact === form));'
+	},
+	{
+		name: 'follow: two forms of one thing go their own ways',
+		file: 'src/lib/flow/follow.ts',
+		from: "verifier: ['verifier', 'challenge'],\n\tchallenge: ['verifier', 'challenge']",
+		to: "verifier: ['verifier'],\n\tchallenge: ['challenge']"
+	},
+	{
+		name: 'follow: used up is said of a step no recording backs',
+		file: 'src/lib/flow/follow.ts',
+		from: "code: { step: 'real-app-refused',",
+		to: "code: { step: 'token-response',"
+	},
+	{
+		name: 'follow: something a setting took away is still followed',
+		file: 'src/lib/flow/state.ts',
+		from: '\t\t\teyes: onTheDiagram(view, state.eyes),\n\t\t\tfollow: onTheWay(view, state.follow)\n',
+		to: '\t\t\teyes: onTheDiagram(view, state.eyes)\n'
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',

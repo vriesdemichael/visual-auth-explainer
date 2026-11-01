@@ -1,5 +1,5 @@
 import type { DiagramId } from '#lib/flow/model.ts';
-import type { Mode } from '#lib/flow/vocabulary.ts';
+import type { ArtifactId, Mode } from '#lib/flow/vocabulary.ts';
 
 /**
  * A node is a question someone brings, and the exact state that answers it. It has an address of its
@@ -20,6 +20,8 @@ export interface MapNode {
 	step?: string;
 	/** The one party whose view answers it. */
 	eyes?: string;
+	/** What to follow through the flow, when its path is the answer. */
+	follows?: ArtifactId;
 	/** Why there is no such step, because a question should not open a walk away from its answer. */
 	startsAtTheBeginning?: string;
 }
@@ -63,7 +65,8 @@ export const mapTracks: readonly MapTrack[] = [
 					title: 'Why not just send the token back through the browser?',
 					summary: 'Why the browser only gets a code, and what happened to the way that did not.',
 					preset: 'oauth',
-					step: 'redirect-with-code'
+					step: 'redirect-with-code',
+					follows: 'code'
 				}),
 				node({
 					id: 'what-the-browser-sees',
@@ -160,7 +163,8 @@ export const mapTracks: readonly MapTrack[] = [
 					summary:
 						'The app proves it started this login, with a value that was never in a redirect.',
 					preset: 'public-pkce',
-					step: 'make-verifier'
+					step: 'make-verifier',
+					follows: 'verifier'
 				}),
 				node({
 					id: 'pkce-stops-it',
