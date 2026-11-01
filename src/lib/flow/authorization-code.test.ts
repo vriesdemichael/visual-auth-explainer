@@ -284,7 +284,6 @@ describe('the two diagrams', () => {
 		for (const settings of combinations) {
 			const ids = evaluate(setup, settings).lifelines.map((line) => line.id);
 			expect(ids).not.toContain('browser');
-			expect(ids).not.toContain('api');
 		}
 	});
 
@@ -293,7 +292,8 @@ describe('the two diagrams', () => {
 			'app-team',
 			'app',
 			'idp',
-			'idp-admin'
+			'idp-admin',
+			'api'
 		]);
 	});
 

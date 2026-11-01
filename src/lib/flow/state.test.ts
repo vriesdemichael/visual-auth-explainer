@@ -294,6 +294,6 @@ describe('stepping', () => {
 	it('stays inside a diagram in both directions', () => {
 		expect(previousStep(base, onFlow(''))).toBeNull();
 		expect(previousStep(base, onSetup(''))).toBeNull();
-		expect(nextStep(base, onSetup('step=discovery-document'))).toBeNull();
+		expect(nextStep(base, onSetup('step=keys'))).toBeNull();
 	});
 });

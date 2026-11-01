@@ -1,6 +1,13 @@
 import { generateKeyPairSync, sign, type KeyObject } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { accessTokenProblem, idTokenProblem, proofProblem, sha256, type Jwk } from './checks.ts';
+import {
+	accessTokenProblem,
+	idTokenProblem,
+	proofProblem,
+	sha256,
+	type Jwk,
+	scopeProblem
+} from './checks.ts';
 
 const ISSUER = 'http://idp.test/realms/demo';
 const API = 'http://api.test/resource';
@@ -261,5 +268,26 @@ describe('a proof on its own', () => {
 				NOW
 			)
 		).toBe('not a proof');
+	});
+});
+
+describe('whether a token allows this', () => {
+	const tokenWith = (scope: string) =>
+		`Bearer ${Buffer.from('{}').toString('base64url')}.${Buffer.from(JSON.stringify({ scope })).toString('base64url')}.c2ln`;
+
+	it('passes when the token has that scope', () => {
+		expect(scopeProblem(tokenWith('email contacts'), 'contacts')).toBeNull();
+	});
+
+	it('refuses when it does not', () => {
+		expect(scopeProblem(tokenWith('email'), 'contacts')).toMatch(/does not allow/);
+	});
+
+	it('is not fooled by part of a name', () => {
+		expect(scopeProblem(tokenWith('contacts.read'), 'contacts')).toMatch(/does not allow/);
+	});
+
+	it('refuses what is not a token', () => {
+		expect(scopeProblem(undefined, 'contacts')).toBe('not a token');
 	});
 });

@@ -1,8 +1,10 @@
 import type { DiagramDef } from '#lib/flow/model.ts';
 import { example } from '#lib/flow/libraries.ts';
-import { any, is, not } from '#lib/flow/settings.ts';
+import { all, any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
+// Someone stole the code from an app with no secret, so the real app never gets as far as the API.
+const reachesTheApi = not(all(is('attacker', true), is('clientType', 'public')));
 const confidential = is('clientType', 'confidential');
 const broker = is('broker', true);
 const storedTokens = any(is('upstreamTokens', 'v1'), is('upstreamTokens', 'v2'));
@@ -75,6 +77,16 @@ export const authorizationCodeSetup: DiagramDef = {
 			icon: 'upstream',
 			concept: 'Another identity provider, which the identity provider will trust to log users in.',
 			when: broker
+		},
+		{
+			id: 'api',
+			plainName: 'API',
+			plainRole: 'Will check tokens',
+			name: 'API',
+			role: 'Resource server',
+			icon: 'api',
+			concept:
+				'The API the app will call. It has a setup of its own, because it has to know which tokens to accept.'
 		}
 	],
 	groups: [],
@@ -238,13 +250,6 @@ export const authorizationCodeSetup: DiagramDef = {
 			label: 'Endpoints',
 			concept:
 				"The identity provider's endpoints, and where to find the keys that verify its tokens.",
-			links: [
-				{
-					diagram: 'flow',
-					step: 'open-app',
-					text: 'Setup is done. See what happens when a user arrives'
-				}
-			],
 			fields: [
 				{ name: 'issuer', place: 'body' },
 				{ name: 'authorization_endpoint', place: 'body' },
@@ -252,6 +257,63 @@ export const authorizationCodeSetup: DiagramDef = {
 				{ name: 'jwks_uri', place: 'body' },
 				{ name: 'userinfo_endpoint', place: 'body', when: oidc }
 			]
+		},
+		{
+			id: 'configure-api',
+			from: 'app-team',
+			to: 'api',
+			kind: 'human',
+			plain: 'You tell the API who to trust',
+			label: 'Configure the API',
+			concept:
+				'The API has to be told which issuer to trust, and what name tokens have to carry for it. Without the second, any token from that issuer gets in, including those meant for another API.',
+			inPractice:
+				'A library or a gateway takes these two values, and checks the rest. Do not leave out the audience, which it may let you do.',
+			practice: [
+				example('jose', true, 'when you pass it the issuer and audience'),
+				example('awsJwt', true, 'once it is given them')
+			],
+			links: [
+				{
+					diagram: 'flow',
+					step: 'api-check-token',
+					text: 'See where these get checked',
+					when: reachesTheApi
+				}
+			],
+			fields: [
+				{ name: 'issuer', place: 'setting' },
+				{ name: 'audience', place: 'setting', note: 'The name a token has to carry for this API' }
+			]
+		},
+		{
+			id: 'fetch-keys',
+			from: 'api',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The API gets the keys',
+			label: 'GET /certs',
+			concept:
+				'The API looks up the keys that check signatures, at the address discovery gives. It does not need to call the identity provider for each token after that.',
+			fields: [{ name: '/certs', place: 'path', note: 'The jwks_uri from the discovery document' }]
+		},
+		{
+			id: 'keys',
+			from: 'idp',
+			to: 'api',
+			kind: 'response',
+			plain: 'The keys that check tokens',
+			label: '200 with keys',
+			concept:
+				'The public half of the keys the identity provider signs with. Anyone can have these, because they can only check a signature and not make one.',
+			links: [
+				{
+					diagram: 'flow',
+					step: 'open-app',
+					text: 'Setup is done. See what happens when a user arrives'
+				}
+			],
+			fields: [{ name: 'keys', place: 'body' }]
 		}
 	]
 };

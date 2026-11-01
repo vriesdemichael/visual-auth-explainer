@@ -53,6 +53,8 @@ export interface StepLink {
 	diagram: DiagramId;
 	step: string;
 	text: string;
+	/** When the step it points at is only there with some settings. */
+	when?: Condition;
 }
 
 /** What goes wrong here, for a message people actually run into trouble with. */
@@ -236,7 +238,7 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
 			inPractice: step.inPractice && resolveText(step.inPractice, settings),
 			practice: (step.practice ?? []).filter((example) => present(example.when, settings)),
-			links: step.links ?? [],
+			links: (step.links ?? []).filter((link) => present(link.when, settings)),
 			execute:
 				step.execute && present(step.execute.when, settings) ? step.execute.answer : undefined,
 			specOnly: step.specOnly,
@@ -336,6 +338,8 @@ export function isEmptyDiff(diff: ViewDiff): boolean {
 export function settingsUsedBy(diagram: DiagramDef): Set<string> {
 	const used = new Set<string>();
 	JSON.stringify(diagram, (key, value) => {
+		// What a link depends on is the other diagram, so it does not make a setting do something here.
+		if (key === 'links') return undefined;
 		if (key === 'setting') used.add(value);
 		return value;
 	});

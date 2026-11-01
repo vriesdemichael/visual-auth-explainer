@@ -283,6 +283,7 @@ An order for later releases. **Proposed**, and expected to change.
 | OIDC | Modifier | Adds the `openid` scope, an ID token and UserInfo. The access token does not change on a default Keycloak client |
 | An attacker | Modifier | Adds a lifeline, the theft and what they get. Only in the plain case, with a Bearer token and no other provider |
 | Consent and scopes | Modifier | Adds the question and the answer. Off on a default Keycloak client, which the Keycloak note explains |
+| What the API is sent | Exclusive, advanced only | Changes the call to the API and its answer: no token, expired, changed, for another API, or one that does not allow this. Only in the plain case, with a Bearer token, and the setup gains the API |
 | PKCE | Modifier, off to start with | Adds `code_challenge` and `code_verifier`, with a step where the app makes them and one where the IdP checks them. Independent of the client type, because a real Keycloak takes all four combinations |
 | Public or confidential client | Exclusive | Changes setup and the token request |
 | Pre-registered, DCR or CIMD | Exclusive | Changes the setup diagram. CIMD is the `cimd` flag, experimental |

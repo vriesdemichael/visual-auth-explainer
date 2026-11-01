@@ -767,6 +767,35 @@ export async function questionsWithApiV1(browser: Browser, demo: Demo, admin: Ad
 		};
 	}
 
+	// What a real server's own API answers, in each case an API can say no.
+	{
+		const userinfo = `${KEYCLOAK}/realms/${LOCAL_REALM}/protocol/openid-connect/userinfo`;
+		const { code } = await codeFor(browser, demo, LOCAL_REALM, CONFIDENTIAL_CLIENT, {
+			scope: 'openid'
+		});
+		const good = await token(LOCAL_REALM, confidentialBody(code));
+		const access = good.json.access_token;
+		const noOpenid = await codeFor(browser, demo, LOCAL_REALM, CONFIDENTIAL_CLIENT, {
+			scope: 'email'
+		});
+		const without = await token(LOCAL_REALM, confidentialBody(noOpenid.code));
+		const said = async (headers: Record<string, string>) => {
+			const answer = await fetch(userinfo, { headers });
+			await answer.text();
+			return { status: answer.status, wwwAuthenticate: answer.headers.get('www-authenticate') };
+		};
+		const [head, body, signature] = access.split('.');
+		answers.howAnApiSaysNo = {
+			goodToken: await said({ authorization: `Bearer ${access}` }),
+			noToken: await said({}),
+			notAToken: await said({ authorization: 'Bearer not-a-token' }),
+			changed: await said({
+				authorization: `Bearer ${head}.${body}.${signature.slice(0, -6)}AAAAAA`
+			}),
+			withoutOpenid: await said({ authorization: `Bearer ${without.json.access_token}` })
+		};
+	}
+
 	// Do the tokens someone stole survive the real app then trying the same code? RFC 6749 section
 	// 4.1.2 says a server should revoke them.
 	{

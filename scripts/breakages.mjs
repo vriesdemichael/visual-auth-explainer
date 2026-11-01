@@ -36,6 +36,32 @@ export const breakages = [
 		to: 'works, which is what PKCE stops.'
 	},
 
+	// An API saying no.
+	{
+		name: 'api: a 403 is called a 401',
+		file: AC,
+		from: "{ when: sends('noscope'), text: '403 insufficient_scope' },",
+		to: "{ when: sends('noscope'), text: '401 invalid_token' },"
+	},
+	{
+		name: 'api: a refusal has no WWW-Authenticate',
+		file: AC,
+		from: "note: 'What kind of token it wants, and what was wrong with this one',\n\t\t\t\t\twhen: apiRefuses",
+		to: "note: 'What kind of token it wants, and what was wrong with this one',\n\t\t\t\t\twhen: sends('good')"
+	},
+	{
+		name: 'api: an expired token is called changed',
+		file: AC,
+		from: "{ when: sends('expired'), text: 'The API refuses: the token has expired' },",
+		to: "{ when: sends('expired'), text: 'The API refuses: the signature is wrong' },"
+	},
+	{
+		name: 'api: the token is sent even when it says none is',
+		file: AC,
+		from: "when: all(bearer, not(sends('none')))",
+		to: 'when: bearer'
+	},
+
 	// DPoP, which has been wrong twice.
 	{
 		name: 'dpop: a gateway is said to check the proof',

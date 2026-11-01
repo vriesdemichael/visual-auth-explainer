@@ -1,6 +1,6 @@
 import type { DiagramDef } from '#lib/flow/model.ts';
 import { example } from '#lib/flow/libraries.ts';
-import { all, any, is, not } from '#lib/flow/settings.ts';
+import { all, any, is, not, type Settings } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
 const confidential = is('clientType', 'confidential');
@@ -20,6 +20,8 @@ const broker = is('broker', true);
 const storedTokens = any(is('upstreamTokens', 'v1'), is('upstreamTokens', 'v2'));
 const apiV1 = is('upstreamTokens', 'v1');
 const apiV2 = is('upstreamTokens', 'v2');
+const sends = (value: Settings['apiToken']) => is('apiToken', value);
+const apiRefuses = not(sends('good'));
 
 /**
  * Every field here is held to the recordings of a real Keycloak by src/lib/recordings/recordings.test.ts.
@@ -667,7 +669,11 @@ export const authorizationCode: DiagramDef = {
 			kind: 'request',
 			plain: 'The app trades the code for tokens',
 			label: 'POST /token',
-			execute: { answer: 'token-response', when: stillGoing },
+			// With no token sent on or a changed one, nothing later uses what this returns.
+			execute: {
+				answer: 'token-response',
+				when: all(stillGoing, not(sends('none')), not(sends('changed')))
+			},
 			inPractice: [
 				{
 					when: confidential,
@@ -942,9 +948,40 @@ export const authorizationCode: DiagramDef = {
 			from: 'app',
 			to: 'api',
 			kind: 'request',
-			plain: 'The app calls the API with the token',
-			label: 'GET /resource',
+			plain: [
+				{ when: sends('none'), text: 'The app calls the API with no token' },
+				{ when: sends('expired'), text: 'The app calls the API with an old token' },
+				{ when: sends('changed'), text: 'The app calls the API with a changed token' },
+				{ when: sends('elsewhere'), text: 'The token goes to another API' },
+				{ when: sends('noscope'), text: 'The app asks for more than the token allows' },
+				{ text: 'The app calls the API with the token' }
+			],
+			label: [
+				{ when: sends('elsewhere'), text: 'GET /my-api/resource' },
+				{ when: sends('noscope'), text: 'GET /contacts' },
+				{ text: 'GET /resource' }
+			],
 			concept: [
+				{
+					when: sends('none'),
+					text: 'The app calls the API without a token, as happens when a library has not added one or the app has none yet.'
+				},
+				{
+					when: sends('expired'),
+					text: 'The app sends the token it has, which has run out. Everything else about it is still right.'
+				},
+				{
+					when: sends('changed'),
+					text: 'The token has been changed along the way. It still looks like a token, and the part that says who it is for still reads the same.'
+				},
+				{
+					when: sends('elsewhere'),
+					text: 'The app sends its token to an API that expects its own name in it. This is the usual case with a new API on a default client, where a token names something else.'
+				},
+				{
+					when: sends('noscope'),
+					text: 'The token is fine, and this API asks for a scope it does not have.'
+				},
 				{
 					when: dpop,
 					text: 'The app sends the token and a new proof, which shows it holds the key the token is tied to.'
@@ -955,7 +992,12 @@ export const authorizationCode: DiagramDef = {
 				'This part is your code, though a library can add the token to each call for you.',
 			practice: [example('oauth4webapi', true, 'with protectedResourceRequest')],
 			fields: [
-				{ name: 'Authorization: Bearer', place: 'header', artifact: 'access-token', when: bearer },
+				{
+					name: 'Authorization: Bearer',
+					place: 'header',
+					artifact: 'access-token',
+					when: all(bearer, not(sends('none')))
+				},
 				{ name: 'Authorization: DPoP', place: 'header', artifact: 'access-token', when: dpop },
 				{
 					name: 'DPoP',
@@ -980,7 +1022,7 @@ export const authorizationCode: DiagramDef = {
 					text: 'The API checks the token, and that the proof was signed with the key the token names.'
 				},
 				{
-					text: 'The API checks the signature, that the token has not expired, and who it is for. An opaque token it has to ask the server about.'
+					text: 'The API checks the signature, who issued the token, that it has not expired, and who it is for. An opaque token it has to ask the server about.'
 				}
 			],
 			inPractice: [
@@ -998,9 +1040,18 @@ export const authorizationCode: DiagramDef = {
 				example('jose', true, 'when you pass it the issuer and audience', bearer),
 				example('awsJwt', true, 'once it is given them', bearer)
 			],
+			pitfall: {
+				title: 'What if one of these checks fails?',
+				text: 'The API answers 401 when it does not accept the token: none at all, expired, changed, from another issuer, or for someone else. It answers 403 when it accepts the token, and the token does not allow this. So a new token can help with a 401, and will not help with a 403.'
+			},
+			links: [
+				{ diagram: 'setup', step: 'configure-api', text: 'See how the API was told who to trust' }
+			],
 			fields: [
+				{ name: 'iss', place: 'token' },
 				{ name: 'aud', place: 'token' },
 				{ name: 'exp', place: 'token' },
+				{ name: 'scope', place: 'token', note: 'What the token allows, for your code to compare' },
 				{ name: 'cnf.jkt', place: 'token', note: 'The key the token is tied to', when: dpop }
 			]
 		},
@@ -1010,10 +1061,52 @@ export const authorizationCode: DiagramDef = {
 			from: 'api',
 			to: 'app',
 			kind: 'response',
-			plain: 'The API answers',
-			label: '200 with the resource',
-			concept: 'The app has what it came for, and the user never gave it their password.',
-			inPractice: 'What it answers is up to whoever built that API, which may be you.'
+			plain: [
+				{ when: sends('none'), text: 'The API asks for a token' },
+				{ when: sends('expired'), text: 'The API refuses: the token has expired' },
+				{ when: sends('changed'), text: 'The API refuses: the signature is wrong' },
+				{ when: sends('elsewhere'), text: 'The API refuses: the token is for someone else' },
+				{ when: sends('noscope'), text: 'The API refuses: the token does not allow this' },
+				{ text: 'The API answers' }
+			],
+			label: [
+				{ when: sends('none'), text: '401 with no error' },
+				{ when: sends('noscope'), text: '403 insufficient_scope' },
+				{ when: apiRefuses, text: '401 invalid_token' },
+				{ text: '200 with the resource' }
+			],
+			concept: [
+				{
+					when: sends('none'),
+					text: 'A 401, and WWW-Authenticate says which kind of token it wants, with no error, because there was no token to be wrong.'
+				},
+				{
+					when: sends('expired'),
+					text: 'A 401 with invalid_token. This is the one an app expects: it gets a new access token, and tries again.'
+				},
+				{
+					when: sends('changed'),
+					text: 'A 401 with invalid_token. Anyone can read a token like this and change what it says, but they cannot sign the result, which is what this check is for.'
+				},
+				{
+					when: sends('elsewhere'),
+					text: 'A 401 with invalid_token. The signature is good and it has not expired, and it is still refused, because it does not name this API. Otherwise a token meant for one API would open every other one.'
+				},
+				{
+					when: sends('noscope'),
+					text: 'A 403 with insufficient_scope. The API accepts this token and it does not allow this, so a new token of the same kind will not help. The app would have to ask for more, and the user may have to agree.'
+				},
+				{ text: 'The app has what it came for, and the user never gave it their password.' }
+			],
+			inPractice: 'What it answers is up to whoever built that API, which may be you.',
+			fields: [
+				{
+					name: 'WWW-Authenticate',
+					place: 'header',
+					note: 'What kind of token it wants, and what was wrong with this one',
+					when: apiRefuses
+				}
+			]
 		},
 		{
 			id: 'retrieve-upstream-token',

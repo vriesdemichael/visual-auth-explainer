@@ -5,6 +5,19 @@ import { settingIds } from '#lib/flow/settings.ts';
 
 const presets: readonly Preset[] = [
 	{ id: 'oauth', title: 'OAuth', settings: {} },
+	{ id: 'api-no-token', title: 'The API sent no token', settings: { apiToken: 'none' } },
+	{ id: 'api-expired', title: 'The API sent an expired token', settings: { apiToken: 'expired' } },
+	{ id: 'api-changed', title: 'The API sent a changed token', settings: { apiToken: 'changed' } },
+	{
+		id: 'api-elsewhere',
+		title: 'The API sent a token for another API',
+		settings: { apiToken: 'elsewhere' }
+	},
+	{
+		id: 'api-no-scope',
+		title: 'The API sent a token that does not allow this',
+		settings: { apiToken: 'noscope' }
+	},
 	{ id: 'oidc', title: 'OpenID Connect', settings: { oidc: true } },
 	{
 		id: 'consent',

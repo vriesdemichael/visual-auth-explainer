@@ -55,8 +55,10 @@ describe('constraints', () => {
 		const dpopWithNonce = 3 + 3;
 		const withAttacker = 2 * 2 * 2; // oidc x pkce x client, and only Bearer with no other provider.
 		const withConsent = 2;
+		// On the plain flow only, so client type and PKCE, with each way an API can say no.
+		const withApiAnswers = 2 * 2 * 5;
 		expect(allValidSettings()).toHaveLength(
-			withConsent * (2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker)
+			withConsent * (2 * 2 * (bearer + dpop + dpopWithNonce) + withAttacker) + withApiAnswers
 		);
 	});
 

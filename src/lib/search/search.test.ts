@@ -27,9 +27,9 @@ describe('what people bring', () => {
 		['refresh token', 'word', 'Refresh token'],
 		['logout', 'word', 'Logging out'],
 		['cookie', 'word', 'Session'],
-		['expired', 'step', undefined],
-		['401', 'note', undefined],
-		['403', 'note', undefined],
+		['expired', 'question', undefined],
+		['401', 'question', undefined],
+		['403', 'question', undefined],
 		['invalid_grant', 'error', 'invalid_grant'],
 		['invalid_client', 'error', undefined],
 		['unauthorized_client', 'error', 'unauthorized_client'],
@@ -85,6 +85,8 @@ describe('what a real server said', () => {
 	const stated = new Set(
 		recordings.flatMap((recording) =>
 			recording.messages.flatMap((message) => {
+				// The demo API's words, which nobody else's server will say.
+				if (message.step === 'api-response') return [];
 				const body = message.body as Record<string, string> | undefined;
 				return body && typeof body === 'object'
 					? [body.error, body.error_description].filter(Boolean)
@@ -124,7 +126,7 @@ describe('what a real server said', () => {
 			for (const message of recording.messages) {
 				const body = message.body as Record<string, string> | undefined;
 				const said = body?.error_description;
-				if (!said || !message.step) continue;
+				if (!said || !message.step || message.step === 'api-response') continue;
 				const known = knownErrors.find((candidate) => candidate.text === said);
 				expect(known, said).toBeDefined();
 				// Each error is recorded on the steps a real server said it on, and it opens one of those.
