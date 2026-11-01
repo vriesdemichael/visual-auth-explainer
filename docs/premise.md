@@ -1,6 +1,6 @@
 # Premise
 
-Starting point as of 2026-10-31, kept current since. The first version in section 8 is built, and what is left is the maintainer's: judging the transition and the words, and settling section 11. The way there is split into [target states](https://github.com/vriesdemichael/visual-auth-explainer/issues?q=is%3Aissue+label%3A%22target+state%22), each a GitHub issue with acceptance criteria and deliverables.
+Starting point as of 2026-10-31, kept current since. The first version in section 8 is built, and what is left is the maintainer's: judging the transition and the words, and settling section 11. The way there is split into [target states](https://github.com/vriesdemichael/authlines/issues?q=is%3Aissue+label%3A%22target+state%22), each a GitHub issue with acceptance criteria and deliverables.
 
 **This is an interactive web application, not an article.** Read section 2 first, because everything else depends on it.
 
@@ -36,7 +36,7 @@ The spirit is that of the visual guides to transformers, but authn/authz is a mu
 
 ### The name
 
-**Decided.** It is called Authlines. It is easy to remember, `auth` covers authn and authz where a name built on identity would be wrong when there is only authz, and lines are what is on screen, which holds for more than sequence diagrams. Hop by Hop and Authwalk were turned down because they sound like detours. The repository and its address on Pages keep the working name for now (section 11).
+**Decided.** It is called Authlines. It is easy to remember, `auth` covers authn and authz where a name built on identity would be wrong when there is only authz, and lines are what is on screen, which holds for more than sequence diagrams. Hop by Hop and Authwalk were turned down because they sound like detours. The repository has the same name, so the site is at `vriesdemichael.github.io/authlines/`.
 
 **Decided.** It stays on GitHub Pages until it has had some success, and only then moves to `authlines.io`. The `.com` is not needed, and someone else registered it in September 2026.
 
@@ -224,7 +224,7 @@ Toggles cut across messages. DPoP touches several steps and PAR changes what cro
 
 ### A toggle shows what changed, not why (Proposed)
 
-Turning on PKCE adds parameters, and the learner still does not know what they are for. "Why" is the most reported confusion, so each toggle must show the problem it solves, ideally what goes wrong when it is off. Showing an attacker's path when a protection is off is one way to do this, and it is built for a stolen code: a setting brings an attacker onto the diagram, and flipping PKCE or the client type changes the answer on the same arrow, with what a real server said ([#26](https://github.com/vriesdemichael/visual-auth-explainer/issues/26)).
+Turning on PKCE adds parameters, and the learner still does not know what they are for. "Why" is the most reported confusion, so each toggle must show the problem it solves, ideally what goes wrong when it is off. Showing an attacker's path when a protection is off is one way to do this, and it is built for a stolen code: a setting brings an attacker onto the diagram, and flipping PKCE or the client type changes the answer on the same arrow, with what a real server said ([#26](https://github.com/vriesdemichael/authlines/issues/26)).
 
 ### User federation and brokering are different (Proposed, from Keycloak's docs)
 
@@ -275,7 +275,7 @@ Plan early for step text outside the SVG, reduced motion, keyboard control and a
 
 ### Visual ambition is a requirement and a cost (Proposed)
 
-"Visually striking" is part of the Decided idea, so it is not the first thing to cut. **Decided:** it does not mean loud. Shown sketches with heavy transit-style lines, a glowing dark blueprint and an illustrated one with a rubber stamp, the maintainer found them "visually distracting". What should strike someone is the diagram changing and what it shows, with one thing standing out at a time ([#63](https://github.com/vriesdemichael/visual-auth-explainer/issues/63)). Effort should go up front into the engine and visual language, with each later toggle costing much less. Transformer Explainer, the closest comparison as an interactive tool, took over a year with nine authors. There is no reliable estimate for this project, so do not plan around one.
+"Visually striking" is part of the Decided idea, so it is not the first thing to cut. **Decided:** it does not mean loud. Shown sketches with heavy transit-style lines, a glowing dark blueprint and an illustrated one with a rubber stamp, the maintainer found them "visually distracting". What should strike someone is the diagram changing and what it shows, with one thing standing out at a time ([#63](https://github.com/vriesdemichael/authlines/issues/63)). Effort should go up front into the engine and visual language, with each later toggle costing much less. Transformer Explainer, the closest comparison as an interactive tool, took over a year with nine authors. There is no reliable estimate for this project, so do not plan around one.
 
 ## 7. Candidate concepts
 
@@ -383,7 +383,7 @@ Still to settle:
 
 - **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). Named states have a path of their own so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
 - **Control model:** base flows. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md), and how presets relate to nodes by section 5.9.
-- **The address:** the name is settled in section 2, but the repository and its address on Pages still say `visual-auth-explainer`. Moving means changing `SITE_URL` in `src/lib/site.ts` and the base path in `scripts/build.mjs` and `playwright.config.ts`, and setting up the redirect.
+- **Moving to `authlines.io`:** when section 2's time comes, it means changing `SITE_URL` in `src/lib/site.ts` and the base path in `scripts/build.mjs`, `playwright.config.ts` and the `preview` script, and setting up the redirect. Whether a custom domain redirects the old `github.io` address still has to be tried.
 - **Whether to measure use.** Section 12 wants to know whether people come back, and [ADR-010](adr/010-static-files-on-github-pages.md) keeps nothing about a visitor outside their browser. **Proposed:** start without it, and go by GitHub stars and what people say.
 - **When to let search engines in.** Everything is ready: set the repository variable `ALLOW_INDEXING` to `true`, and the next production deploy can be indexed. The address gets indexed too, and it will change at least once, when the site moves to `authlines.io`.
 
@@ -393,6 +393,6 @@ Still to settle:
 
 - The maintainer reaches for it instead of drawing a new diagram, including when presenting.
 - People find it, come back to it unprompted, and can get to the settings that match their question.
-- Adding a toggle is a small change of flow data, recordings and tests, and the click-through still passes. **The first measurement is PKCE ([#10](https://github.com/vriesdemichael/visual-auth-explainer/issues/10)):** about 200 lines of flow data, settings, words and sources, 7 lines in the recording app, and tests. It did touch the engine three times, in small and general ways: a value can be held in memory rather than on a message, a pitfall's text can vary with the settings, and the heads of the lifelines now keep as much room as their chips need, where it used to be a fixed two rows. Its new chips also needed colours in two components, so those moved to one place and the next one needs none. **The second measurement is the attacker ([#26](https://github.com/vriesdemichael/visual-auth-explainer/issues/26)):** flow data, a new icon, a recording, no change to the model or the renderer, and every answer in the data matched a real server the first time it ran. **The third measurement is a refresh token ([#57](https://github.com/vriesdemichael/visual-auth-explainer/issues/57)):** flow data, a recording and a note, and one new kind of step, because time passing is not a message: the model only gained its name, and the renderer a way to draw it. **The fourth measurement is a second app ([#56](https://github.com/vriesdemichael/visual-auth-explainer/issues/56)):** flow data, recordings and notes, a new lifeline and chip, and no change to the model or the renderer. The recorder had to learn cookies and a second app of its own.
+- Adding a toggle is a small change of flow data, recordings and tests, and the click-through still passes. **The first measurement is PKCE ([#10](https://github.com/vriesdemichael/authlines/issues/10)):** about 200 lines of flow data, settings, words and sources, 7 lines in the recording app, and tests. It did touch the engine three times, in small and general ways: a value can be held in memory rather than on a message, a pitfall's text can vary with the settings, and the heads of the lifelines now keep as much room as their chips need, where it used to be a fixed two rows. Its new chips also needed colours in two components, so those moved to one place and the next one needs none. **The second measurement is the attacker ([#26](https://github.com/vriesdemichael/authlines/issues/26)):** flow data, a new icon, a recording, no change to the model or the renderer, and every answer in the data matched a real server the first time it ran. **The third measurement is a refresh token ([#57](https://github.com/vriesdemichael/authlines/issues/57)):** flow data, a recording and a note, and one new kind of step, because time passing is not a message: the model only gained its name, and the renderer a way to draw it. **The fourth measurement is a second app ([#56](https://github.com/vriesdemichael/authlines/issues/56)):** flow data, recordings and notes, a new lifeline and chip, and no change to the model or the renderer. The recorder had to learn cookies and a second app of its own.
 - If new toggles keep forcing engine changes, rethink the model before adding more.
 - If IdentiFlows ships toggles first, drop the general mechanic as the differentiator and keep the Keycloak layer.
