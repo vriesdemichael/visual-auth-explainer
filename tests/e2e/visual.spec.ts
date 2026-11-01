@@ -31,6 +31,15 @@ for (const scheme of ['light', 'dark'] as const) {
 	test.describe(scheme, () => {
 		test.use({ colorScheme: scheme, viewport: { width: 1440, height: 900 } });
 
+		test('the map', async ({ page }) => {
+			await page.goto('./');
+			await page.mouse.move(0, 0);
+			await expect(page).toHaveScreenshot(`map-${scheme}.png`, {
+				fullPage: true,
+				maxDiffPixelRatio: 0.002
+			});
+		});
+
 		for (const [name, search, diagram] of states) {
 			test(name, async ({ page }) => {
 				await open(page, search, diagram);

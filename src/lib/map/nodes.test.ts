@@ -1,0 +1,106 @@
+import { describe, expect, it } from 'vitest';
+import { flows, presets } from '#lib/flow/index.ts';
+import { allValidSettings, defaultSettings } from '#lib/flow/settings.ts';
+import { parseState } from '#lib/flow/state.ts';
+import { recordingFor } from '#lib/recordings/known.ts';
+import {
+	mapNodes,
+	mapTracks,
+	nodeMatching,
+	nodeSearch,
+	nodeSettings,
+	nodeState,
+	nodeView
+} from '#lib/map/nodes.ts';
+
+const asCases = mapNodes.map((node) => [node.id, node] as const);
+
+describe('the map', () => {
+	it('has unique IDs, which cannot be taken for a diagram', () => {
+		const ids = mapNodes.map((node) => node.id);
+		expect(new Set(ids).size).toBe(ids.length);
+		expect(ids).not.toContain('setup');
+		for (const id of ids) expect(id).toMatch(/^[a-z0-9-]+$/);
+	});
+
+	it('has somewhere to start, in simple mode, at the very beginning', () => {
+		const first = mapTracks[0].chains[0][0];
+		expect(first.mode).toBe('simple');
+		expect(first.step).toBeUndefined();
+		expect(nodeSettings(first)).toEqual(defaultSettings);
+	});
+
+	it('offers everything that was recorded', () => {
+		const used = new Set(mapNodes.map((node) => node.preset));
+		expect(presets.filter((preset) => !used.has(preset.id)).map((p) => p.id)).toEqual([]);
+	});
+
+	it('has a title and a summary for each, and no two alike', () => {
+		const titles = mapNodes.map((node) => node.title);
+		expect(new Set(titles).size).toBe(titles.length);
+		for (const node of mapNodes) {
+			expect(node.title.length, node.id).toBeGreaterThan(10);
+			expect(node.summary.length, node.id).toBeGreaterThan(10);
+		}
+	});
+
+	it('speaks plainly where it is meant for someone new', () => {
+		const wire = /\b(GET|POST|302|client_id|redirect_uri|scope|nonce|IdP)\b/;
+		const simple = mapNodes.filter((node) => node.mode === 'simple');
+		const jargon = simple.filter((node) => wire.test(node.title));
+		expect(jargon.map((node) => node.id)).toEqual([]);
+	});
+});
+
+describe.each(asCases)('the node %s', (_, node) => {
+	it('is a state the application can be in', () => {
+		expect(allValidSettings()).toContainEqual(nodeSettings(node));
+		const steps = nodeView(node).steps.map((step) => step.id);
+		if (node.step) expect(steps).toContain(node.step);
+	});
+
+	it('survives its own address', () => {
+		const parsed = parseState(flows[node.flow], node.diagram, nodeSearch(node));
+		expect(parsed).toEqual(nodeState(node));
+	});
+
+	it('has a recording to show when it opens in advanced mode', () => {
+		expect(recordingFor(nodeSettings(node))?.id).toBe(node.preset);
+	});
+
+	it('is what the application says it is at', () => {
+		expect(nodeMatching(nodeState(node))?.id).toBe(node.id);
+	});
+});
+
+describe('where someone is', () => {
+	const [start] = mapNodes;
+
+	it('is still a node while stepping through it', () => {
+		const stepped = { ...nodeState(start), step: 'token-request' };
+		expect(nodeMatching(stepped)?.preset).toBe(start.preset);
+	});
+
+	it('is the one with the same step, when more than one has these settings', () => {
+		const error = mapNodes.find((node) => node.id === 'redirect-uri-error')!;
+		expect(nodeMatching(nodeState(error))?.id).toBe('redirect-uri-error');
+	});
+
+	it('is the one in this mode, when the step does not settle it', () => {
+		const state = { ...nodeState(start), mode: 'advanced' as const, step: 'callback' };
+		expect(nodeMatching(state)?.mode).toBe('advanced');
+	});
+
+	it('is no node at all for a state that has none', () => {
+		const state = {
+			...nodeState(start),
+			settings: { ...defaultSettings, oidc: true, binding: 'dpop' as const }
+		};
+		expect(nodeMatching(state)).toBeNull();
+	});
+
+	it('takes what a query adds on top of the node', () => {
+		const search = nodeSearch(start, 'step=callback');
+		expect(new URLSearchParams(search).get('step')).toBe('callback');
+	});
+});

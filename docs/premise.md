@@ -181,10 +181,14 @@ Three things follow:
 
 **Decided:** the entry is more like [roadmap.sh](https://roadmap.sh/), where you navigate to what you want to learn about. Everything else happens on one application screen, with settings on the left, the diagram in the centre, step detail on the right, and step controls below.
 
-**Proposed: how the two relate.**
+**Built this way, for the maintainer to overrule:**
 
 - The map is the home screen.
 - A node is a named state, not a page: it opens the application screen at a base flow, settings, mode and step. So variants still never get a new page, and adding a toggle adds a node.
+- A node is named for a question someone brings, such as "What if someone steals the code?", not for a feature, because people arrive with a problem and the feature's name is what they are trying to learn.
+- Nodes and presets are different things. A preset is a set of settings that gets a recording, and a node is a question, a mode and a step on top of one, so several questions can share a recording. A test keeps every recording reachable from the map.
+- Planned nodes do not show. Everything on the map opens, because a greyed-out node says nothing a visitor can use.
+- Each card draws its real diagram small, from the same model, so you can see how far each question goes.
 - The way back to the map stays one click away, and the node matching the current state is marked.
 - A state reached by flipping settings by hand still has a URL, with or without a node.
 
@@ -305,7 +309,7 @@ Then build a rough animated prototype, because the data model alone will not sho
 
 **Then the first version, as a working application:**
 
-1. **Entry map:** the home screen, with a node for each state this version offers.
+1. **Entry map:** the home screen, with a node for each question this version answers.
 2. **Application shell:** the diagram, step controls, settings, simple and advanced mode, and all state in the URL.
 3. **Concept layer on the diagram:** select a lifeline to learn what the user, app, IdP and API are, and what an issuer is.
 4. **Setup diagram:** client registration, redirect URI and discovery.
@@ -363,9 +367,8 @@ A content-site setup, with prose pages and the diagram as one embedded island, i
 
 Still to settle:
 
-- **Entry map:** whether a node is a named state as proposed in section 5.9, which nodes the first version has, and whether it shows planned ones.
-- **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). **Proposed:** a path of their own for named states so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
-- **Control model:** base flows and how presets relate to map nodes. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md).
+- **State and routing:** the rest of the URL shape. The base flow and diagram are in the path, with the rest in the query ([ADR-003](adr/003-state-is-in-the-url-and-variants-get-no-page.md)). Named states have a path of their own so they can be prerendered. Moving between steps replaces the history entry, and changing a setting, mode or diagram adds one.
+- **Control model:** base flows. Modifiers, exclusive choices and constraints are settled by [ADR-013](adr/013-a-flow-is-one-ordered-list-of-conditional-steps.md), and how presets relate to nodes by section 5.9.
 - **Name and domain:** `visual-auth-explainer` is a working name only.
 
 ## 12. How to know it is working
