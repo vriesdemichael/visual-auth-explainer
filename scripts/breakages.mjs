@@ -13,8 +13,52 @@ const MOTION = 'src/lib/diagram/motion.ts';
 const WORDING = 'src/lib/flow/wording.ts';
 const ADDRESS = 'src/lib/recordings/address.ts';
 const NO_USER = 'src/lib/flow/client-credentials.ts';
+const LEFT = 'src/lib/flow/left-to-you.ts';
 
 export const breakages = [
+	// All that is left to someone, in one list.
+	{
+		name: 'list: a step goes under the wrong job',
+		file: LEFT,
+		from: "return step.from === 'api' ? 'api' : 'app';",
+		to: "return 'app';"
+	},
+	{
+		name: 'list: people are put with the code',
+		file: LEFT,
+		from: "if (step.kind === 'human') return 'before';",
+		to: ''
+	},
+	{
+		name: 'list: leaves out what can go wrong',
+		file: LEFT,
+		from: 'groups.wrong.push({ ...item, title: step.pitfall.title, text: step.pitfall.text });',
+		to: ''
+	},
+	{
+		name: 'list: says the largest part twice',
+		file: LEFT,
+		from: "step.inPractice?.replace(step.largerJob ?? '', '').trim()",
+		to: 'step.inPractice'
+	},
+	{
+		name: 'list: ignores the words chosen',
+		file: LEFT,
+		from: 'const view = speak(evaluate(base.diagrams[diagram], settings), say);',
+		to: 'const view = evaluate(base.diagrams[diagram], settings);'
+	},
+	{
+		name: 'list: does not stay in the address',
+		file: STATE,
+		from: "if (state.list) params.set(LIST_PARAM, '1');",
+		to: ''
+	},
+	{
+		name: 'list: the largest part is not on the step any more',
+		file: MODEL,
+		from: '[step.inPractice && resolveText(step.inPractice, settings), step.largerJob]',
+		to: '[step.inPractice && resolveText(step.inPractice, settings)]'
+	},
 	// What a step cites.
 	{
 		name: 'cite: a claim loses its source',

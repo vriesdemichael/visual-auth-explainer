@@ -63,6 +63,8 @@ export interface AppState {
 	follow: ArtifactId | null;
 	/** Whose words to use, when someone chose. Otherwise the mode decides. */
 	wording: Wording | null;
+	/** All that is left to someone building this, in one list. */
+	list: boolean;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
@@ -72,6 +74,7 @@ const EYES_PARAM = 'eyes';
 const FOLLOW_PARAM = 'follow';
 const WORDING_PARAM = 'say';
 const FROM_A_STEP = 'step';
+const LIST_PARAM = 'list';
 
 /** One step can cite two sections of the same spec, which each say something different. */
 export const refFor = (
@@ -177,7 +180,8 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 		settingsHidden: params.get(SETTINGS_PANEL_PARAM) === 'off',
 		eyes: onTheDiagram(view, params.get(EYES_PARAM)),
 		follow: onTheWay(view, params.get(FOLLOW_PARAM)),
-		wording: parseWording(params)
+		wording: parseWording(params),
+		list: params.get(LIST_PARAM) === '1'
 	};
 }
 
@@ -203,6 +207,7 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	if (state.eyes) params.set(EYES_PARAM, state.eyes);
 	if (state.follow) params.set(FOLLOW_PARAM, state.follow);
 	if (state.wording) params.set(WORDING_PARAM, state.wording);
+	if (state.list) params.set(LIST_PARAM, '1');
 	return params.toString();
 }
 
@@ -229,7 +234,8 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		settingsHidden: false,
 		eyes: null,
 		follow: null,
-		wording: null
+		wording: null,
+		list: false
 	});
 }
 
@@ -332,6 +338,11 @@ export function stateInFlow(
 	};
 }
 
+/** They both go beside the diagram, so only one is open. */
+export function withList(state: AppState, list: boolean): AppState {
+	return { ...state, list, source: list ? null : state.source };
+}
+
 export function withWording(state: AppState, wording: Wording | null): AppState {
 	return { ...state, wording };
 }
@@ -351,7 +362,7 @@ export function withSourceOpen(
 ): AppState {
 	const section = ref.section ?? null;
 	const source = { id: ref.source, setting, section };
-	return { ...state, source: fromStep ? { ...source, fromStep } : source };
+	return { ...state, list: false, source: fromStep ? { ...source, fromStep } : source };
 }
 
 export function withSourceSection(state: AppState, section: string | null): AppState {

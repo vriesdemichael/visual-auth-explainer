@@ -8,6 +8,7 @@
 	import FlowSwitch from '#lib/components/FlowSwitch.svelte';
 	import WordsSwitch from '#lib/components/WordsSwitch.svelte';
 	import FollowPath from '#lib/components/FollowPath.svelte';
+	import LeftToYouPanel from '#lib/components/LeftToYouPanel.svelte';
 	import Mark from '#lib/components/Mark.svelte';
 	import PageWindow from '#lib/components/PageWindow.svelte';
 	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
@@ -44,6 +45,7 @@
 		withSettingsHidden,
 		withExplained,
 		withEyes,
+		withList,
 		refFor,
 		withWording,
 		wordingOf,
@@ -63,6 +65,7 @@
 	import { bothOf, whatItWouldDo } from '#lib/flow/preview.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
 	import type { ShotId } from '#lib/flow/vocabulary.ts';
+	import { leftToYou } from '#lib/flow/left-to-you.ts';
 	import { addressAt } from '#lib/recordings/address.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
@@ -101,6 +104,8 @@
 		/** Where the picture of a page is. */
 		pageImage?: ((shot: ShotId) => string) | null;
 		/** The other base flows, and what to do when one is picked. */
+		/** All that is left to someone is what they came for, so it says so. */
+		questionOffersList?: boolean;
 		flowChoices?: readonly { id: string; title: string }[];
 		onflow?: (flow: string) => void;
 		onnavigate: (next: AppState, history: 'push' | 'replace') => void;
@@ -122,6 +127,7 @@
 		loadRecording,
 		pageImage = null,
 		flowChoices = [],
+		questionOffersList = false,
 		onflow,
 		onnavigate
 	}: Props = $props();
@@ -496,6 +502,17 @@
 	);
 	const closeSource = () => onnavigate(withSourceClosed(appState), 'push');
 
+	const left = $derived(appState.list ? leftToYou(base, appState.settings, say) : null);
+	const openList = () => onnavigate(withList(appState, true), 'push');
+	const closeList = () => {
+		onnavigate(withList(appState, false), 'push');
+		tick().then(() =>
+			window.document
+				.querySelector<HTMLElement>('[data-testid="to-list"], [data-testid="answer-list"]')
+				?.focus()
+		);
+	};
+
 	// Back to the source that opened it, however it closed, so a keyboard user keeps their place.
 	let lastSource = untrack(() => appState.source);
 	$effect(() => {
@@ -523,6 +540,10 @@
 		if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 		if (event.key === 'Escape' && appState.source) {
 			closeSource();
+			return;
+		}
+		if (event.key === 'Escape' && appState.list) {
+			closeList();
 			return;
 		}
 		if (event.key === 'Escape' && appState.explained) {
@@ -738,6 +759,7 @@
 				onrewind={position > 0 ? () => goToStep(steps[0].id) : null}
 				onterm={explainTerm}
 				serverNamed={appState.serverNotes}
+				onlist={questionOffersList ? openList : null}
 			/>
 		{/if}
 		{#if explanation}
@@ -768,6 +790,7 @@
 			{wording}
 			pageImage={imageOf}
 			oncite={(ref) => onnavigate(withSourceOpen(appState, null, ref, true), 'push')}
+			onlist={openList}
 			{intro}
 			{partWhy}
 			unseenBy={seesStep(current.id) ? null : eyesName}
@@ -840,6 +863,23 @@
 		/>
 	</footer>
 
+	{#if left}
+		<div class="source wide" data-list-open>
+			<LeftToYouPanel
+				list={left}
+				serverNamed={appState.serverNotes}
+				onterm={explainTerm}
+				onclose={closeList}
+				onstep={({ diagram, step }) =>
+					onnavigate(
+						diagram === appState.diagram
+							? { ...appState, step }
+							: withDiagram(base, appState, diagram, step),
+						'push'
+					)}
+			/>
+		</div>
+	{/if}
 	{#if openSource && openWhy}
 		<div class="source" class:wide={sources[openSource.id].textFile}>
 			{#key `${openSource.setting}:${openSource.id}`}
@@ -1181,9 +1221,21 @@
 			height: auto;
 		}
 
+		/* Someone who opened the list will hand that to their team, and not the diagram. */
+		.workspace:has(.source[data-list-open]) > :not(.source) {
+			display: none;
+		}
+
+		.source[data-list-open] {
+			display: block;
+			position: static;
+			width: auto;
+			box-shadow: none;
+		}
+
 		.settings,
 		footer,
-		.source,
+		.source:not([data-list-open]),
 		.narrow-note {
 			display: none;
 		}

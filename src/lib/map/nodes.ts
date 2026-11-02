@@ -29,7 +29,8 @@ export function nodeState(of: MapNode): AppState {
 		settingsHidden: false,
 		eyes: of.eyes ?? null,
 		follow: null,
-		wording: null
+		wording: null,
+		list: false
 	};
 }
 

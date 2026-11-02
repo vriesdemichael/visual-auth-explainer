@@ -22,6 +22,8 @@ export interface MapNode {
 	eyes?: string;
 	/** What to follow through the flow, when its path is the answer. */
 	follows?: ArtifactId;
+	/** All that is left to someone is the answer, so it offers that list. */
+	offersList?: boolean;
 	/** Why there is no such step, because a question should not open a walk away from its answer. */
 	startsAtTheBeginning?: string;
 }
@@ -119,6 +121,7 @@ export const mapTracks: readonly MapTrack[] = [
 			[
 				node({
 					id: 'adding-login',
+					offersList: true,
 					answer:
 						'Someone registers your app with the identity provider, and your configuration gets the issuer, the client ID and any secret. A library can do much of the rest, with PKCE turned on. Which pages need a login and your own session stay your code.',
 					startsAtTheBeginning: 'What they have to do starts with the first step of setup.',

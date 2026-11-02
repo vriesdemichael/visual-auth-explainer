@@ -11,6 +11,8 @@
 		/** What to follow through the flow, when its path is the answer. */
 		follows?: string | null;
 		onfollow?: () => void;
+		/** Opens all that is left to someone in one list, when that is what they came for. */
+		onlist?: (() => void) | null;
 	}
 
 	let {
@@ -19,7 +21,8 @@
 		onterm,
 		serverNamed = true,
 		follows = null,
-		onfollow
+		onfollow,
+		onlist = null
 	}: Props = $props();
 	const segments = $derived(markTerms([answer], { serverNamed })[0]);
 </script>
@@ -34,6 +37,11 @@
 	{#if follows}
 		<button type="button" class="rewind" data-testid="follow-answer" onclick={onfollow}>
 			Follow the {follows} through the flow
+		</button>
+	{/if}
+	{#if onlist}
+		<button type="button" class="rewind" data-testid="answer-list" onclick={onlist}>
+			See all of it in one list
 		</button>
 	{/if}
 </section>
