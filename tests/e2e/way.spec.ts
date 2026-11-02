@@ -77,6 +77,19 @@ test.describe('the question someone came with', () => {
 	});
 });
 
+test.describe('at the end of the setup', () => {
+	test('the way on is the flow it was for', async ({ page }) => {
+		await page.goto('authorization-code/adding-login/');
+		await expect(page.getByTestId('workspace')).toHaveAttribute('data-ready', 'true');
+		await page.keyboard.press('End');
+		await expect(page.getByTestId('next-question')).toHaveText('On to the user flow');
+		await page.getByTestId('next-question').click();
+		await expect(page.getByTestId('workspace')).toHaveAttribute('data-diagram', 'flow');
+		await expect(page).toHaveURL(/oidc=1/);
+		await expect(page.getByTestId('from-question')).toContainText('I have to add login');
+	});
+});
+
 test.describe('the end of a flow', () => {
 	test('says where to go next, and goes there', async ({ page }) => {
 		await openNode(page, 'how-access-works');

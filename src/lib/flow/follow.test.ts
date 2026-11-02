@@ -62,8 +62,8 @@ describe('the path of something', () => {
 	it('follows a code from where it is issued to where it is traded', () => {
 		expect(path('code')).toEqual([
 			{ step: 'redirect-with-code', says: 'First sent here' },
-			{ step: 'callback', says: 'Carried here' },
-			{ step: 'token-request', says: 'Carried here' }
+			{ step: 'callback', says: 'Sent here' },
+			{ step: 'token-request', says: 'Sent here' }
 		]);
 	});
 
@@ -72,9 +72,9 @@ describe('the path of something', () => {
 		expect(path('challenge', { pkce: true })).toEqual(stops);
 		expect(stops).toEqual([
 			{ step: 'make-verifier', says: 'Made here' },
-			{ step: 'redirect-to-idp', says: 'Code challenge: carried here' },
-			{ step: 'authorize', says: 'Code challenge: carried here' },
-			{ step: 'token-request', says: 'Code verifier: carried here' },
+			{ step: 'redirect-to-idp', says: 'Code challenge: sent here' },
+			{ step: 'authorize', says: 'Code challenge: sent here' },
+			{ step: 'token-request', says: 'Code verifier: sent here' },
 			{ step: 'check-verifier', says: 'Checked here' }
 		]);
 	});
@@ -101,9 +101,9 @@ describe('what is used up', () => {
 	);
 
 	it('is only said where that step is there', () => {
-		expect(path('code').some(({ says }) => says.startsWith('Used up'))).toBe(false);
+		expect(path('code').some(({ says }) => says.startsWith('Refused here'))).toBe(false);
 		const stolen = path('code', { attacker: true, clientType: 'public' });
-		expect(stolen.at(-1)?.says).toMatch(/^Used up/);
+		expect(stolen.at(-1)?.says).toMatch(/^Refused here/);
 	});
 
 	it('is always on a step in the flow', () => {

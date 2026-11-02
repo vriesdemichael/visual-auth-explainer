@@ -70,7 +70,7 @@ test.describe('seeing it as one party', () => {
 		await open(page, 'mode=simple&eyes=browser&step=token-response');
 		const detail = page.getByTestId('step-detail');
 		await expect(page.getByTestId('unseen')).toHaveText("Not seen by User's browser");
-		await expect(detail).toContainText("nothing in it reaches User's browser");
+		await expect(detail).toContainText("User's browser was not sent it");
 		await expect(detail).not.toContainText('access token');
 		await expect(page.getByTestId('step-carried')).toHaveCount(0);
 	});

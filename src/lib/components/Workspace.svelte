@@ -220,6 +220,17 @@
 		flow: hrefFor(withDiagram(base, appState, 'flow', stepIn.flow)),
 		setup: hrefFor(withDiagram(base, appState, 'setup', stepIn.setup))
 	});
+	// At the end of the setup, the way on is the flow it was for, and not some other question.
+	const wayOn = $derived(
+		appState.diagram === 'setup'
+			? {
+					label: 'On to the user flow',
+					title: 'The user flow',
+					summary: 'What happens when a user arrives, now that this is set up.',
+					href: hrefs.flow
+				}
+			: onward
+	);
 	const links = $derived(
 		current.links.map((link) => ({
 			text: link.text,
@@ -394,6 +405,9 @@
 	// For presenting, and for someone who only wants to watch. Anything anyone does stops it, and a
 	// step replaces the last one in the history, so Back still leaves the page.
 	let playing = $state(false);
+	const toRead = $derived(
+		readingTime(`${mode === 'simple' ? current.plain : current.label} ${current.concept}`)
+	);
 	function togglePlaying() {
 		if (!playing && position === steps.length - 1) goToStep(steps[0].id);
 		playing = !playing;
@@ -404,8 +418,7 @@
 			playing = false;
 			return;
 		}
-		const words = `${mode === 'simple' ? current.plain : current.label} ${current.concept}`;
-		const moving = setTimeout(forward, readingTime(words));
+		const moving = setTimeout(forward, toRead);
 		const stop = (event: Event) => {
 			const onPlay = (event.target as Element).closest?.('[data-testid="play"]');
 			const pressesIt = !(event instanceof KeyboardEvent) || [' ', 'Enter'].includes(event.key);
@@ -457,7 +470,12 @@
 		});
 	});
 
+	// Someone who tabbed into what they are reading wants the page keys to scroll it. Someone who clicked
+	// something there, as a presenter does, has a clicker that only sends those keys.
+	let tabbedIn = false;
+
 	function onkeydown(event: KeyboardEvent) {
+		if (event.key === 'Tab') tabbedIn = true;
 		// With a modifier these belong to the browser, such as Alt+Left and Shift+End.
 		if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
 		if (event.key === 'Escape' && appState.source) {
@@ -471,9 +489,10 @@
 		const target = event.target as HTMLElement;
 		// A switch has no use for these keys, and keeps the focus after it is clicked.
 		const typing = 'input:not([type="checkbox"]), select, textarea, [data-testid="source-panel"]';
-		if (target.closest(typing)) return;
-		// A presenter's clicker sends the page keys, but they should still scroll what someone is reading.
-		if (event.key.startsWith('Page') && target.closest('.detail')) return;
+		const isPageKey = event.key.startsWith('Page');
+		// A list would change on a page key, without anyone having asked for that.
+		if (target.closest(typing) && !(isPageKey && target.closest('select'))) return;
+		if (isPageKey && target.closest('.detail') && tabbedIn) return;
 		const move = {
 			ArrowRight: forward,
 			ArrowLeft: back,
@@ -489,7 +508,7 @@
 	}
 </script>
 
-<svelte:window {onkeydown} />
+<svelte:window {onkeydown} onpointerdown={() => (tabbedIn = false)} />
 
 <div
 	class="workspace"
@@ -539,7 +558,7 @@
 					{/if}
 					on {origin.date}.
 				{:else}
-					These settings together were not recorded.
+					Recorded message by message, with other settings, not these together.
 				{/if}
 			</span>
 			<button
@@ -695,7 +714,7 @@
 			unseenBy={seesStep(current.id) ? null : eyesName}
 			previousChannel={steps[position - 1]?.channel ?? null}
 			atEnd={position === steps.length - 1}
-			{onward}
+			onward={wayOn}
 			mapHref={homeHref}
 			change={last.diff}
 			resets={last.resets}
@@ -740,10 +759,12 @@
 			current={current.id}
 			onjump={goToStep}
 			{playing}
+			playingFor={toRead}
 			onplay={togglePlaying}
 			answerAt={answer ? numberOf(answer) : null}
 			onexecute={execute}
-			onwardHref={onward?.href ?? null}
+			onwardHref={wayOn?.href ?? null}
+			onwardLabel={wayOn && 'label' in wayOn ? wayOn.label : undefined}
 		/>
 	</footer>
 

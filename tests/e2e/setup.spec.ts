@@ -104,7 +104,8 @@ test.describe('moving through a diagram', () => {
 		await expectMatchesModel(page, '');
 
 		await open(page, 'step=keys');
-		await expect(page.getByTestId('next')).toBeDisabled();
+		// The way on is a link saying where it goes, which the keys do not take.
+		await expect(page.getByTestId('next-question')).toHaveText('On to the user flow');
 		await page.keyboard.press('ArrowRight');
 		await expect(current(page)).toHaveAttribute('data-step', 'keys');
 	});

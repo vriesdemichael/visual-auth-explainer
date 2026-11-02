@@ -75,6 +75,10 @@
 		} else if (event.key === 'ArrowUp' && count) {
 			event.preventDefault();
 			active = (active - 1 + count) % count;
+		} else if (event.key === 'Escape') {
+			// At once, where a search box would first clear itself and stay open.
+			event.preventDefault();
+			close();
 		} else if (event.key === 'Enter' && count) {
 			event.preventDefault();
 			dialog?.querySelector<HTMLAnchorElement>(`[data-result="${active}"]`)?.click();

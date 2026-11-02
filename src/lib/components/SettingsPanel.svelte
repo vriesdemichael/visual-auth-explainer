@@ -234,7 +234,7 @@
 		</label>
 		<p>
 			Which setting controls each message, on the server this was recorded from. Off, the notes
-			about that server go. What is left is still its run: its status lines, error codes and
+			about that server go. What is left is still its run: the wording of its errors and its
 			stored-token API, which no spec defines.
 		</p>
 	</section>

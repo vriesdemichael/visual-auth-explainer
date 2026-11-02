@@ -89,7 +89,7 @@ const parameterWhy: Readonly<Record<string, string>> = {
 	client_id: 'Says which app this is, as registered in setup.',
 	redirect_uri: 'Has to be the address the code was sent to.',
 	state:
-		'A random value the app checks when the user comes back, so nobody can slip in an answer it did not ask for.',
+		"A random value the app checks when the user comes back, so nobody can slip an answer into this user's login. It does not stop someone starting a login in their own browser and handing the app a stolen code, which takes PKCE.",
 	'scope=openid': 'Asks for OpenID Connect on top of OAuth.',
 	scope: 'What the access covers, which is not always what was asked for.',
 	nonce:

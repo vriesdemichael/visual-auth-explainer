@@ -12,6 +12,37 @@ const start = async (page: Page) => {
 	await expect(input(page)).toBeFocused();
 };
 
+test.describe('what a result does', () => {
+	test('a word opens where someone is, and leaves the flow as it was', async ({ page }) => {
+		await open(page, 'mode=simple&oidc=1&step=callback');
+		await page.keyboard.press('/');
+		await input(page).fill('session');
+		await results(page).filter({ hasText: 'Word' }).first().click();
+		await expect(page).toHaveURL(/explain=term\.session/);
+		await expect(page).toHaveURL(/oidc=1/);
+		await expect(page).toHaveURL(/step=callback/);
+		await expect(page.getByTestId('explanation')).toContainText('Session');
+		await expect(page.getByTestId('position')).toContainText('of 15');
+	});
+
+	test('escape closes it at once, with words in it', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await page.keyboard.press('/');
+		await input(page).fill('session');
+		await input(page).press('Escape');
+		await expect(page.getByTestId('search')).toBeHidden();
+	});
+
+	test('a pasted error opens on the question about it', async ({ page }) => {
+		await open(page, 'mode=simple');
+		await page.keyboard.press('/');
+		await input(page).fill('Invalid parameter: redirect_uri');
+		await results(page).first().click();
+		await expect(page).toHaveURL(/redirect-uri-error/);
+		await expect(page.getByTestId('answer')).toBeVisible();
+	});
+});
+
 test.describe('searching', () => {
 	test('is on the map, and finds a word people arrive with', async ({ page }) => {
 		await start(page);

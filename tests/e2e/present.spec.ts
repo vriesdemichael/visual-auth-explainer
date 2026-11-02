@@ -12,11 +12,48 @@ test.describe('in front of a room', () => {
 		await expect(stepAt(page)).toHaveAttribute('data-step', 'open-app');
 	});
 
-	test('still scrolls what someone is reading', async ({ page }) => {
+	test('still scrolls what someone tabbed into to read', async ({ page }) => {
 		await open(page, 'step=token-request');
+		await page.keyboard.press('Tab');
 		await page.getByTestId('step-detail').locator('summary').first().focus();
 		await page.keyboard.press('PageDown');
 		await expect(stepAt(page)).toHaveAttribute('data-step', 'token-request');
+	});
+
+	test('a clicker goes on working after something in the panel is clicked', async ({ page }) => {
+		await open(page, 'step=token-request');
+		await page.getByTestId('step-detail').locator('summary').first().click();
+		await page.keyboard.press('PageDown');
+		await expect(stepAt(page)).not.toHaveAttribute('data-step', 'token-request');
+	});
+
+	test('a clicker goes on working after "Show it"', async ({ page }) => {
+		await open(page, 'mode=simple&client=public&attacker=1&step=attacker-token-request');
+		await page.locator('[data-setting="pkce"] input').check();
+		await page.getByTestId('change-show').click();
+		const before = await stepAt(page).getAttribute('data-step');
+		await page.keyboard.press('PageDown');
+		await expect(stepAt(page)).not.toHaveAttribute('data-step', before!);
+	});
+
+	test('a clicker does not change who it is seen as', async ({ page }) => {
+		await open(page, 'mode=simple&eyes=browser&step=authorize');
+		await page.getByTestId('eyes').focus();
+		await page.keyboard.press('PageDown');
+		await expect(page.getByTestId('eyes')).toHaveValue('browser');
+		await expect(stepAt(page)).toHaveAttribute('data-step', 'login-page');
+	});
+
+	test('choosing who with a pointer leaves the keys to the steps', async ({ page }) => {
+		await open(page, 'mode=simple&step=authorize');
+		const list = page.getByTestId('eyes');
+		await list.dispatchEvent('pointerdown');
+		await list.focus();
+		await list.selectOption('browser');
+		await expect(list).not.toBeFocused();
+		await page.keyboard.press('ArrowRight');
+		await expect(list).toHaveValue('browser');
+		await expect(stepAt(page)).toHaveAttribute('data-step', 'login-page');
 	});
 
 	test('the settings can be put out of the way, and the diagram gets the room', async ({

@@ -24,16 +24,16 @@ test.describe('following something', () => {
 		await open(page, 'mode=simple&follow=code');
 		await expect(path(page).getByRole('listitem')).toHaveText([
 			/6\s+First sent here/,
-			/7\s+Carried here/,
-			/8\s+Carried here/
+			/7\s+Sent here/,
+			/8\s+Sent here/
 		]);
 	});
 
 	test('follows the two forms of a verifier together', async ({ page }) => {
 		await open(page, 'mode=simple&client=public&pkce=1&follow=verifier');
 		await expect(path(page)).toContainText('Made here');
-		await expect(path(page)).toContainText('Code challenge: carried here');
-		await expect(path(page)).toContainText('Code verifier: carried here');
+		await expect(path(page)).toContainText('Code challenge: sent here');
+		await expect(path(page)).toContainText('Code verifier: sent here');
 		await expect(path(page)).toContainText('Checked here');
 		await expect(row(page, 'authorize')).toHaveClass(/on-path/);
 		await expect(row(page, 'check-verifier')).toHaveClass(/on-path/);
@@ -41,9 +41,9 @@ test.describe('following something', () => {
 
 	test('says it was used up only where a real server refused it', async ({ page }) => {
 		await open(page, 'mode=simple&client=public&attacker=1&follow=code');
-		await expect(path(page)).toContainText('Used up: a real server refused it here');
+		await expect(path(page)).toContainText('Refused here: a real server counted it as used');
 		await open(page, 'mode=simple&follow=code');
-		await expect(path(page)).not.toContainText('Used up');
+		await expect(path(page)).not.toContainText('Refused here');
 	});
 
 	test('leaves stepping as it was', async ({ page }) => {

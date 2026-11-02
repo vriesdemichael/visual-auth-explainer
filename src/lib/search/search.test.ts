@@ -123,6 +123,30 @@ describe('what a real server said', () => {
 		}
 	);
 
+	it('opens on the question about it, where there is one, at the same step', () => {
+		const error = first('Invalid parameter: redirect_uri');
+		expect(error.kind).toBe('error');
+		expect(error.view).toBe('redirect-uri-error');
+		expect(parseState(base, 'flow', error.query).step).toBe('authorize');
+	});
+
+	it('says what a word means, wherever that is defined', () => {
+		for (const word of ['Session', 'PKCE', 'Access token']) {
+			const result = search(word).results.find(({ kind }) => kind === 'word');
+			expect(result?.says, word).toBeTruthy();
+			expect(result?.says, word).not.toContain('What this word means');
+		}
+	});
+
+	it('finds what only some settings bring', () => {
+		expect(search('S256').results.length).toBeGreaterThan(0);
+	});
+
+	it('finds what people call it', () => {
+		expect(search('csrf').results.some(({ title }) => title === 'State')).toBe(true);
+		expect(search('what could go wrong').results.length).toBeGreaterThan(0);
+	});
+
 	it('opens the step the error was recorded on, where a recording has it', () => {
 		for (const recording of recordings) {
 			for (const message of recording.messages) {

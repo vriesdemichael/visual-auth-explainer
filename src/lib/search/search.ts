@@ -1,4 +1,4 @@
-import { terms } from '#lib/flow/glossary.ts';
+import { terms, type Term } from '#lib/flow/glossary.ts';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
 import { evaluate, type DiagramId } from '#lib/flow/model.ts';
 import {
@@ -9,8 +9,9 @@ import {
 	type Settings
 } from '#lib/flow/settings.ts';
 import { serializeState, type AppState } from '#lib/flow/state.ts';
+import { artifacts } from '#lib/flow/vocabulary.ts';
 import { notesFor } from '#lib/keycloak/notes.ts';
-import { mapNodes } from '#lib/map/nodes.ts';
+import { mapNodes, nodeSettings } from '#lib/map/nodes.ts';
 import { settingsOf } from '#lib/recordings/known.ts';
 import { knownErrors, notHereYet } from '#lib/search/errors.ts';
 
@@ -88,6 +89,13 @@ function settingsShowing(diagram: DiagramId, step: string): Settings | null {
 	);
 }
 
+/** What the panel will say about it, because some words say it where the thing itself is defined. */
+function meaningOf(term: Term) {
+	if (term.artifact) return artifacts[term.artifact].explains;
+	if (term.setting) return settingDefs[term.setting].why;
+	return term.explains;
+}
+
 function allEntries(): Entry[] {
 	const entries: Entry[] = [];
 
@@ -119,7 +127,7 @@ function allEntries(): Entry[] {
 		);
 		const text = [...term.words, ...(term.alsoCalled ?? [])].join(' ');
 		entries.push({
-			result: resultAt('word', term.name, term.explains || 'What this word means.', state),
+			result: resultAt('word', term.name, meaningOf(term), state),
 			title: `${term.name} ${text}`,
 			text: term.explains,
 			exactly: [term.name, ...term.words, ...(term.alsoCalled ?? [])].map(lower)
@@ -145,7 +153,10 @@ function allEntries(): Entry[] {
 			if (!settings) continue;
 			const shown = evaluate(base.diagrams[diagram], settings).steps.find((s) => s.id === step.id);
 			if (!shown) continue;
-			const fields = shown.fields.map((field) => `${field.name} ${field.note ?? ''}`).join(' ');
+			// All of them, including those only some settings bring, because that is what someone looks for.
+			const fields = (step.fields ?? [])
+				.map((field) => `${field.name} ${field.note ?? ''}`)
+				.join(' ');
 			const state = stateAt(diagram, settings, step.id, 'advanced');
 			const pitfall = shown.pitfall ? `${shown.pitfall.title} ${shown.pitfall.text}` : '';
 			entries.push({
@@ -170,20 +181,24 @@ let cached: { entries: Entry[]; errors: Result[] } | null = null;
 function index() {
 	cached ??= {
 		entries: allEntries(),
-		errors: knownErrors.map((known) =>
-			resultAt(
-				'error',
-				known.text,
-				known.means,
-				stateAt('flow', known.settings, known.step, 'advanced')
-			)
-		)
+		errors: knownErrors.map((known) => {
+			const state = stateAt('flow', known.settings, known.step, 'advanced');
+			const result = resultAt('error', known.text, known.means, state);
+			// On the address of a question about this very error, which says at the top what it means.
+			const about = mapNodes.find(
+				(node) =>
+					node.diagram === 'flow' &&
+					node.title.includes(known.text) &&
+					JSON.stringify(nodeSettings(node)) === JSON.stringify(state.settings)
+			);
+			return about ? { ...result, view: about.id } : result;
+		})
 	};
 	return cached;
 }
 
 const LITTLE_WORDS = new Set(
-	'a an and are at be can do does for from get how i if in is it my of on or that the this to what when why with you your'.split(
+	'a an and are at be can do does for from get how i if in is it my of on or that the this to what when why with you your could should would where which there will need about'.split(
 		' '
 	)
 );

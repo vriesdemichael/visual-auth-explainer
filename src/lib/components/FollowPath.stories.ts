@@ -8,8 +8,8 @@ const meta = {
 		label: 'code',
 		stops: [
 			{ step: 'redirect-with-code', says: 'First sent here' },
-			{ step: 'callback', says: 'Carried here' },
-			{ step: 'token-request', says: 'Carried here' }
+			{ step: 'callback', says: 'Sent here' },
+			{ step: 'token-request', says: 'Sent here' }
 		],
 		current: 'callback',
 		numberOf: (step: string) =>
@@ -29,9 +29,9 @@ export const TwoFormsOfOneThing: Story = {
 		label: 'code verifier',
 		stops: [
 			{ step: 'make-verifier', says: 'Made here' },
-			{ step: 'redirect-to-idp', says: 'Code challenge: carried here' },
-			{ step: 'authorize', says: 'Code challenge: carried here' },
-			{ step: 'token-request', says: 'Code verifier: carried here' },
+			{ step: 'redirect-to-idp', says: 'Code challenge: sent here' },
+			{ step: 'authorize', says: 'Code challenge: sent here' },
+			{ step: 'token-request', says: 'Code verifier: sent here' },
 			{ step: 'check-verifier', says: 'Checked here' }
 		],
 		current: 'authorize',
@@ -51,8 +51,8 @@ export const TwoFormsOfOneThing: Story = {
 export const UsedUp: Story = {
 	args: {
 		stops: [
-			{ step: 'callback', says: 'Carried here' },
-			{ step: 'real-app-refused', says: 'Used up: a real server refused it here' }
+			{ step: 'callback', says: 'Sent here' },
+			{ step: 'real-app-refused', says: 'Refused here: a real server counted it as used' }
 		],
 		current: 'real-app-refused',
 		numberOf: (step: string) => (step === 'callback' ? 11 : 13)

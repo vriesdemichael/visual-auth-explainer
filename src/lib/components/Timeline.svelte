@@ -5,9 +5,11 @@
 		parts: readonly Part[];
 		current: string;
 		onjump: (step: string) => void;
+		/** How long until it moves on by itself, when it is playing. */
+		waiting?: number | null;
 	}
 
-	let { parts, current, onjump }: Props = $props();
+	let { parts, current, onjump, waiting = null }: Props = $props();
 
 	const steps = $derived(parts.flatMap((part) => part.steps));
 	const position = $derived(steps.indexOf(current) + 1);
@@ -46,6 +48,8 @@
 						class="tick"
 						class:done={number < position}
 						class:current={number === position}
+						class:waiting={number === position && waiting !== null}
+						style:--wait={number === position && waiting !== null ? `${waiting}ms` : undefined}
 						title={`Step ${number}`}
 						data-tick={step}
 						data-jump={step}
@@ -121,6 +125,24 @@
 
 	.tick.current {
 		background-size: 100% 12px;
+	}
+
+	/* While it plays, because a step with a lot to read otherwise looks as if nothing is happening. */
+	.tick.waiting {
+		background-position: left center;
+		animation: waiting var(--wait) linear;
+	}
+
+	@keyframes waiting {
+		from {
+			background-size: 0% 12px;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.tick.waiting {
+			animation: none;
+		}
 	}
 
 	@media (forced-colors: active) {

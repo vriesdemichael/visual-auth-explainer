@@ -345,14 +345,19 @@ export function layoutDiagram(
 			});
 		}
 
+		// Not over the arrow of a message to itself, which comes lower than the rest of a row.
+		const above = rows.at(-1);
+		const wanted = y - ROW_TOP - (self ? 0 : extra);
+		const top = above?.self ? Math.max(wanted, above.y + SELF_LOOP.height) : wanted;
+
 		rows.push({
 			id: step.id,
 			number: i + 1,
 			from: step.from,
 			to: step.to,
 			y,
-			top: y - ROW_TOP - (self ? 0 : extra),
-			band: band + extra + (self ? 4 : 0),
+			top,
+			band: band + extra + (self ? 4 : 0) - (top - wanted),
 			lines,
 			x1,
 			x2,

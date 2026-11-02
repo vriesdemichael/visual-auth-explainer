@@ -141,7 +141,7 @@ test.describe('how we know', () => {
 	test('it says when these settings were not recorded', async ({ page }) => {
 		await open(page, 'oidc=1&consent=1&step=token-response');
 		await expect(page.getByTestId('step-known')).toHaveAttribute('data-known', 'other-settings');
-		await expect(page.getByTestId('provenance')).toContainText('not recorded');
+		await expect(page.getByTestId('provenance')).toContainText('not these together');
 		await expect(page.getByTestId('provenance')).not.toContainText('Recorded from');
 	});
 

@@ -373,8 +373,22 @@ const list: readonly Term[] = [
 		name: 'State',
 		words: ['state'],
 		explains:
-			'A random value the app sends with the login and checks when the user comes back, so nobody can slip in an answer it did not ask for.',
+			"A random value the app sends with the login and checks when the user comes back, so nobody can slip an answer into this user's login. It does not stop someone starting a login in their own browser and handing the app a stolen code, which takes PKCE.",
+		alsoCalled: ['CSRF protection'],
 		at: flowAt('authorize')
+	},
+	{
+		id: 'claim',
+		name: 'Claim',
+		words: ['claim', 'claims'],
+		explains: 'A statement inside a token, such as who it is about or when it runs out.'
+	},
+	{
+		id: 'opaque',
+		name: 'Opaque',
+		words: ['opaque'],
+		explains:
+			'What a token is to whoever is not meant to read it: just a string to pass on, whatever is in it.'
 	},
 	{
 		id: 'nonce',
@@ -431,7 +445,7 @@ const list: readonly Term[] = [
 		words: ['Keycloak'],
 		vendor: true,
 		explains:
-			'A free identity provider you can run yourself. The messages on this site came from one. What the specs say is the same on other identity providers, and its error codes, token contents, defaults and console are its own.'
+			'A free identity provider you can run yourself. The messages on this site came from one. What the specs say is the same on other identity providers, and the wording of its errors, its token contents, defaults and console are its own.'
 	},
 	{
 		id: 'realm',
