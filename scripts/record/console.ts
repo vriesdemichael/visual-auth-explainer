@@ -1,6 +1,6 @@
 // Goes through a real admin console, to see that each note says where a setting really is.
 import type { Browser, Page } from '@playwright/test';
-import { noteDefs, type ConsolePage } from '#lib/keycloak/notes.ts';
+import { noteDefs, type ConsolePage, type NoteDef } from '#lib/keycloak/notes.ts';
 import {
 	Admin,
 	ADMIN_PASSWORD,
@@ -24,7 +24,12 @@ async function seen(page: Page, text: string) {
 }
 
 /** What each note says it can find, on the server this is, in the words of its console. */
-export async function lookInConsole(browser: Browser, admin: Admin, flagsOn: readonly string[]) {
+export async function lookInConsole(
+	browser: Browser,
+	admin: Admin,
+	flagsOn: readonly string[],
+	notes: readonly NoteDef[] = noteDefs
+) {
 	const [client] = await admin.call<{ id: string }[]>(
 		'GET',
 		`/realms/${LOCAL_REALM}/clients?clientId=${CONFIDENTIAL_CLIENT}`
@@ -51,7 +56,7 @@ export async function lookInConsole(browser: Browser, admin: Admin, flagsOn: rea
 	await page.getByRole('link', { name: 'Clients' }).first().waitFor({ timeout: 60_000 });
 
 	const found: Record<string, { found: string[]; missing: string[] }> = {};
-	for (const note of noteDefs) {
+	for (const note of notes) {
 		const { place } = note;
 		if (!place) continue;
 		const here = place.needsFlag ? flagsOn.includes(place.needsFlag) : flagsOn.length === 0;

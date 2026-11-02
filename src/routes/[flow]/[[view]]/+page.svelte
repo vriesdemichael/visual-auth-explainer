@@ -10,8 +10,10 @@
 		presetSearch,
 		serializeOnNode,
 		serializeState,
+		stateInFlow,
 		type AppState
 	} from '#lib/flow/state.ts';
+	import type { Settings } from '#lib/flow/settings.ts';
 	import {
 		nextQuestion,
 		nodeMatching,
@@ -116,6 +118,25 @@
 	const pageImage = (shot: string) =>
 		asset(`/recordings/${base.id}/pages/${shot}.jpg` as Parameters<typeof asset>[0]);
 
+	const flowChoices = Object.values(flows).map((other) => ({
+		id: other.id,
+		title: other.diagrams.flow.title
+	}));
+	// So that what someone set up in one flow is still there when they come back to it. Only for as
+	// long as they stay on the site, because the address of each flow says only what that flow has.
+	const leftIn: Record<string, Settings> = {};
+	$effect(() => {
+		leftIn[appState.flow] = appState.settings;
+	});
+	function goToFlow(id: string) {
+		const other = flows[id];
+		const next = stateInFlow(other, base, appState, leftIn[id]);
+		const search = serializeState(other, next);
+		const there = resolve('/[flow]/[[view]]', { flow: id, view: undefined });
+		// eslint-disable-next-line svelte/no-navigation-without-resolve -- resolved above
+		return goto(search ? `${there}?${search}` : there);
+	}
+
 	async function navigate(next: AppState, history: 'push' | 'replace') {
 		ahead = next;
 		// eslint-disable-next-line svelte/no-navigation-without-resolve -- hrefFor resolves it
@@ -139,20 +160,27 @@
 	{/each}
 </svelte:head>
 
-<Workspace
-	{base}
-	state={appState}
-	animate={settled}
-	question={question?.title ?? null}
-	answer={question?.answer ?? null}
-	questionFollows={question?.follows ?? null}
-	{leftQuestion}
-	{onward}
-	runHref={`${resolve('/run-it-yourself')}/?${presetSearch(base, appState.settings)}`}
-	homeHref={resolve('/') + ((question ?? here) ? `?at=${(question ?? here)?.id}` : '')}
-	{hrefFor}
-	{loadText}
-	{loadRecording}
-	{pageImage}
-	onnavigate={navigate}
-/>
+<!-- Another flow is another diagram, so nothing here moves from one into the other. -->
+{#key base.id}
+	<Workspace
+		{base}
+		state={appState}
+		animate={settled}
+		question={question?.title ?? null}
+		answer={question?.answer ?? null}
+		questionFollows={question?.follows ?? null}
+		{leftQuestion}
+		{onward}
+		runHref={base.id === 'authorization-code'
+			? `${resolve('/run-it-yourself')}/?${presetSearch(base, appState.settings)}`
+			: null}
+		homeHref={resolve('/') + ((question ?? here) ? `?at=${(question ?? here)?.id}` : '')}
+		{hrefFor}
+		{loadText}
+		{loadRecording}
+		{pageImage}
+		{flowChoices}
+		onflow={goToFlow}
+		onnavigate={navigate}
+	/>
+{/key}

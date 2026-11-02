@@ -97,7 +97,7 @@ describe.each(asCases)('the node %s', (_, node) => {
 	});
 
 	it('has a recording to show when it opens in advanced mode', () => {
-		expect(recordingFor(base, nodeSettings(node))?.id).toBe(node.preset);
+		expect(recordingFor(flows[node.flow], nodeSettings(node))?.id).toBe(node.preset);
 	});
 
 	it('has an image for a shared link, which says what the node says', () => {

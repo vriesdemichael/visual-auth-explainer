@@ -282,6 +282,36 @@ export function withFollow(state: AppState, follow: ArtifactId | null): AppState
 	return { ...state, follow };
 }
 
+/**
+ * The start of another flow, keeping what still applies and what was left there before. Where someone
+ * was, whose view and what was open all belong to the flow they were in.
+ */
+export function stateInFlow(
+	to: BaseFlow,
+	from: BaseFlow,
+	state: AppState,
+	leftThere: Partial<Settings> = {}
+): AppState {
+	const shared = to.settings.filter((id) => from.settings.includes(id));
+	const settings = normalize({
+		...defaultSettings,
+		...leftThere,
+		...Object.fromEntries(shared.map((id) => [id, state.settings[id]]))
+	}).settings;
+	const flow = to.diagrams.flow;
+	return {
+		...state,
+		flow: to.id,
+		diagram: 'flow',
+		settings,
+		step: evaluate(flow, settings).steps[0].id,
+		source: null,
+		explained: null,
+		eyes: null,
+		follow: null
+	};
+}
+
 export function withWording(state: AppState, wording: Wording | null): AppState {
 	return { ...state, wording };
 }

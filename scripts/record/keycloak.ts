@@ -40,6 +40,8 @@ export const BROKER_CLIENT = 'demo-broker';
 export const BROKER_SECRET = 'throwaway-broker-secret';
 export const SECOND_APP = 'http://localhost:9103';
 export const SECOND_CLIENT = 'demo-app-two';
+/** An app with no user, which is what the client credentials flow is. */
+export const SERVICE_CLIENT = 'demo-service';
 export const SECOND_REDIRECT_URI = `${SECOND_APP}/callback`;
 export const BACKCHANNEL_URL = 'http://host.docker.internal:9103/backchannel';
 export const API_CLIENT = 'demo-api';
@@ -191,6 +193,11 @@ export async function setUpRealms(admin: Admin) {
 	await admin.call('POST', `/realms/${LOCAL_REALM}/clients`, {
 		...client(API_CLIENT, confidential),
 		standardFlowEnabled: false
+	});
+	await admin.call('POST', `/realms/${LOCAL_REALM}/clients`, {
+		...client(SERVICE_CLIENT, confidential),
+		standardFlowEnabled: false,
+		serviceAccountsEnabled: true
 	});
 	await admin.call(
 		'POST',

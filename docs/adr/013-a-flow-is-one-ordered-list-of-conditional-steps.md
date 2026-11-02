@@ -12,6 +12,8 @@ A base flow has two diagrams, the user flow and its setup, and each is one such 
 
 OIDC, DPoP with a nonce retry, brokering with its nested flow, and stored upstream tokens with two API versions all fit this model without special cases. So did PKCE, the first setting added after the model settled, and so have the settings added since. Most of those are only offered in the plain case, so the valid combinations grow slowly while the ones to try at least double with each setting, which is why the list is worked out once. The order is what makes it work: because the list is fixed, a step that disappears has a nearest earlier step to fall back to, and a transition never has to move a row past another. If a later toggle needs to reorder steps, this record has to change first.
 
+This also held for another base flow. Client credentials has no browser and no user, and it is the same kind of data on the same renderer. A base flow says which settings it has, and why the others are not there. Step ids stay unique across flows, so an id only ever means one thing.
+
 ## Not chosen
 
 - **`alt` frames or a tree of branches**: DPoP touches several steps and has no single place to branch.

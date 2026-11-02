@@ -108,6 +108,22 @@
 				"userinfo-request",
 				"userinfo-response"
 			]
+		},
+		"client-credentials": {
+			"presets": [
+				"as-itself",
+				"as-itself-dpop"
+			],
+			"steps": [
+				"service-api-request",
+				"service-api-response",
+				"service-discover",
+				"service-discovery-document",
+				"service-fetch-keys",
+				"service-keys",
+				"service-token-request",
+				"service-token-response"
+			]
 		}
 	},
 	"flags": {

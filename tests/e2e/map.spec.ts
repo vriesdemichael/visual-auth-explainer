@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { flows } from '../../src/lib/flow/index.ts';
 import { mapNodes, nodeSearch, nodeState, nodeView } from '../../src/lib/map/nodes.ts';
 import { expectMatchesModel, FLOW_PATH, open, visibleStepIds, watchForErrors } from './helpers.ts';
 
@@ -9,7 +10,7 @@ async function openMap(page: Page) {
 }
 
 const nodeLink = (page: Page, id: string) => page.getByTestId(`node-${id}`);
-const pathOf = (id: string) => `authorization-code/${id}/`;
+const pathOf = (id: string) => `${mapNodes.find((node) => node.id === id)?.flow}/${id}/`;
 
 // Literal on purpose. These addresses are public once shipped, and must keep opening the same state
 // (ADR-003), so a change that breaks one has to show up here and not pass through a helper.
@@ -68,7 +69,7 @@ test.describe('every node', () => {
 			await openMap(page);
 			await nodeLink(page, node.id).click();
 			await page.locator('.workspace[data-ready="true"]').waitFor();
-			await expectMatchesModel(page, nodeSearch(node), node.diagram);
+			await expectMatchesModel(page, nodeSearch(node), node.diagram, flows[node.flow]);
 			await expect(page.locator(`[data-mode="${node.mode}"]`)).toHaveAttribute(
 				'aria-pressed',
 				'true'

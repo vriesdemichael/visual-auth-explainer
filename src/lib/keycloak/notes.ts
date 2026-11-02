@@ -683,8 +683,43 @@ export const noteDefs: readonly NoteDef[] = [
 	}
 ];
 
+/** About a flow with no user. What backs these is beside its own recordings. */
+export const noUserNoteDefs: readonly NoteDef[] = [
+	{
+		id: 'service-accounts',
+		steps: ['service-token-request'],
+		title: 'Service account roles',
+		text: 'An app can only do this with this on, and without it the server refuses. Keycloak then keeps an account for the app, named service-account- and its client ID, and that is who the token says it is about. So it has a sub and a preferred_username, though no person is involved.',
+		place: clientSettings('Capability config', 'Service account roles'),
+		backedBy: {
+			question: 'serviceAccountsOff',
+			shows: {
+				before: { status: 200 },
+				after: { status: 401, error: 'unauthorized_client' },
+				name: 'service-account-demo-service'
+			}
+		}
+	},
+	{
+		id: 'refresh-for-client-credentials',
+		steps: ['service-token-response'],
+		title: 'Use refresh tokens for client credentials grant',
+		text: 'Off by default, and that is why there is none here. RFC 6749 says one should not be included. With this on, the server does send one.',
+		place: {
+			page: 'client-advanced',
+			path: ['Clients', 'your client', 'Advanced', 'OpenID Connect Compatibility Modes'],
+			shows: ['Use refresh tokens for client credentials grant']
+		},
+		backedBy: {
+			question: 'refreshForClientCredentials',
+			shows: { before: { gotRefreshToken: false }, after: { gotRefreshToken: true } }
+		}
+	}
+];
+
 const notesOfFlow: Readonly<Record<string, readonly NoteDef[]>> = {
-	'authorization-code': noteDefs
+	'authorization-code': noteDefs,
+	'client-credentials': noUserNoteDefs
 };
 
 /** The notes on a step of this base flow, in these settings. */

@@ -2,10 +2,10 @@ import { readFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
 import { sayer, wordingFor } from '../../src/lib/flow/wording.ts';
 import { mapNodes } from '../../src/lib/map/nodes.ts';
-import { FLOW_PATH, open } from './helpers.ts';
+import { open } from './helpers.ts';
 
 const openNode = async (page: Page, id: string) => {
-	await page.goto(`${FLOW_PATH}${id}/`);
+	await page.goto(`${node(id).flow}/${id}/`);
 	await page.locator('.workspace[data-ready="true"]').waitFor();
 };
 const node = (id: string) => mapNodes.find((candidate) => candidate.id === id)!;

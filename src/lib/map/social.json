@@ -39,5 +39,8 @@
 	"login-required": "Why do I get login_required?|Someone would have to log in, and the server was told not to ask.|21|5",
 	"refresh-token-reuse": "Why do I get Maximum allowed refresh token reuse exceeded?|A refresh token was used twice, and that ended things for this app.|23|4",
 	"what-is-in-my-token": "Why does my access token say that?|Open it, and see which setting put each thing there.|12|4",
-	"everything": "What does it all look like at once?|As much as fits together, to see how far one diagram stretches.|30|5"
+	"everything": "What does it all look like at once?|As much as fits together, to see how far one diagram stretches.|30|5",
+	"no-user": "What if no user is involved?|An app acts for itself, with no browser and no login.|5|3",
+	"no-user-no-refresh": "Why is there no refresh token for a service?|It has its secret, so it can just ask again.|5|3",
+	"no-user-with-a-key": "Can a token for a service be tied to a key?|DPoP works the same with no user.|6|3"
 }

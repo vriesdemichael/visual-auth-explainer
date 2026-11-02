@@ -494,6 +494,46 @@ export const mapTracks: readonly MapTrack[] = [
 				})
 			]
 		]
+	},
+	{
+		id: 'no-user',
+		title: 'When there is no user',
+		lead: 'One service calling another, with nobody logging in.',
+		chains: [
+			[
+				node({
+					id: 'no-user',
+					flow: 'client-credentials',
+					preset: 'as-itself',
+					title: 'What if no user is involved?',
+					summary: 'An app acts for itself, with no browser and no login.',
+					answer:
+						'Then the app asks for a token with its own secret, with no browser and nobody logging in. It gets an access token, and calls the API with that.',
+					startsAtTheBeginning: 'It is the whole flow, so its start is its answer.'
+				}),
+				node({
+					id: 'no-user-no-refresh',
+					flow: 'client-credentials',
+					preset: 'as-itself',
+					step: 'service-token-response',
+					title: 'Why is there no refresh token for a service?',
+					summary: 'It has its secret, so it can just ask again.',
+					answer:
+						'A refresh token is there to get a new token without asking the user again. Here there is no user, and the app still has its secret, so when the token runs out it asks again.'
+				}),
+				node({
+					id: 'no-user-with-a-key',
+					flow: 'client-credentials',
+					preset: 'as-itself-dpop',
+					mode: 'advanced',
+					step: 'service-api-request',
+					title: 'Can a token for a service be tied to a key?',
+					summary: 'DPoP works the same with no user.',
+					answer:
+						'Yes. The app makes a key, and a proof signed with it goes along when it asks for the token and with every call. At an API that checks the proof, the token is no use to anyone without the key.'
+				})
+			]
+		]
 	}
 ];
 

@@ -1,5 +1,7 @@
 import { authorizationCode } from '#lib/flow/authorization-code.ts';
 import { authorizationCodeSetup } from '#lib/flow/authorization-code-setup.ts';
+import { clientCredentials } from '#lib/flow/client-credentials.ts';
+import { clientCredentialsSetup } from '#lib/flow/client-credentials-setup.ts';
 import type { BaseFlow, Preset } from '#lib/flow/model.ts';
 import { settingIds } from '#lib/flow/settings.ts';
 
@@ -136,6 +138,36 @@ export const authorizationCodeBase: BaseFlow = {
 	presets
 };
 
+const ONLY_RECORDED_THERE = 'Only recorded on the authorization code flow so far.';
+
+export const clientCredentialsBase: BaseFlow = {
+	id: clientCredentials.id,
+	diagrams: { flow: clientCredentials, setup: clientCredentialsSetup },
+	settings: ['binding'],
+	notHere: {
+		oidc: 'It says who logged in, and here nobody does.',
+		consent: 'There is no user to ask.',
+		clientType: 'This only works for an app that can keep a secret, because that is all it has.',
+		pkce: 'There is no code to protect.',
+		attacker: 'There is no code to steal.',
+		broker: 'There is no login to hand to anyone.',
+		sso: 'There is no login to remember.',
+		refresh: 'There is no refresh token. The app asks again with its secret.',
+		logout: 'There is no login to end.',
+		apiToken: ONLY_RECORDED_THERE,
+		dpopNonce: ONLY_RECORDED_THERE
+	},
+	presets: [
+		{ id: 'as-itself', title: 'An app acting for itself', settings: {} },
+		{
+			id: 'as-itself-dpop',
+			title: 'An app acting for itself, with DPoP',
+			settings: { binding: 'dpop' }
+		}
+	]
+};
+
 export const flows: Record<string, BaseFlow> = {
-	[authorizationCodeBase.id]: authorizationCodeBase
+	[authorizationCodeBase.id]: authorizationCodeBase,
+	[clientCredentialsBase.id]: clientCredentialsBase
 };

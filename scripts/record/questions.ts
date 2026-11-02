@@ -13,6 +13,7 @@ import {
 	CONFIDENTIAL_CLIENT,
 	KEYCLOAK,
 	LOCAL_REALM,
+	SERVICE_CLIENT,
 	PASSWORD,
 	PKCE_CLIENT,
 	PUBLIC_CLIENT,
@@ -608,6 +609,54 @@ async function behindTheBrokeringNotes(browser: Browser, demo: Demo, admin: Admi
 			after: readableOff
 		},
 		brokerRedirector: { before: redirecting, after: notRedirecting, withHint }
+	};
+}
+
+/** What a server does about an app with no user, each one tried both ways. */
+export async function questionsWithNoUser(admin: Admin) {
+	const onClients = `/realms/${LOCAL_REALM}/clients`;
+	const ask = async (clientId: string) =>
+		token(
+			LOCAL_REALM,
+			{ grant_type: 'client_credentials' },
+			{
+				authorization: `Basic ${Buffer.from(`${clientId}:${CLIENT_SECRET}`).toString('base64')}`
+			}
+		);
+	const tryWith = async (overrides: Record<string, unknown>) => {
+		const clientId = `demo-try-${random().slice(0, 8)}`;
+		await admin.call('POST', onClients, {
+			clientId,
+			secret: CLIENT_SECRET,
+			publicClient: false,
+			standardFlowEnabled: false,
+			...overrides
+		});
+		const answer = await ask(clientId);
+		const [found] = await admin.call<{ id: string }[]>('GET', `${onClients}?clientId=${clientId}`);
+		await admin.call('DELETE', `${onClients}/${found.id}`);
+		return answer;
+	};
+
+	const on = await ask(SERVICE_CLIENT);
+	const payload = JSON.parse(
+		Buffer.from(on.json.access_token.split('.')[1], 'base64url').toString()
+	) as { preferred_username: string };
+	const off = await tryWith({ serviceAccountsEnabled: false });
+	const withRefresh = await tryWith({
+		serviceAccountsEnabled: true,
+		attributes: { 'client_credentials.use_refresh_token': 'true' }
+	});
+	return {
+		serviceAccountsOff: {
+			before: { status: on.status },
+			after: { status: off.status, error: off.json.error },
+			name: payload.preferred_username
+		},
+		refreshForClientCredentials: {
+			before: { gotRefreshToken: Boolean(on.json.refresh_token) },
+			after: { gotRefreshToken: Boolean(withRefresh.json.refresh_token) }
+		}
 	};
 }
 

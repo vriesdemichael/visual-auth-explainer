@@ -17,6 +17,8 @@
 	import { isVendorSource, refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	interface Props {
+		/** Why the others are not here, because a setting that just vanishes says nothing. */
+		notApplicable?: Readonly<Partial<Record<SettingId, string>>>;
 		/** Puts what these say in the words someone chose. */
 		say?: Say;
 		settings: Settings;
@@ -41,6 +43,7 @@
 
 	let {
 		say = (text) => text,
+		notApplicable = {},
 		settings,
 		available = settingIds,
 		mode = 'advanced',
@@ -81,6 +84,11 @@
 	}
 
 	const simple = $derived(mode === 'simple');
+	const notOffered = $derived(
+		(Object.keys(notApplicable) as SettingId[]).filter(
+			(id) => !simple || simpleSettingIds.includes(id)
+		)
+	);
 	const offered = $derived(
 		(simple ? simpleSettingIds.filter((id) => !notHere.includes(id)) : settingIds).filter(
 			(id) => available.includes(id) && isOffered(id, settings)
@@ -119,7 +127,9 @@
 
 <svelte:window onpointerdown={(event) => (pressedAt = { x: event.clientX, y: event.clientY })} />
 
-<h2 tabindex="-1" bind:this={panelHeading}>{simple ? 'Try changing' : 'Settings'}</h2>
+{#if offered.length || !simple}
+	<h2 tabindex="-1" bind:this={panelHeading}>{simple ? 'Try changing' : 'Settings'}</h2>
+{/if}
 {#each offered as id (id)}
 	{@const def = defOf(id)}
 	<section data-setting={id} aria-describedby={`about-${id}`}>
@@ -226,6 +236,21 @@
 	</p>
 {/if}
 
+{#if notOffered.length}
+	<section class="not-here" data-testid="not-here">
+		<h2>Not here</h2>
+		<ul>
+			{#each notOffered as id (id)}
+				{@const def = defOf(id)}
+				<li data-not-here={id}>
+					<strong>{simple ? (def.simple?.label ?? def.label) : def.label}.</strong>
+					{say(notApplicable[id] ?? '')}
+				</li>
+			{/each}
+		</ul>
+	</section>
+{/if}
+
 {#if !simple}
 	<section data-testid="server-notes">
 		<label class="toggle">
@@ -270,6 +295,32 @@
 <p class="said" role="status" data-testid="preview-said">{previewed?.says ?? ''}</p>
 
 <style>
+	/* Nothing comes before it when no setting is on offer, so it needs no line to set it apart. */
+	.not-here {
+		border-top: 0;
+	}
+
+	.not-here h2 {
+		margin: 0 0 6px;
+	}
+
+	.not-here ul {
+		margin: 0 0 14px;
+		padding: 0;
+		list-style: none;
+	}
+
+	.not-here li {
+		margin-bottom: 8px;
+		color: var(--muted);
+		font-size: 12.5px;
+	}
+
+	.not-here strong {
+		color: var(--fg);
+		font-weight: 600;
+	}
+
 	.would {
 		margin: 4px 0 0;
 		font-size: 12px;

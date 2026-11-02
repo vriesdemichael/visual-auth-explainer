@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
-import { evaluate, type DiagramId } from '../../src/lib/flow/model.ts';
+import { evaluate, type BaseFlow, type DiagramId } from '../../src/lib/flow/model.ts';
 import { parseState, wordingOf } from '../../src/lib/flow/state.ts';
 import { sayer, speak } from '../../src/lib/flow/wording.ts';
 
@@ -44,10 +44,10 @@ export const lifelineIds = (page: Page) =>
 		.evaluateAll((lanes) => lanes.map((l) => l.getAttribute('data-lifeline')));
 
 /** What the flow model says should be on screen for this query string. */
-export function expectedFor(search: string, diagram: DiagramId = 'flow') {
-	const state = parseState(base, diagram, search);
+export function expectedFor(search: string, diagram: DiagramId = 'flow', flow: BaseFlow = base) {
+	const state = parseState(flow, diagram, search);
 	const view = speak(
-		evaluate(base.diagrams[state.diagram], state.settings),
+		evaluate(flow.diagrams[state.diagram], state.settings),
 		sayer(wordingOf(state))
 	);
 	return {
@@ -59,8 +59,13 @@ export function expectedFor(search: string, diagram: DiagramId = 'flow') {
 }
 
 /** The diagram on screen has to match the model, whichever way the page got there. */
-export async function expectMatchesModel(page: Page, search: string, diagram: DiagramId = 'flow') {
-	const expected = expectedFor(search, diagram);
+export async function expectMatchesModel(
+	page: Page,
+	search: string,
+	diagram: DiagramId = 'flow',
+	flow: BaseFlow = base
+) {
+	const expected = expectedFor(search, diagram, flow);
 	await expect(page.locator('.workspace')).toHaveAttribute('data-diagram', expected.state.diagram);
 	await expect.poll(() => visibleStepIds(page)).toEqual(expected.steps);
 	await expect.poll(() => lifelineIds(page)).toEqual(expected.lifelines);
