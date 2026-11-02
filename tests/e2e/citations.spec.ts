@@ -37,6 +37,7 @@ test.describe('a claim on a step', () => {
 	test('keeps the source on a reload, and goes back to what opened it', async ({ page }) => {
 		await open(page, 'mode=advanced&step=redirect-with-code');
 		await cite(page, 'rfc9700').click();
+		await expect(page).toHaveURL(/source=rfc9700/);
 		await page.reload();
 		await page.locator('.workspace[data-ready="true"]').waitFor();
 		await expect(panel(page)).toBeVisible();
