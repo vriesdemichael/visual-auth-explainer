@@ -7,6 +7,7 @@
 		lineSpan,
 		TIME_GAP,
 		SELF_LOOP,
+		WHOLE_SELF_LOOP,
 		type DiagramLayout
 	} from '#lib/diagram/layout.ts';
 	import {
@@ -67,6 +68,7 @@
 	let frame = $state.raw<Frame>(untrack(() => toFrame(layout)));
 	let animating = $state(false);
 	let scroller = $state<HTMLElement>();
+	const loop = $derived(frame.whole ? WHOLE_SELF_LOOP : SELF_LOOP);
 	let scrolled = $state(false);
 	let drawn = untrack(() => layout);
 	const BREATHING_ROOM = 60;
@@ -183,7 +185,13 @@
 	};
 </script>
 
-<div class="diagram" data-testid="diagram" data-animating={animating} data-lit={lit?.part}>
+<div
+	class="diagram"
+	class:whole={frame.whole}
+	data-testid="diagram"
+	data-animating={animating}
+	data-lit={lit?.part}
+>
 	<div class="heads-band" class:scrolled>
 		<svg
 			class="heads"
@@ -243,7 +251,7 @@
 							{/if}
 						</g>
 					{/if}
-					{#if !lane.leaving}
+					{#if !lane.leaving && !frame.whole}
 						{#each layHeld(holdings[lane.id] ?? [], frame.heldWidth) as chip (chip.artifact)}
 							{#if lane.id !== eyes && !eyesHold(chip.artifact)}
 								<g data-hidden-held
@@ -315,7 +323,7 @@
 					data-group={group.leaving ? undefined : group.id}
 				>
 					<rect x={group.x} y={group.y} width={group.width} height={group.height} rx="10" />
-					<text x={group.x + 12} y={group.y + 18}>{group.label}</text>
+					<text x={group.x + 12} y={group.y + (frame.whole ? 14 : 18)}>{group.label}</text>
 				</g>
 			{/each}
 
@@ -371,12 +379,12 @@
 						{/each}
 					{:else if row.self}
 						<path
-							d={`M ${row.x1} ${row.y - 6} h ${row.selfSide * SELF_LOOP.width} v ${SELF_LOOP.height} h ${-row.selfSide * (SELF_LOOP.width - 6)}`}
+							d={`M ${row.x1} ${row.y - loop.top} h ${row.selfSide * loop.width} v ${loop.height} h ${-row.selfSide * (loop.width - 6)}`}
 							pathLength="1"
 							stroke-dasharray={`${row.draw} 1`}
 						/>
 						<polygon
-							points={headPoints(row.x1, row.y + 12, -row.selfSide)}
+							points={headPoints(row.x1, row.y - loop.top + loop.height, -row.selfSide)}
 							style:opacity={row.draw}
 						/>
 					{:else}
@@ -394,9 +402,12 @@
 							/>
 						{/if}
 					{/if}
-					<g class="number" transform={`translate(${row.x1} ${row.self ? row.y - 6 : row.y})`}>
-						<circle r="9.5" />
-						<text y="3.7" text-anchor="middle">{row.number}</text>
+					<g
+						class="number"
+						transform={`translate(${row.x1} ${row.self ? row.y - loop.top : row.y})`}
+					>
+						<circle r={frame.numberRadius} />
+						<text y={frame.whole ? 3 : 3.7} text-anchor="middle">{row.number}</text>
 					</g>
 					<!-- The spaces are for anything reading this, because lines are only places on a screen. -->
 					{#if hiddenRows.has(row.id)}
@@ -721,6 +732,16 @@
 	}
 
 	/* Knocked out of whatever passes behind it, so that a lifeline never strikes through the words. */
+	/* Enough to read, and no more, so that every row fits. */
+	.whole .label {
+		font-size: 11.5px;
+		stroke-width: 4px;
+	}
+
+	.whole .number text {
+		font-size: 8.5px;
+	}
+
 	.label {
 		paint-order: stroke;
 		stroke: var(--bg);
@@ -741,6 +762,8 @@
 		opacity: 0;
 	}
 
+	/* Someone asked to see all of the shape. */
+	.whole .row.future .label,
 	.row.future:hover .label,
 	.row.future:focus-visible .label,
 	.row.fresh .label {

@@ -23,6 +23,8 @@
 		serverNamed?: boolean;
 		/** Whoever this is shown as was not part of this message. */
 		redacted?: boolean;
+		/** Every value in full, for reading in front of a room. */
+		whole?: boolean;
 	}
 
 	let {
@@ -33,7 +35,8 @@
 		onstep,
 		notes = [],
 		serverNamed = true,
-		redacted = false
+		redacted = false,
+		whole = false
 	}: Props = $props();
 
 	const LONG = 40;
@@ -80,9 +83,9 @@
 					></span>{:else if line.value !== undefined}{#if line.value.length > LONG}<button
 							type="button"
 							class="value long"
-							class:open={opened[i]}
+							class:open={whole || opened[i]}
 							data-artifact={artifactOf(step, line.name)}
-							aria-expanded={Boolean(opened[i])}
+							aria-expanded={whole || Boolean(opened[i])}
 							onclick={() => (opened[i] = !opened[i])}>{line.value}</button
 						>{:else}<span class="value" data-artifact={artifactOf(step, line.name)}
 							>{line.value}</span
@@ -147,7 +150,7 @@
 		border-radius: 6px;
 		background: var(--panel);
 		font-family: var(--mono);
-		font-size: 11.5px;
+		font-size: var(--raw-size, 11.5px);
 		line-height: 1.5;
 	}
 

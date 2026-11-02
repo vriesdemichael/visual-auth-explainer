@@ -66,7 +66,9 @@ function stateAt(
 		eyes: null,
 		follow: null,
 		wording: null,
-		list: false
+		list: false,
+		whole: false,
+		raw: false
 	};
 }
 
@@ -90,7 +92,9 @@ const stateIn = (
 	eyes: null,
 	follow: null,
 	wording: null,
-	list: false
+	list: false,
+	whole: false,
+	raw: false
 });
 
 function resultAt(kind: ResultKind, title: string, says: string, state: AppState): Result {

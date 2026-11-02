@@ -59,6 +59,26 @@ export const ARefusalOnItsWay: Story = {
 	}
 };
 
+export const TheWholeFlow: Story = {
+	args: {
+		layout: layoutDiagram(
+			evaluate(flow, {
+				...defaultSettings,
+				oidc: true,
+				binding: 'dpop',
+				dpopNonce: true,
+				broker: true,
+				upstreamTokens: 'v1'
+			}),
+			'advanced',
+			{ width: 1280, height: 560 },
+			'specs',
+			true
+		),
+		currentStep: 'token-request'
+	}
+};
+
 export const InTheSpecsWords: Story = {
 	args: {
 		layout: layoutDiagram(evaluate(flow, defaultSettings), 'simple', undefined, 'specs'),

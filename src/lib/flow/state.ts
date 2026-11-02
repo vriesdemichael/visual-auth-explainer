@@ -65,6 +65,10 @@ export interface AppState {
 	wording: Wording | null;
 	/** All that is left to someone building this, in one list. */
 	list: boolean;
+	/** Every row at once, with the diagram given all the room, for a room full of people. */
+	whole: boolean;
+	/** Raw traffic large enough to read from the back of that room. */
+	raw: boolean;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
@@ -75,6 +79,8 @@ const FOLLOW_PARAM = 'follow';
 const WORDING_PARAM = 'say';
 const FROM_A_STEP = 'step';
 const LIST_PARAM = 'list';
+const WHOLE_PARAM = 'whole';
+const RAW_PARAM = 'raw';
 
 /** One step can cite two sections of the same spec, which each say something different. */
 export const refFor = (
@@ -181,7 +187,9 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 		eyes: onTheDiagram(view, params.get(EYES_PARAM)),
 		follow: onTheWay(view, params.get(FOLLOW_PARAM)),
 		wording: parseWording(params),
-		list: params.get(LIST_PARAM) === '1'
+		list: params.get(LIST_PARAM) === '1',
+		whole: params.get(WHOLE_PARAM) === '1',
+		raw: params.get(RAW_PARAM) === '1'
 	};
 }
 
@@ -208,6 +216,8 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	if (state.follow) params.set(FOLLOW_PARAM, state.follow);
 	if (state.wording) params.set(WORDING_PARAM, state.wording);
 	if (state.list) params.set(LIST_PARAM, '1');
+	if (state.whole) params.set(WHOLE_PARAM, '1');
+	if (state.raw) params.set(RAW_PARAM, '1');
 	return params.toString();
 }
 
@@ -235,7 +245,9 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		eyes: null,
 		follow: null,
 		wording: null,
-		list: false
+		list: false,
+		whole: false,
+		raw: false
 	});
 }
 
@@ -336,6 +348,14 @@ export function stateInFlow(
 		eyes: null,
 		follow: null
 	};
+}
+
+export function withWhole(state: AppState, whole: boolean): AppState {
+	return { ...state, whole, raw: whole ? false : state.raw };
+}
+
+export function withRaw(state: AppState, raw: boolean): AppState {
+	return { ...state, raw, whole: raw ? false : state.whole, source: raw ? null : state.source };
 }
 
 /** They both go beside the diagram, so only one is open. */
