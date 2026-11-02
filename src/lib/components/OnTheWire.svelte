@@ -33,6 +33,10 @@
 		seesStep?: (step: string) => boolean;
 		/** Where to run the same server at home, with the settings on screen. */
 		runHref?: string | null;
+		/** Someone wants to read this from the back of a room. */
+		onlarge?: (() => void) | null;
+		/** It is being read like that. */
+		large?: boolean;
 	}
 
 	let {
@@ -46,7 +50,9 @@
 		serverNamed = true,
 		notes = [],
 		seesStep = () => true,
-		runHref = null
+		runHref = null,
+		onlarge = null,
+		large = false
 	}: Props = $props();
 
 	const message = $derived(recording?.messages.find((candidate) => candidate.step === step.id));
@@ -77,6 +83,11 @@
 
 <section class="wire" data-testid="on-the-wire">
 	<h3>On the wire</h3>
+	{#if onlarge && status === 'loaded' && message}
+		<button type="button" class="large" data-testid="read-large" onclick={onlarge}>
+			Read it large
+		</button>
+	{/if}
 	{#if status === 'none'}
 		<div data-testid="no-recording">
 			<p>
@@ -128,6 +139,7 @@
 			{notes}
 			{serverNamed}
 			redacted={!seesStep(step.id)}
+			whole={large}
 		/>
 		<RunValues values={soFar} {numberOf} {onstep} />
 		<p class="origin" data-testid="payload-origin">
@@ -152,6 +164,17 @@
 <style>
 	.wire {
 		margin-top: 12px;
+	}
+
+	.large {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--muted);
+		font: inherit;
+		font-size: 12.5px;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 
 	h3 {

@@ -64,6 +64,8 @@ const SELF_LABEL_ROOM = 240;
 export const LABEL_CHAR_WIDTH = 6.5;
 const LABEL_EDGE = 4;
 const NUMBER_ROOM = 14;
+const NUMBER_RADIUS = 9.5;
+const WHOLE_NUMBER_RADIUS = 8;
 
 const HELD_TOP = 58;
 const HELD_LINE_HEIGHT = 19;
@@ -71,6 +73,17 @@ const HELD_CHAR_WIDTH = 6.1;
 const HELD_PADDING = 12;
 const HELD_GAP = 4;
 const HELD_LINE_WIDTH = 174;
+
+/** For the whole flow at once: a line to a row, no chips, and no more height than there is. */
+const WHOLE_HEAD_HEIGHT = 56;
+const WHOLE_FIRST_ROW_Y = 16;
+const WHOLE_GROUP_TOP = 30;
+const WHOLE_LABEL_ABOVE_ARROW = 3;
+const WHOLE_LABEL_BESIDE_LOOP = 3;
+const WHOLE_GROUP_GAP = 2;
+const WHOLE_GROUP_BOTTOM = 4;
+const SMALLEST_WHOLE_ROW = 11.5;
+const LARGEST_WHOLE_ROW = 34;
 
 /** What the diagram has to fit in, in pixels on screen. */
 export interface Room {
@@ -161,6 +174,10 @@ export interface DiagramLayout {
 	heldWidth: number;
 	/** Keeps room for all they will have seen by the end, so stepping moves nothing. */
 	headHeight: number;
+	/** Every row at once, which leaves out what would not fit. */
+	whole: boolean;
+	/** Its numbers are as big as the rows have room for. */
+	numberRadius: number;
 	lanes: LaneLayout[];
 	rows: RowLayout[];
 	chips: ChipLayout[];
@@ -248,6 +265,14 @@ function linesOfName(name: string, headWidth: number): readonly string[] {
 	return splits.reduce((best, lines) => (widest(lines) < widest(best) ? lines : best), [name]);
 }
 
+/** One line, cut short if it has to be, for when there is only room for one. */
+function oneLine(label: string, room: number): Flowed[] {
+	const most = Math.floor(room / LABEL_CHAR_WIDTH);
+	const text = label.length > most ? `${label.slice(0, Math.max(1, most - 1)).trimEnd()}…` : label;
+	const width = text.length * LABEL_CHAR_WIDTH;
+	return [{ text, textWidth: width, width, chips: [] }];
+}
+
 /** How wide to be, and how to share that out between the lanes. */
 function fitLanes(count: number, room?: Room) {
 	const gaps = Math.max(1, count - 1);
@@ -265,13 +290,14 @@ export function layoutDiagram(
 	inPlainWords: DiagramView,
 	mode: Mode = 'simple',
 	room?: Room,
-	wording: Wording = wordingFor(mode)
+	wording: Wording = wordingFor(mode),
+	whole = false
 ): DiagramLayout {
 	const view = speak(inPlainWords, sayer(wording));
 	const simple = mode === 'simple';
 	const { width, margin, spacing, headWidth } = fitLanes(view.lifelines.length, room);
 	const heldWidth = Math.min(HELD_LINE_WIDTH, spacing - 6);
-	const headHeight = headHeightOf(view, heldWidth);
+	const headHeight = whole ? WHOLE_HEAD_HEIGHT : headHeightOf(view, heldWidth);
 	const lanes: LaneLayout[] = view.lifelines.map((line, i) => ({
 		id: line.id,
 		x: margin + i * spacing,
@@ -304,6 +330,7 @@ export function layoutDiagram(
 	// Simple mode says less and some words are longer, and neither a switch of mode nor of words moves
 	// a row, so each keeps the room of the longest.
 	const linesOf = inPlainWords.steps.map((step) => {
+		if (whole) return 1;
 		const { self, room } = placeOf(step);
 		const counts = [true, false].flatMap((plain) => {
 			const shown = plain ? chipsOn(step).filter((f) => f.artifact || f.mark) : chipsOn(step);
@@ -316,10 +343,16 @@ export function layoutDiagram(
 		});
 		return Math.max(...counts);
 	});
-	const rowHeight = rowHeightFor(steps, linesOf, room && room.height - headHeight);
-	const band = Math.max(ROW_BAND, rowHeight - 8);
+	const rowHeight = whole
+		? wholeRowHeight(steps, room && room.height - headHeight)
+		: rowHeightFor(steps, linesOf, room && room.height - headHeight);
+	const band = whole ? rowHeight : Math.max(ROW_BAND, rowHeight - 8);
+	const numberRadius = whole ? Math.min(WHOLE_NUMBER_RADIUS, rowHeight / 2) : NUMBER_RADIUS;
+	// From just under the number above it, which a highlight should not cut through.
+	const rowTop = whole ? rowHeight - numberRadius : ROW_TOP;
+	const groupTop = whole ? WHOLE_GROUP_TOP : GROUP_TOP;
 
-	let cursor = FIRST_ROW_Y;
+	let cursor = whole ? WHOLE_FIRST_ROW_Y : FIRST_ROW_Y;
 	const rows: RowLayout[] = [];
 	const chips: ChipLayout[] = [];
 	const groups: GroupLayout[] = [];
@@ -330,12 +363,16 @@ export function layoutDiagram(
 		const next = steps[i + 1];
 		const { time, self, x1, x2, selfSide, beside, room: words } = placeOf(step);
 
-		if (step.group && previous?.group !== step.group) cursor += GROUP_TOP;
+		if (step.group && previous?.group !== step.group) cursor += groupTop;
 		// More lines go up from an arrow, and down beside a loop.
 		const extra = (linesOf[i] - 1) * LINE_HEIGHT;
 		const y = self ? cursor : cursor + extra;
 		const onMessage = chipsOn(step);
-		const shown = simple ? onMessage.filter((field) => field.artifact || field.mark) : onMessage;
+		const shown = whole
+			? []
+			: simple
+				? onMessage.filter((field) => field.artifact || field.mark)
+				: onMessage;
 		const label = simple ? step.plain : step.label;
 		const lines: LabelLine[] = [];
 		const put = (field: Field, x: number, baseline: number) => {
@@ -353,10 +390,11 @@ export function layoutDiagram(
 		if (time) {
 			lines.push({ text: label, x: (x1 + x2) / 2, y: y + 4, anchor: 'middle' });
 		} else if (self) {
-			const flowed = flow(label, [], words);
+			const flowed = whole ? oneLine(label, words) : flow(label, [], words);
 			const anchor = selfSide === 1 ? 'start' : 'end';
 			flowed.forEach((line, k) => {
-				const baseline = y + LABEL_BESIDE_LOOP + k * LINE_HEIGHT;
+				const baseline =
+					y + (whole ? WHOLE_LABEL_BESIDE_LOOP : LABEL_BESIDE_LOOP) + k * LINE_HEIGHT;
 				lines.push({ text: line.text, x: beside, y: baseline, anchor });
 			});
 			const total = shown.reduce((sum, field) => sum + chipWidth(field) + CHIP_GAP, -CHIP_GAP);
@@ -369,9 +407,12 @@ export function layoutDiagram(
 			}
 		} else {
 			const middle = (x1 + x2) / 2;
-			const flowed = flow(label, shown, words);
+			const flowed = whole ? oneLine(label, words) : flow(label, shown, words);
 			flowed.forEach((line, k) => {
-				const baseline = y - LABEL_ABOVE_ARROW - (flowed.length - 1 - k) * LINE_HEIGHT;
+				const baseline =
+					y -
+					(whole ? WHOLE_LABEL_ABOVE_ARROW : LABEL_ABOVE_ARROW) -
+					(flowed.length - 1 - k) * LINE_HEIGHT;
 				const start = clamp(
 					middle - line.width / 2,
 					LABEL_EDGE,
@@ -395,7 +436,7 @@ export function layoutDiagram(
 
 		// Not over the arrow of a message to itself, which comes lower than the rest of a row.
 		const above = rows.at(-1);
-		const wanted = y - ROW_TOP - (self ? 0 : extra);
+		const wanted = y - rowTop - (self ? 0 : extra);
 		const top = above?.self ? Math.max(wanted, above.y + SELF_LOOP.height) : wanted;
 
 		rows.push({
@@ -427,30 +468,32 @@ export function layoutDiagram(
 				(row) => steps.find((s) => s.id === row.id)?.group === step.group
 			);
 			const xs = members.flatMap((row) => [row.x1, row.x2]);
-			const top = members[0].top - GROUP_TOP + ROW_TOP - 8;
+			const top = members[0].top - groupTop + rowTop - (whole ? WHOLE_GROUP_GAP : 8);
 			groups.push({
 				id: step.group,
 				x: Math.min(...xs) - GROUP_SIDE,
 				y: top,
 				width: Math.max(...xs) - Math.min(...xs) + GROUP_SIDE * 2,
-				height: cursor - top - GROUP_BOTTOM,
+				height: cursor - top - (whole ? WHOLE_GROUP_BOTTOM : GROUP_BOTTOM),
 				label: (() => {
 					const group = view.groups.find((candidate) => candidate.id === step.group);
 					return (simple ? group?.plain : group?.label) ?? step.group;
 				})()
 			});
-			cursor += GROUP_BOTTOM;
+			cursor += whole ? WHOLE_GROUP_BOTTOM : GROUP_BOTTOM;
 		}
 	}
 
 	return {
 		width,
 		height: cursor,
-		roomKey: room ? `${room.width}x${room.height}` : '',
+		roomKey: room ? `${room.width}x${room.height}${whole ? ':whole' : ''}` : '',
 		viewX: Math.min(0, width - (room?.width ?? width)) / 2,
 		viewWidth: Math.max(width, room?.width ?? width),
 		heldWidth,
 		headHeight,
+		whole,
+		numberRadius,
 		lanes,
 		rows,
 		chips,
@@ -477,6 +520,15 @@ function rowHeightFor(
 	const groups = new Set(steps.flatMap((step) => step.group ?? [])).size;
 	const fixed = FIRST_ROW_Y + extra + groups * (GROUP_TOP + GROUP_BOTTOM);
 	return clamp((height - fixed) / Math.max(1, steps.length), TIGHT_ROW_HEIGHT, LOOSE_ROW_HEIGHT);
+}
+
+/** As much as there is, because all of them have to fit. */
+function wholeRowHeight(steps: DiagramView['steps'], height?: number): number {
+	if (height === undefined) return LARGEST_WHOLE_ROW;
+	const groups = new Set(steps.flatMap((step) => step.group ?? [])).size;
+	const fixed = WHOLE_FIRST_ROW_Y + groups * (WHOLE_GROUP_TOP + WHOLE_GROUP_BOTTOM);
+	const shared = (height - fixed) / Math.max(1, steps.length);
+	return clamp(Math.floor(shared * 10) / 10, SMALLEST_WHOLE_ROW, LARGEST_WHOLE_ROW);
 }
 
 function headHeightOf(view: DiagramView, heldWidth: number): number {
@@ -511,6 +563,8 @@ export function layHeld(held: readonly ArtifactId[], lineWidth = HELD_LINE_WIDTH
 	});
 }
 
-export const SELF_LOOP = { width: SELF_LOOP_WIDTH, height: 18 };
+export const SELF_LOOP = { width: SELF_LOOP_WIDTH, height: 18, top: 6 };
+/** Flat enough to stay in its row, when every row has to fit. */
+export const WHOLE_SELF_LOOP = { width: SELF_LOOP_WIDTH, height: 7, top: 3 };
 /** How tall the gap in every line is, where time passes. */
 export const TIME_GAP = 26;

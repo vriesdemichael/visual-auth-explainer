@@ -51,7 +51,9 @@ describe('the URL', () => {
 						eyes: null,
 						follow: null,
 						wording: null,
-						list: false
+						list: false,
+						whole: false,
+						raw: false
 					};
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
 				}
@@ -84,7 +86,9 @@ describe('the URL', () => {
 							eyes: onOff ? 'browser' : null,
 							follow: onOff ? 'code' : null,
 							wording: onOff ? ('specs' as const) : null,
-							list: onOff
+							list: onOff,
+							whole: onOff,
+							raw: onOff
 						};
 						expect(parseState(base, 'flow', serializeState(base, state))).toEqual(state);
 					}

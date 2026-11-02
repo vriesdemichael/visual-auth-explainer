@@ -46,6 +46,8 @@
 		withExplained,
 		withEyes,
 		withList,
+		withRaw,
+		withWhole,
 		refFor,
 		withWording,
 		wordingOf,
@@ -180,9 +182,11 @@
 	}
 	// Whose words this is in, which only changes what is said, so all the rest goes on using the view.
 	const wording = $derived(wordingOf(appState));
+	// Read on its own, because a new state on every step should not mean a new layout.
+	const whole = $derived(appState.whole);
 	const say = $derived(sayer(wording));
 	const spoken = $derived(speak(view, say));
-	const layout = $derived(layoutDiagram(preview?.both ?? view, mode, room, wording));
+	const layout = $derived(layoutDiagram(preview?.both ?? view, mode, room, wording, whole));
 
 	// Below this the settings do not fit beside the diagram, so they open over it when asked for.
 	let settingsDoNotFit = $state(false);
@@ -546,6 +550,14 @@
 			closeList();
 			return;
 		}
+		if (event.key === 'Escape' && appState.raw) {
+			onnavigate(withRaw(appState, false), 'push');
+			return;
+		}
+		if (event.key === 'Escape' && appState.whole) {
+			onnavigate(withWhole(appState, false), 'push');
+			return;
+		}
 		if (event.key === 'Escape' && appState.explained) {
 			explain(null);
 			return;
@@ -578,6 +590,7 @@
 	class="workspace"
 	data-testid="workspace"
 	class:settings-hidden={appState.settingsHidden}
+	class:whole={appState.whole}
 	class:settings-open={settingsOpen}
 	data-ready={animate}
 	data-diagram={appState.diagram}
@@ -696,6 +709,14 @@
 				onclick={() => explainTerm('reading')}
 			>
 				How to read this
+			</button>
+			<button
+				type="button"
+				class="quiet"
+				data-testid="whole-flow"
+				onclick={() => onnavigate(withWhole(appState, !appState.whole), 'push')}
+			>
+				{appState.whole ? 'Back to the step' : 'See the whole flow'}
 			</button>
 			<button type="button" class="quiet" data-testid="settings-toggle" onclick={toggleSettings}>
 				{settingsShown ? 'Hide settings' : 'Show settings'}
@@ -837,6 +858,7 @@
 						{notes}
 						{seesStep}
 						{runHref}
+						onlarge={() => onnavigate(withRaw(appState, true), 'push')}
 					/>
 				{/if}
 			{/snippet}
@@ -863,6 +885,37 @@
 		/>
 	</footer>
 
+	{#if appState.raw && appState.mode === 'advanced'}
+		<div class="source raw-large" data-testid="raw-large">
+			<header>
+				<h2>{spoken.steps[position].label}</h2>
+				<button
+					type="button"
+					data-testid="raw-close"
+					onclick={() => onnavigate(withRaw(appState, false), 'push')}
+				>
+					Close
+				</button>
+			</header>
+			{#if onWire}
+				<OnTheWire
+					step={current}
+					{recording}
+					status={wireStatus}
+					{nearest}
+					{answerTo}
+					{numberOf}
+					onstep={goToStep}
+					serverNamed={appState.serverNotes}
+					{notes}
+					{seesStep}
+					large
+				/>
+			{:else}
+				<p>Nothing goes over the wire at this step.</p>
+			{/if}
+		</div>
+	{/if}
 	{#if left}
 		<div class="source wide" data-list-open>
 			<LeftToYouPanel
@@ -1079,6 +1132,42 @@
 
 	.source.wide {
 		width: min(570px, 100%);
+	}
+
+	.raw-large {
+		--raw-size: 16px;
+		width: min(920px, 100%);
+		padding: 14px 18px;
+	}
+
+	.raw-large header {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 8px;
+		position: static;
+		padding: 0;
+		border: 0;
+	}
+
+	.raw-large h2 {
+		margin: 0;
+	}
+
+	/* The diagram and how to move through it, because that is what a room is looking at. */
+	.workspace.whole {
+		grid-template:
+			'header' auto
+			'diagram' minmax(0, 1fr)
+			'controls' auto
+			/ minmax(0, 1fr);
+	}
+
+	.workspace.whole :global(.seen-note),
+	.workspace.whole .settings,
+	.workspace.whole .detail,
+	.workspace.whole [data-testid='settings-toggle'] {
+		display: none;
 	}
 
 	.narrow-note {

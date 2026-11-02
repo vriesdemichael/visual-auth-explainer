@@ -17,6 +17,37 @@ const LEFT = 'src/lib/flow/left-to-you.ts';
 const ERRORS = 'src/lib/search/errors.ts';
 
 export const breakages = [
+	// In front of a room.
+	{
+		name: 'whole: a row is left off the screen',
+		file: LAYOUT,
+		from: 'return clamp(Math.floor(shared * 10) / 10, SMALLEST_WHOLE_ROW, LARGEST_WHOLE_ROW);',
+		to: 'return LARGEST_WHOLE_ROW;'
+	},
+	{
+		name: 'whole: a number runs into the row under it',
+		file: LAYOUT,
+		from: 'const numberRadius = whole ? Math.min(WHOLE_NUMBER_RADIUS, rowHeight / 2) : NUMBER_RADIUS;',
+		to: 'const numberRadius = NUMBER_RADIUS;'
+	},
+	{
+		name: 'whole: words run out past their arrow',
+		file: LAYOUT,
+		from: 'const text = label.length > most ? ',
+		to: 'const text = label.length > Infinity ? '
+	},
+	{
+		name: 'whole: does not stay in the address',
+		file: STATE,
+		from: "if (state.whole) params.set(WHOLE_PARAM, '1');",
+		to: ''
+	},
+	{
+		name: 'whole: raw traffic does not stay in the address',
+		file: STATE,
+		from: "if (state.raw) params.set(RAW_PARAM, '1');",
+		to: ''
+	},
 	// What a security reader looks for.
 	{
 		name: 'threats: a threat that is not here is not said to be',

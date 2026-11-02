@@ -30,7 +30,9 @@ export function nodeState(of: MapNode): AppState {
 		eyes: of.eyes ?? null,
 		follow: null,
 		wording: null,
-		list: false
+		list: false,
+		whole: false,
+		raw: false
 	};
 }
 

@@ -20,7 +20,7 @@
 			{channels[channel].label}
 		</li>
 	{/each}
-	<li class="held">Chips under a name: what it has seen so far</li>
+	<li class="held seen-note">Chips under a name: what it has seen so far</li>
 </ul>
 
 <style>
