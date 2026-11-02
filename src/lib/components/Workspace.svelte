@@ -8,6 +8,7 @@
 	import WordsSwitch from '#lib/components/WordsSwitch.svelte';
 	import FollowPath from '#lib/components/FollowPath.svelte';
 	import Mark from '#lib/components/Mark.svelte';
+	import PageWindow from '#lib/components/PageWindow.svelte';
 	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
 	import ModeSwitch from '#lib/components/ModeSwitch.svelte';
 	import OnTheWire from '#lib/components/OnTheWire.svelte';
@@ -59,6 +60,8 @@
 	import { formsOf, pathOf } from '#lib/flow/follow.ts';
 	import { bothOf, whatItWouldDo } from '#lib/flow/preview.ts';
 	import { artifacts, type ArtifactId } from '#lib/flow/vocabulary.ts';
+	import type { ShotId } from '#lib/flow/vocabulary.ts';
+	import { addressAt } from '#lib/recordings/address.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import {
 		knownFrom,
@@ -93,6 +96,8 @@
 		hrefFor: (state: AppState) => string;
 		loadText: (file: string) => Promise<string>;
 		loadRecording: (preset: string) => Promise<Recording>;
+		/** Where the picture of a page is. */
+		pageImage?: ((shot: ShotId) => string) | null;
 		onnavigate: (next: AppState, history: 'push' | 'replace') => void;
 	}
 
@@ -110,6 +115,7 @@
 		hrefFor,
 		loadText,
 		loadRecording,
+		pageImage = null,
 		onnavigate
 	}: Props = $props();
 
@@ -367,7 +373,7 @@
 	);
 	// Loaded when it is first asked for, so simple mode downloads none of it.
 	const wantedPreset = $derived(
-		onWire ? (recordingFor(base, appState.settings)?.id ?? null) : null
+		onWire || current.page ? (recordingFor(base, appState.settings)?.id ?? null) : null
 	);
 	let loaded = $state.raw<Recording | null>(null);
 	let failedPreset = $state<string | null>(null);
@@ -388,6 +394,12 @@
 		};
 	});
 	const recording = $derived(loaded?.preset === wantedPreset ? loaded : null);
+	// It is what the browser showed, so it is not what anyone else saw.
+	const inBrowser = $derived(!appState.eyes || appState.eyes === 'browser');
+	const pageAddress = $derived(
+		recording && current.page ? addressAt(recording, current.page.address) : null
+	);
+	const imageOf = $derived(appState.serverNotes ? pageImage : null);
 	const wireStatus = $derived.by(() => {
 		if (!recordingFor(base, appState.settings)) return 'none';
 		if (recording) return 'loaded';
@@ -730,6 +742,7 @@
 			lifelines={view.lifelines}
 			mode={appState.mode}
 			{wording}
+			pageImage={imageOf}
 			{intro}
 			{partWhy}
 			unseenBy={seesStep(current.id) ? null : eyesName}
@@ -749,6 +762,19 @@
 			serverNamed={appState.serverNotes}
 			known={knownFrom(base, current, appState.settings)}
 		>
+			{#snippet inTheBrowser()}
+				{@const page = spoken.steps[position].page}
+				{#if page && inBrowser}
+					<PageWindow
+						address={pageAddress}
+						marks={page.marks}
+						shows={page.shows}
+						image={page.shot && imageOf ? imageOf(page.shot) : null}
+						everything={appState.mode === 'advanced'}
+						onterm={explainTerm}
+					/>
+				{/if}
+			{/snippet}
 			{#snippet wire()}
 				{#if onWire}
 					<OnTheWire

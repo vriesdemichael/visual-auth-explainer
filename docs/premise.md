@@ -138,6 +138,8 @@ Three things follow:
 
 **Proposed: one thing followed through the flow.** Select a code, and its path lights up across the diagram and is listed by step, with the rest quiet, because the answer to "why a code and then a token" is the path it takes. Two forms of one thing, a verifier and its challenge, follow together, which is PKCE in one picture. The path comes from the fields on the steps. "Used up" is only said where a recording backs it, and a test holds it to that.
 
+**Proposed, and built: what a person sees is there too** ([#60](https://github.com/vriesdemichael/authlines/issues/60)). At a step a person sees, a small window in the panel has the real address and a picture of the real page, so "through the browser" stops being an idea: someone can see the code sitting in their address bar. It is in the panel and not on the diagram, because the browser is the leftmost column with arrows crossing it, and a picture there would cover what the diagram is for. The address comes from the recording, and where these settings have none it says so. The pictures are taken by the recording run and are only ever of one server's look, so they go with its notes and leave an outline in words.
+
 ### 5.5 Simple mode and advanced mode
 
 **Decided:** the application has a simple mode and an advanced mode. In the maintainer's words, the advanced mode is there "to toggle more settings", at "the advanced level as in authplayground". So this is an application-wide mode that changes which settings are on offer and how much each step shows.

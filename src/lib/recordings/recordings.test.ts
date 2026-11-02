@@ -402,7 +402,9 @@ describe('every base flow', () => {
 
 describe('the files', () => {
 	it('are one per named state, and the answers to the open questions', () => {
-		const files = readdirSync(FOLDER).sort();
+		const files = readdirSync(FOLDER)
+			.filter((file) => file !== 'pages')
+			.sort();
 		expect(files).toEqual([...base.presets.map((p) => `${p.id}.json`), 'questions.json'].sort());
 	});
 

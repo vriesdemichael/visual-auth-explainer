@@ -141,7 +141,13 @@ export function speak(view: DiagramView, say: Say): DiagramView {
 			label: say(step.label),
 			concept: say(step.concept),
 			inPractice: step.inPractice && say(step.inPractice),
-			pitfall: step.pitfall && { title: say(step.pitfall.title), text: say(step.pitfall.text) },
+			pitfall: step.pitfall && {
+				...step.pitfall,
+				title: say(step.pitfall.title),
+				text: say(step.pitfall.text),
+				shows: step.pitfall.shows && say(step.pitfall.shows)
+			},
+			page: step.page && { ...step.page, shows: say(step.page.shows) },
 			specOnly: step.specOnly && say(step.specOnly),
 			recordedAs: step.recordedAs && say(step.recordedAs),
 			links: step.links.map((link) => ({ ...link, text: say(link.text) })),

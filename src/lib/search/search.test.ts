@@ -11,7 +11,9 @@ import { search } from '#lib/search/search.ts';
 const API_ANSWERS = new Set(['api-response', 'api-refused', 'asks-after-logout-response']);
 
 const FOLDER = 'static/recordings/authorization-code';
-const files = readdirSync(FOLDER).filter((file) => file !== 'questions.json');
+const files = readdirSync(FOLDER).filter(
+	(file) => file.endsWith('.json') && file !== 'questions.json'
+);
 const recordings: Recording[] = files.map((file) =>
 	JSON.parse(readFileSync(`${FOLDER}/${file}`, 'utf8'))
 );

@@ -137,6 +137,17 @@ export function whyOf(field: { name: string; note?: string }): string | undefine
 }
 
 /** How much the application exposes. A mode never changes the flow (ADR-004). */
+/** The pictures of real pages that a recording run takes, kept next to the recordings. */
+export const pageShots = [
+	'login',
+	'login-again',
+	'login-upstream',
+	'consent',
+	'wrong-redirect',
+	'logout-question'
+] as const;
+export type ShotId = (typeof pageShots)[number];
+
 export type Mode = 'simple' | 'advanced';
 
 /** How a message travels. The split between the first two is the security idea of a redirect flow. */

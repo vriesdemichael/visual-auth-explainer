@@ -3,7 +3,9 @@
 //   pnpm record                    records against the pinned version and writes the files
 //   pnpm record --keycloak 27.0.0  records against another version
 //   pnpm record --check            records, writes nothing, and exits 2 if what the screen says no
-//                                  longer holds: the shape of a message, a flag, or a note's evidence
+//                                  longer holds: the shape of a message, a flag, a note's evidence,
+//                                  or a page a person gets
+//   pnpm record --pages            only takes the pictures of those pages again
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import {
 	chromium,
@@ -14,8 +16,9 @@ import {
 	type Response
 } from '@playwright/test';
 import { authorizationCodeBase as base } from '#lib/flow/index.ts';
-import { whatChanged } from '#lib/recordings/check.ts';
+import { pagesGone, whatChanged } from '#lib/recordings/check.ts';
 import { defaultSettings, flagsInSettings, normalize, type Settings } from '#lib/flow/settings.ts';
+import type { ShotId } from '#lib/flow/vocabulary.ts';
 import type { FlagStatus, Recording, RecordingIndex } from '#lib/recordings/format.ts';
 import { Demo, requestMessage, responseMessage, type Run } from './demo.ts';
 import {
@@ -39,6 +42,7 @@ import {
 	USERNAME
 } from './keycloak.ts';
 import { lookInConsole } from './console.ts';
+import { capturePages } from './pages.ts';
 import { questionsWithApiV1, questionsWithApiV2 } from './questions.ts';
 
 const { presets } = base;
@@ -55,6 +59,7 @@ const argument = (name: string) => {
 	return at < 0 ? undefined : process.argv[at + 1];
 };
 const checking = process.argv.includes('--check');
+const onlyPages = process.argv.includes('--pages');
 const version = argument('--keycloak') ?? PINNED_KEYCLOAK;
 
 /** Which step of the diagram a message in the browser is, going by where it went. */
@@ -291,6 +296,32 @@ function indexOf(
 
 const needsV2 = (preset: (typeof presets)[number]) => preset.settings.upstreamTokens === 'v2';
 
+/** Only the pictures, because a whole run changes every value in every recording. */
+async function takePictures() {
+	const demo = new Demo();
+	await demo.start();
+	const browser = await chromium.launch();
+	try {
+		await startKeycloak(version, []);
+		const admin = await Admin.connect();
+		await setUpRealms(admin);
+		const onDefaults = {
+			clientType: 'confidential',
+			consent: false,
+			upstreamTokens: 'v1'
+		} as const;
+		await setUpFor(admin, LOCAL_REALM, onDefaults);
+		await setUpFor(admin, BROKERED_REALM, onDefaults);
+		const gone = pagesGone(await capturePages(browser, admin, true));
+		if (gone.length) throw new Error(gone.join('\n'));
+	} finally {
+		await browser.close();
+		demo.stop();
+		stopKeycloak();
+	}
+	process.exit(0);
+}
+
 async function main() {
 	const demo = new Demo();
 	await demo.start();
@@ -302,6 +333,7 @@ async function main() {
 	const inConsole: Record<string, unknown> = {};
 	let keycloak = version;
 	let failed = false;
+	let pagesSeen: ShotId[] = [];
 
 	try {
 		for (const [features, wanted, questions] of [
@@ -332,6 +364,7 @@ async function main() {
 			} as const;
 			await setUpFor(admin, LOCAL_REALM, forQuestions);
 			await setUpFor(admin, BROKERED_REALM, forQuestions);
+			if (!features.length) pagesSeen = await capturePages(browser, admin, !checking);
 			Object.assign(inConsole, await lookInConsole(browser, admin, features));
 			Object.assign(answers, await questions(browser, demo, admin));
 			if (!features.length) {
@@ -345,14 +378,19 @@ async function main() {
 
 		if (checking) {
 			const committedIndex = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
-			const changes = whatChanged({
-				recordings: recordings.map((now) => ({
-					committed: JSON.parse(readFileSync(`${FOLDER}/${now.preset}.json`, 'utf8')) as Recording,
-					now
-				})),
-				flags: { committed: committedIndex.flags, now: flags },
-				answers
-			});
+			const changes = [
+				...whatChanged({
+					recordings: recordings.map((now) => ({
+						committed: JSON.parse(
+							readFileSync(`${FOLDER}/${now.preset}.json`, 'utf8')
+						) as Recording,
+						now
+					})),
+					flags: { committed: committedIndex.flags, now: flags },
+					answers
+				}),
+				...pagesGone(pagesSeen)
+			];
 			failed = changes.length > 0;
 			console.log(
 				failed
@@ -378,4 +416,4 @@ async function main() {
 	process.exit(failed ? 2 : 0);
 }
 
-await main();
+await (onlyPages ? takePictures() : main());

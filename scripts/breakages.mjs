@@ -11,8 +11,52 @@ const MODEL = 'src/lib/flow/model.ts';
 const MOTION = 'src/lib/diagram/motion.ts';
 
 const WORDING = 'src/lib/flow/wording.ts';
+const ADDRESS = 'src/lib/recordings/address.ts';
 
 export const breakages = [
+	// What a person sees in their browser.
+	{
+		name: 'page: the address is taken from an answer and not what was asked for',
+		file: ADDRESS,
+		from: "message.step === step && message.direction === 'request'",
+		to: "message.step === step && message.direction === 'response'"
+	},
+	{
+		name: 'page: nothing in an address is marked',
+		file: ADDRESS,
+		from: 'marked: marks.includes(name),',
+		to: 'marked: false,'
+	},
+	{
+		name: 'page: a long value is shown whole',
+		file: ADDRESS,
+		from: 'whole.length > LONGEST_VALUE ?',
+		to: 'whole.length > Infinity ?'
+	},
+	{
+		name: 'page: a marked part goes missing for someone new',
+		file: ADDRESS,
+		from: 'all.filter((part) => part.marked)',
+		to: 'all.filter((part) => !part.marked)'
+	},
+	{
+		name: 'page: a step in the browser has no window',
+		file: AC,
+		from: "address: 'authorize',\n\t\t\t\tshows: \"The identity provider's own page, asking for a username and a password.\",\n\t\t\t\tshot: 'login',\n\t\t\t\tmarks: ['redirect_uri', 'state']",
+		to: "address: 'open-app',\n\t\t\t\tshows: 'x',\n\t\t\t\tshot: 'login'"
+	},
+	{
+		name: 'page: a page that stopped appearing goes unnoticed',
+		file: 'src/lib/recordings/check.ts',
+		from: '.filter((shot) => !seen.includes(shot))',
+		to: '.filter(() => false)'
+	},
+	{
+		name: 'page: what a page shows names one server',
+		file: AC,
+		from: 'shows: "The other provider\'s own login page. The app is nowhere on it.",',
+		to: 'shows: "Keycloak\'s own login page. The app is nowhere on it.",'
+	},
 	// Whose words the diagram is in.
 	{
 		name: 'wording: a name in capitals loses its small form, mid sentence',

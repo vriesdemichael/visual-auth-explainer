@@ -103,6 +103,14 @@ const list: readonly Term[] = [
 		at: { diagram: 'flow', lifeline: 'browser' }
 	},
 	{
+		id: 'iss',
+		name: 'iss',
+		words: ['iss'],
+		explains:
+			'Says which server an answer came from. An app that uses more than one can check it, so that it does not take the answer from one for the answer from another.',
+		at: flowAt('callback')
+	},
+	{
 		id: 'client-id',
 		name: 'Client ID',
 		words: ['client ID'],
