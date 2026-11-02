@@ -521,8 +521,8 @@ export const breakages = [
 	{
 		name: 'curl: a code reads as if it could be used again',
 		file: 'src/lib/recordings/curl.ts',
-		from: "{ code: 'redirect-with-code' }",
-		to: '{}'
+		from: "'token-request': 'redirect-with-code',",
+		to: ''
 	},
 	{
 		name: 'curl: nothing says the values are throwaway',
@@ -543,6 +543,24 @@ export const breakages = [
 		file: 'src/lib/recordings/run-yourself.ts',
 		from: "...(settings.clientType === 'public' ? { publicClient: true } : withSecret),",
 		to: '...withSecret,'
+	},
+	{
+		name: 'run it yourself: others can reach the server',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: '-p 127.0.0.1:${KEYCLOAK_PORT}:8080',
+		to: '-p ${KEYCLOAK_PORT}:8080'
+	},
+	{
+		name: 'run it yourself: a token at home has no roles and no audience',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: 'users: [{ ...demoUser, realmRoles: [`default-roles-${LOCAL_REALM}`] }],',
+		to: 'users: [{ ...demoUser, realmRoles: [] }],'
+	},
+	{
+		name: 'curl: a step is told its code came from the wrong place',
+		file: 'src/lib/recordings/curl.ts',
+		from: "'second-token-request': 'second-redirect-with-code'",
+		to: "'second-token-request': 'redirect-with-code'"
 	},
 	{
 		name: 'run it yourself: the secret is not the one recorded',

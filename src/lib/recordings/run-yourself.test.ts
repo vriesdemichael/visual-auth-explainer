@@ -6,6 +6,7 @@ import { recordedIndex } from '#lib/recordings/known.ts';
 import {
 	CHALLENGE,
 	CLIENT_SECRET,
+	CODE_LASTS_MINUTES,
 	CONFIDENTIAL_CLIENT,
 	REDIRECT_URI,
 	realmFor,
@@ -52,6 +53,24 @@ describe('what someone can run at home', () => {
 	it('writes valid realm JSON into the command', () => {
 		const inside = commands().start.split(`<<'EOF'\n`)[1].split('\nEOF')[0];
 		expect(JSON.parse(inside)).toEqual(realmFor(defaultSettings));
+	});
+});
+
+describe('what the page promises about the server', () => {
+	it('is only reachable from the same machine', () => {
+		expect(commands().start).toContain('-p 127.0.0.1:18080:8080');
+	});
+
+	it('gives a code long enough to paste, which is not what a default realm does', () => {
+		expect(realmFor(defaultSettings).accessCodeLifespan).toBe(CODE_LASTS_MINUTES * 60);
+	});
+
+	it('gives the user the roles that put an audience and roles in the token', () => {
+		expect(realmFor(defaultSettings).users[0].realmRoles).toEqual(['default-roles-demo']);
+	});
+
+	it('can be stopped with a command, because Ctrl+C does not do it in every terminal', () => {
+		expect(commands().stop).toBe(`docker rm --force ${commands().container}`);
 	});
 });
 

@@ -40,6 +40,11 @@ export const withSecret = {
 export const VERIFIER = 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk';
 export const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';
 
+/** A default realm gives a code one minute, which is short for pasting one into a command. */
+export const CODE_LASTS_MINUTES = 5;
+/** What the server says once it can be used. */
+export const READY_WHEN = 'Listening on: http://0.0.0.0:8080';
+
 export const PASTE_CODE = 'PASTE_THE_CODE_HERE';
 export const PASTE_TOKEN = 'PASTE_THE_ACCESS_TOKEN_HERE';
 const CONTAINER = 'authlines-demo';
@@ -56,6 +61,8 @@ export interface RunYourself {
 	trade: string;
 	/** Asks who logged in, with what the trade gave, when OpenID Connect is on. */
 	who: string | null;
+	/** Stops the server and removes what it knew. */
+	stop: string;
 	container: string;
 }
 
@@ -63,7 +70,10 @@ export function realmFor(settings: AtHome) {
 	return {
 		realm: LOCAL_REALM,
 		enabled: true,
-		users: [demoUser],
+		accessCodeLifespan: CODE_LASTS_MINUTES * 60,
+		// Given without asking to a user made through the admin API, as the recordings' was, and not to
+		// one in a file. Without it a token has no audience and no roles.
+		users: [{ ...demoUser, realmRoles: [`default-roles-${LOCAL_REALM}`] }],
 		clients: [
 			demoClient(CONFIDENTIAL_CLIENT, {
 				...(settings.clientType === 'public' ? { publicClient: true } : withSecret),
@@ -88,7 +98,7 @@ export function runYourself(settings: AtHome, version: string): RunYourself {
 		JSON.stringify(realmFor(settings), null, 2),
 		'EOF',
 		[
-			`docker run --rm --name ${CONTAINER} -p ${KEYCLOAK_PORT}:8080`,
+			`docker run --rm --name ${CONTAINER} -p 127.0.0.1:${KEYCLOAK_PORT}:8080`,
 			'-e KC_BOOTSTRAP_ADMIN_USERNAME=admin',
 			'-e KC_BOOTSTRAP_ADMIN_PASSWORD=throwaway-admin',
 			'-v "$PWD/demo-realm.json:/opt/keycloak/data/import/demo-realm.json"',
@@ -114,6 +124,7 @@ export function runYourself(settings: AtHome, version: string): RunYourself {
 		who: settings.oidc
 			? `curl -i '${endpoint}/userinfo' \\\n  -H 'Authorization: Bearer ${PASTE_TOKEN}'`
 			: null,
+		stop: `docker rm --force ${CONTAINER}`,
 		container: CONTAINER
 	};
 }

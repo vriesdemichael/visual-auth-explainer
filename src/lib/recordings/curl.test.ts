@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { curlFor } from '#lib/recordings/curl.ts';
+import { CODE_FROM, curlFor } from '#lib/recordings/curl.ts';
 import type { RecordedMessage, Recording } from '#lib/recordings/format.ts';
 
 const folder = 'static/recordings/authorization-code';
@@ -8,6 +8,9 @@ const recordings = readdirSync(folder)
 	.filter((file) => file.endsWith('.json') && file !== 'questions.json')
 	.map((file) => JSON.parse(readFileSync(`${folder}/${file}`, 'utf8')) as Recording);
 const number = (step: string) => (step === 'redirect-with-code' ? 6 : null);
+const codeIn = (message: RecordedMessage) =>
+	new URL(message.url ?? '', 'http://any').searchParams.get('code') ??
+	(message.body as { code?: string } | undefined)?.code;
 
 /** Reads a command the way a shell would, so what is checked is what would be sent. */
 function parsed(command: string) {
@@ -134,6 +137,34 @@ describe('a request as a command', () => {
 		const command = curlFor(sendable[0], number)!;
 		expect(command).toContain('throwaway');
 		expect(command).toContain('Never paste real secrets');
+	});
+
+	it('says where a code came from only where that is where it really came from', () => {
+		let checked = 0;
+		for (const { messages, preset } of recordings) {
+			for (const message of messages) {
+				const from = message.step ? CODE_FROM[message.step] : undefined;
+				if (!from) continue;
+				const code = codeIn(message);
+				// A login that was refused came back with an error, and there is no code to trade.
+				if (!code) {
+					expect(curlFor(message, number) ?? '', `${preset} ${message.step}`).not.toContain(
+						'good once'
+					);
+					continue;
+				}
+				const source = messages.find(({ step }) => step === from);
+				expect(source?.headers.location, `${preset} ${from}`).toContain(`code=${code}`);
+				checked++;
+			}
+		}
+		expect(checked).toBeGreaterThan(30);
+	});
+
+	it('does not call everything named code a code that was good once', () => {
+		const consent = recordings.find(({ preset }) => preset === 'consent')!;
+		const grant = consent.messages.find(({ step }) => step === 'consent-grant')!;
+		expect(curlFor(grant, number)).not.toContain('good once');
 	});
 
 	it('says a code was good once, and where a new one comes from', () => {

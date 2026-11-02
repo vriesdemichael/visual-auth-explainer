@@ -8,9 +8,11 @@
 	import { parseState } from '#lib/flow/state.ts';
 	import { recordedIndex } from '#lib/recordings/known.ts';
 	import {
+		CODE_LASTS_MINUTES,
 		PASSWORD,
 		PASTE_CODE,
 		PASTE_TOKEN,
+		READY_WHEN,
 		REDIRECT_URI,
 		runYourself,
 		USERNAME
@@ -26,7 +28,7 @@
 	const backHref = $derived(`${resolve('/[flow]/[[view]]', { flow: base.id })}${search}`);
 
 	const title = 'Run it yourself';
-	const description = `The same server the recordings came from, on your own machine, in five minutes. Keycloak ${recordedIndex.keycloak}, with throwaway values.`;
+	const description = `The same server the recordings came from, on your own machine. Keycloak ${recordedIndex.keycloak}, with throwaway values.`;
 </script>
 
 <svelte:head>
@@ -47,8 +49,8 @@
 	<h1>{title}</h1>
 	<p>
 		This is the server the recordings came from, Keycloak {recordedIndex.keycloak}, with the same
-		names. You need Docker, a browser and a terminal, and about five minutes. A real login, a real
-		code in your own address bar, and real tokens.
+		names. You need Docker, a browser and a terminal, and a few minutes once Docker has fetched the
+		image. A real login, a real code in your own address bar, and real tokens.
 	</p>
 	<p class="warning" data-testid="throwaway">
 		Everything here is a throwaway value for a server on your own machine. Never paste real secrets
@@ -62,13 +64,14 @@
 			: 'an app with a secret'}{settings.pkce ? ', PKCE' : ''}{settings.oidc
 			? ', OpenID Connect'
 			: ''}{settings.consent ? ', asking the user to agree' : ''}. Other settings are not part of
-		this walk, and their recordings are on the diagram.
+		this walk.
 	</p>
 
 	<h2>1. Start the server</h2>
 	<p>
 		In an empty folder. It stays running in that terminal, and it is ready when it says
-		<code>Listening on: http://0.0.0.0:8080</code>.
+		<code>{READY_WHEN}</code>. Inside the container, that is. It only takes connections from your
+		own machine.
 	</p>
 	<CopyBlock text={commands.start} label="the commands that start the server" />
 	<p class="aside" data-testid="on-windows">
@@ -86,20 +89,21 @@
 	<p>
 		You end up at an error page, because nothing is listening at <code>{REDIRECT_URI}</code>. That
 		is fine, and it is the point: <strong>look at your address bar.</strong> The code is right
-		there, which is what passing through the browser means. Copy the value after <code>code=</code>,
-		up to the next <code>&amp;</code>.
+		there, which is what passing through the browser means. Copy what comes after
+		<code>code=</code>, which is the last thing in the address.
 	</p>
 
 	<h2>3. Trade the code for tokens</h2>
 	<p>
 		Put the code in place of <code>{PASTE_CODE}</code> and run this in another terminal. A code
-		works once and does not last long, so if this says <code>invalid_grant</code>, log in again for
-		a new one.
+		works once, and lasts {CODE_LASTS_MINUTES} minutes on this server, where a default one gives it one.
+		So if this says <code>invalid_grant</code>, open the address from step 2 again for a new one. It
+		will not ask for the password this time, because your browser still has its session.
 	</p>
 	<CopyBlock text={commands.trade} label="the command that trades the code" />
 	<p>
-		The answer has your access token, the same shape as the recorded one on the diagram, with your
-		own values.
+		The answer has your access token. It has the same parts as the recorded one on the diagram, with
+		your own values.
 	</p>
 
 	{#if commands.who}
@@ -109,10 +113,16 @@
 	{/if}
 
 	<h2>When you are done</h2>
-	<p>Stop the server with Ctrl+C. It keeps nothing, and you can delete the folder.</p>
+	<p>
+		This stops the server and removes everything it knew, from any terminal. Docker keeps the image
+		until you remove it, and your browser keeps the address with the code in its history, by then
+		worth nothing. You can delete the folder.
+	</p>
+	<CopyBlock text={commands.stop} label="the command that stops the server" />
 	<p class="checked">
-		A scheduled job runs these same commands against this version of the server, so if they stop
-		working, it fails.
+		A scheduled job runs these commands against this version of the server, on Linux, for every
+		combination of the settings above, so if they stop working, it fails. The advice for Windows is
+		not part of that.
 	</p>
 </main>
 

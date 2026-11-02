@@ -145,7 +145,7 @@
 	<p class="intro" data-testid="intro"><Worded segments={worded[0]} {onterm} /></p>
 {/if}
 
-<div role="status">
+<div role="status" data-testid="change-status">
 	{#if showChange}
 		<section class="change" data-testid="change-summary">
 			<h2>What changed</h2>
