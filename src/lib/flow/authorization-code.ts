@@ -1,5 +1,13 @@
 import type { DiagramDef, FieldDef } from '#lib/flow/model.ts';
 import { example } from '#lib/flow/libraries.ts';
+import {
+	apiWords,
+	appWords,
+	browserWords,
+	idpWords,
+	secondAppWords,
+	upstreamWords
+} from '#lib/flow/parties.ts';
 import { all, any, is, not, type Settings } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
@@ -59,8 +67,7 @@ export const authorizationCode: DiagramDef = {
 			id: 'browser',
 			plainName: "User's browser",
 			plainRole: 'Where the user is',
-			name: "User's browser",
-			role: 'Where the user is',
+			...browserWords,
 			icon: 'browser',
 			front: true,
 			concept:
@@ -70,8 +77,7 @@ export const authorizationCode: DiagramDef = {
 			id: 'app',
 			plainName: 'App',
 			plainRole: 'What the user uses',
-			name: 'App',
-			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
+			...appWords,
 			icon: 'app',
 			startsWith: [{ artifact: 'secret', when: confidential }],
 			concept: [
@@ -88,8 +94,7 @@ export const authorizationCode: DiagramDef = {
 			id: 'second-app',
 			plainName: 'Second app',
 			plainRole: 'Same provider',
-			name: 'Second app',
-			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
+			...secondAppWords,
 			icon: 'app',
 			startsWith: [{ artifact: 'secret' }],
 			when: secondApp,
@@ -100,12 +105,7 @@ export const authorizationCode: DiagramDef = {
 			id: 'idp',
 			plainName: 'Identity provider',
 			plainRole: 'Logs users in',
-			name: 'IdP',
-			role: [
-				{ when: broker, text: 'Broker' },
-				{ when: oidc, text: 'OpenID provider' },
-				{ text: 'Authorization server' }
-			],
+			...idpWords,
 			icon: 'idp',
 			startsWith: [{ artifact: 'secret', when: confidential }],
 			concept:
@@ -126,8 +126,7 @@ export const authorizationCode: DiagramDef = {
 			id: 'upstream',
 			plainName: 'Other provider',
 			plainRole: 'Does the login',
-			name: 'Upstream IdP',
-			role: 'External provider',
+			...upstreamWords,
 			icon: 'upstream',
 			concept:
 				"Another identity provider, such as the one at the user's employer, which the identity provider trusts to log the user in.",
@@ -137,8 +136,7 @@ export const authorizationCode: DiagramDef = {
 			id: 'api',
 			plainName: 'API',
 			plainRole: 'Has the data',
-			name: 'API',
-			role: 'Resource server',
+			...apiWords,
 			icon: 'api',
 			concept:
 				'What the app wants to call on behalf of the user. It decides from the token whether to answer, without ever talking to the user.'
@@ -619,7 +617,7 @@ export const authorizationCode: DiagramDef = {
 				},
 				{
 					when: not(confidential),
-					text: 'They send the code to the identity provider, exactly as the real app would. This client has no secret, so nothing marks this request as not coming from the app.'
+					text: 'They send the code to the identity provider, exactly as the real app would. This app has no secret, so nothing marks this request as not coming from it.'
 				},
 				{
 					text: 'They send the code to the identity provider, as the real app would, but they do not have the secret to send with it.'
@@ -981,7 +979,7 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The app checks the ID token',
 			label: 'Validate the ID token',
 			concept:
-				'The app checks issuer, audience, expiry and nonce before it trusts the token, and usually the signature. The spec lets it skip that one when the token came straight from the identity provider over TLS.',
+				'The app checks issuer, audience, expiry and nonce before it trusts the token, and usually the signature. The spec lets it skip that one when the token came straight from the token endpoint over TLS.',
 			inPractice:
 				'A framework usually does all of this. A low-level library may leave parts of it to you, such as the nonce, so read what yours does, and do not skip any of it. After this your app starts its own session for the user, and logging out is yours as well. Neither is on this diagram.',
 			practice: [
@@ -1963,7 +1961,7 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: apiV2,
-					text: "The app asks for the stored upstream token, and authenticates as a client. The client's settings allow it."
+					text: 'The app asks for the stored upstream token, and authenticates. Its settings at the identity provider allow it.'
 				},
 				{
 					text: "The app asks for the stored upstream token with the user's access token. A role on the user allows it."

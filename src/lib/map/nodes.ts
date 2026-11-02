@@ -28,7 +28,8 @@ export function nodeState(of: MapNode): AppState {
 		serverNotes: true,
 		settingsHidden: false,
 		eyes: of.eyes ?? null,
-		follow: null
+		follow: null,
+		wording: null
 	};
 }
 

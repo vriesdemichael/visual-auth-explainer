@@ -73,7 +73,7 @@ test.describe('walking the steps', () => {
 		test(`${preset.title}: Next and Back cover every step`, async ({ page }) => {
 			const check = watchForErrors(page);
 			const search = presetSearch(base, preset.settings);
-			const { steps, view } = expectedFor(search);
+			const { steps, view } = expectedFor(`mode=advanced&${search}`);
 			await open(page, search);
 
 			for (const [i, id] of steps.entries()) {

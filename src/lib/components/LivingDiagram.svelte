@@ -39,7 +39,7 @@
 		step && view.steps.some(({ id }) => id === step) ? step : nodeState(node).step
 	);
 	const layout = $derived(
-		layoutDiagram(view, node.mode, width && height ? { width, height } : undefined)
+		layoutDiagram(view, node.mode, width && height ? { width, height } : undefined, 'plain')
 	);
 	const eyes = $derived(nodeState(node).eyes);
 </script>

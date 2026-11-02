@@ -49,7 +49,8 @@ describe('the URL', () => {
 						serverNotes: true,
 						settingsHidden: false,
 						eyes: null,
-						follow: null
+						follow: null,
+						wording: null
 					};
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
 				}
@@ -80,7 +81,8 @@ describe('the URL', () => {
 							serverNotes: onOff,
 							settingsHidden: !onOff,
 							eyes: onOff ? 'browser' : null,
-							follow: onOff ? 'code' : null
+							follow: onOff ? 'code' : null,
+							wording: onOff ? ('specs' as const) : null
 						};
 						expect(parseState(base, 'flow', serializeState(base, state))).toEqual(state);
 					}

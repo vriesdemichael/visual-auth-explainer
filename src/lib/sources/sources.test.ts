@@ -3,11 +3,25 @@ import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { settingDefs, settingIds } from '#lib/flow/settings.ts';
 import { splitRfc } from '#lib/sources/rfc.ts';
-import { originalUrl, refLabel, sourceIds, sources, type SourceRef } from '#lib/sources/sources.ts';
+import { authorizationCodeBase } from '#lib/flow/index.ts';
+import {
+	nameSources,
+	originalUrl,
+	refLabel,
+	sourceIds,
+	sources,
+	type SourceRef
+} from '#lib/sources/sources.ts';
 
-const refs: { setting: string; ref: SourceRef }[] = settingIds.flatMap((setting) =>
-	settingDefs[setting].sources.map((ref) => ({ setting, ref }))
-);
+const refs: { setting: string; ref: SourceRef }[] = [
+	...settingIds.flatMap((setting) => settingDefs[setting].sources.map((ref) => ({ setting, ref }))),
+	...nameSources.map((ref) => ({ setting: 'what things are called', ref })),
+	...Object.values(authorizationCodeBase.diagrams).flatMap(({ lifelines }) =>
+		lifelines.flatMap((line) =>
+			(line.knownAs ?? []).map(({ source }) => ({ setting: line.id, ref: source }))
+		)
+	)
+];
 const rfcs = sourceIds.filter((id) => sources[id].textFile);
 const textOf = (file: string) => readFileSync(`static/rfc/${file}`, 'utf8');
 
@@ -89,7 +103,10 @@ describe('sources', () => {
 	});
 
 	it('every source is used, so nothing is summarised for no reason', () => {
-		const used = new Set(refs.map(({ ref }) => ref.source));
+		const used = new Set([
+			...refs.map(({ ref }) => ref.source),
+			...nameSources.map((ref) => ref.source)
+		]);
 		expect(sourceIds.filter((id) => !used.has(id))).toEqual([]);
 	});
 

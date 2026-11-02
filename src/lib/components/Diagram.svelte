@@ -225,11 +225,23 @@
 					<rect x={-lane.headWidth / 2} y="5" width={lane.headWidth} height="46" rx="8" />
 					{#if lane.headWidth >= FULL_HEAD_WIDTH}
 						<path class="icon" d={ICONS[lane.icon]} transform="translate(-65 16) scale(0.95)" />
-						<text class="name" x="-38" y="25">{lane.name}</text>
-						<text class="role" x="-38" y="41">{lane.role}</text>
+						<g style:opacity={lane.words}>
+							<text class="name" x="-38" y="25">{lane.nameLines[0]}</text>
+							{#if lane.nameLines[1]}
+								<text class="name" x="-38" y="41">{lane.nameLines[1]}</text>
+							{:else}
+								<text class="role" x="-38" y="41">{lane.role}</text>
+							{/if}
+						</g>
 					{:else}
-						<text class="name tight" y="25" text-anchor="middle">{lane.name}</text>
-						<text class="role tight" y="41" text-anchor="middle">{lane.role}</text>
+						<g style:opacity={lane.words}>
+							<text class="name tight" y="25" text-anchor="middle">{lane.nameLines[0]}</text>
+							{#if lane.nameLines[1]}
+								<text class="name tight" y="41" text-anchor="middle">{lane.nameLines[1]}</text>
+							{:else}
+								<text class="role tight" y="41" text-anchor="middle">{lane.role}</text>
+							{/if}
+						</g>
 					{/if}
 					{#if !lane.leaving}
 						{#each layHeld(holdings[lane.id] ?? [], frame.heldWidth) as chip (chip.artifact)}

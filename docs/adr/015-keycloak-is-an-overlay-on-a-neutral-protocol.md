@@ -8,6 +8,8 @@ Notes are in advanced mode, closed until opened, because the name of the setting
 
 One switch, Server notes, on by default, takes all of it away, and it is in the URL as `keycloak=off`. With it off, the word Keycloak is not on the application screen: the recordings are "a real server", and its docs are not offered as sources. Being checked against a real server is still true then, and still worth saying.
 
+Keycloak's own words for the parties are in that layer too, in `src/lib/keycloak/words.ts`, and are one of the three a person can choose ([#62](https://github.com/vriesdemichael/authlines/issues/62)). They go with the switch as well: with it off they are not offered, and a link asking for them gets the default.
+
 The premise's bet is that someone on another identity provider still gets the protocol explanation, and that this layer survives if a vendor adds toggles to its own tool. Both only hold if the two stay apart. And reading the real console corrected the first draft of these notes twice, which is why none is written from memory.
 
 ## Not chosen

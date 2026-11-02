@@ -28,6 +28,9 @@ const states: readonly [string, string, 'flow' | 'setup'][] = [
 	['everything', 'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1&step=token-request', 'flow'],
 	['setup', '', 'setup'],
 	['setup-with-external-idp', 'broker=1&upstream=v2&step=register-with-upstream', 'setup'],
+	['in-the-specs-words', 'mode=simple&say=specs&step=token-request', 'flow'],
+	['in-the-specs-words-with-oidc', 'mode=simple&say=specs&oidc=1&step=token-request', 'flow'],
+	['in-keycloaks-words', 'mode=simple&say=keycloak&broker=1&step=upstream-authorize', 'flow'],
 	['seen-as-the-browser', 'mode=simple&eyes=browser&step=token-response', 'flow'],
 	['seen-as-the-browser-raw', 'eyes=browser&step=token-response', 'flow'],
 	[

@@ -12,10 +12,13 @@
 		type Settings
 	} from '#lib/flow/settings.ts';
 	import type { Mode } from '#lib/flow/vocabulary.ts';
+	import type { Say } from '#lib/flow/wording.ts';
 	import { flagStatus } from '#lib/keycloak/flags.ts';
 	import { isVendorSource, refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	interface Props {
+		/** Puts what these say in the words someone chose. */
+		say?: Say;
 		settings: Settings;
 		/** The settings this base flow has. */
 		available?: readonly SettingId[];
@@ -37,6 +40,7 @@
 	}
 
 	let {
+		say = (text) => text,
 		settings,
 		available = settingIds,
 		mode = 'advanced',
@@ -183,7 +187,7 @@
 			class:shown={settings[id] !== defaultSettings[id]}
 			data-testid="setting-about"
 		>
-			{simple ? (def.simple?.summary ?? def.summary) : def.summary}
+			{say(simple ? (def.simple?.summary ?? def.summary) : def.summary)}
 		</p>
 		<ul class="more">
 			<li>

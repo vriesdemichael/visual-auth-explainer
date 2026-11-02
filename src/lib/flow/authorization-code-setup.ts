@@ -1,5 +1,6 @@
 import type { DiagramDef } from '#lib/flow/model.ts';
 import { example } from '#lib/flow/libraries.ts';
+import { apiWords, appWords, idpWords, upstreamWords } from '#lib/flow/parties.ts';
 import { all, any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
@@ -39,8 +40,7 @@ export const authorizationCodeSetup: DiagramDef = {
 			id: 'app',
 			plainName: 'App',
 			plainRole: 'The one being set up',
-			name: 'App',
-			role: [{ when: oidc, text: 'Relying party' }, { text: 'OAuth client' }],
+			...appWords,
 			icon: 'app',
 			concept:
 				'The application being set up. It has to learn about the identity provider before anyone logs in.'
@@ -49,12 +49,7 @@ export const authorizationCodeSetup: DiagramDef = {
 			id: 'idp',
 			plainName: 'Identity provider',
 			plainRole: 'Will log users in',
-			name: 'IdP',
-			role: [
-				{ when: broker, text: 'Broker' },
-				{ when: oidc, text: 'OpenID provider' },
-				{ text: 'Authorization server' }
-			],
+			...idpWords,
 			icon: 'idp',
 			concept: 'The identity provider. It has to know about the app, and the issuer names it.'
 		},
@@ -62,7 +57,7 @@ export const authorizationCodeSetup: DiagramDef = {
 			id: 'idp-admin',
 			plainName: 'Admin',
 			plainRole: 'Runs the provider',
-			name: 'IdP admin',
+			name: 'Provider admin',
 			role: 'People',
 			icon: 'people',
 			concept:
@@ -72,8 +67,7 @@ export const authorizationCodeSetup: DiagramDef = {
 			id: 'upstream',
 			plainName: 'Other provider',
 			plainRole: 'Will do the login',
-			name: 'Upstream IdP',
-			role: 'External provider',
+			...upstreamWords,
 			icon: 'upstream',
 			concept: 'Another identity provider, which the identity provider will trust to log users in.',
 			when: broker
@@ -82,8 +76,7 @@ export const authorizationCodeSetup: DiagramDef = {
 			id: 'api',
 			plainName: 'API',
 			plainRole: 'Will check tokens',
-			name: 'API',
-			role: 'Resource server',
+			...apiWords,
 			icon: 'api',
 			concept:
 				'The API the app will call. It has a setup of its own, because it has to know which tokens to accept.'
@@ -177,7 +170,7 @@ export const authorizationCodeSetup: DiagramDef = {
 			to: 'upstream',
 			kind: 'human',
 			plain: 'Register with the other provider',
-			label: 'Register the IdP as a client',
+			label: 'Register as a client',
 			concept:
 				'The identity provider is itself a client of the other provider, so it has to be registered there the same way.',
 			when: broker,

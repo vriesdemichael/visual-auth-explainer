@@ -5,6 +5,7 @@
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
 	import EyesSwitch from '#lib/components/EyesSwitch.svelte';
+	import WordsSwitch from '#lib/components/WordsSwitch.svelte';
 	import FollowPath from '#lib/components/FollowPath.svelte';
 	import Mark from '#lib/components/Mark.svelte';
 	import QuestionAnswer from '#lib/components/QuestionAnswer.svelte';
@@ -41,6 +42,8 @@
 		withSettingsHidden,
 		withExplained,
 		withEyes,
+		withWording,
+		wordingOf,
 		withFollow,
 		withMode,
 		withServerNotes,
@@ -67,7 +70,8 @@
 	import { notesFor } from '#lib/keycloak/notes.ts';
 	import { searchState } from '#lib/search/open.svelte.ts';
 	import { SITE_NAME } from '#lib/site.ts';
-	import { sources } from '#lib/sources/sources.ts';
+	import { nameIn, sayer, speak } from '#lib/flow/wording.ts';
+	import { nameSources, sources } from '#lib/sources/sources.ts';
 
 	interface Props {
 		base: BaseFlow;
@@ -155,7 +159,11 @@
 		pointedAt = choice;
 		if (choice) previewedLast = true;
 	}
-	const layout = $derived(layoutDiagram(preview?.both ?? view, mode, room));
+	// Whose words this is in, which only changes what is said, so all the rest goes on using the view.
+	const wording = $derived(wordingOf(appState));
+	const say = $derived(sayer(wording));
+	const spoken = $derived(speak(view, say));
+	const layout = $derived(layoutDiagram(preview?.both ?? view, mode, room, wording));
 
 	// Below this the settings do not fit beside the diagram, so they open over it when asked for.
 	let settingsDoNotFit = $state(false);
@@ -308,10 +316,8 @@
 	};
 
 	// Only ever about what is shown, so a flow looks the same underneath (ADR-004).
-	const nameOfParty = (line: { plainName: string; name: string }) =>
-		mode === 'simple' ? line.plainName : line.name;
 	const parties = $derived(
-		view.lifelines.map((line) => ({ id: line.id, name: nameOfParty(line) }))
+		view.lifelines.map((line) => ({ id: line.id, name: nameIn(line, wording) }))
 	);
 	const eyesName = $derived(parties.find((party) => party.id === appState.eyes)?.name ?? null);
 	const seesStep = (id: string) => {
@@ -340,13 +346,19 @@
 		appState.explained?.kind === 'setting' ? appState.explained.id : null
 	);
 	// Someone with a question has its answer, which already says what this would.
-	const intro = $derived(position === 0 && !questionAnswer ? flow.intro : null);
+	const intro = $derived(position === 0 && !questionAnswer ? say(flow.intro) : null);
 	// Said once, on the step someone enters it by, and the first step has more to say than this.
 	const partWhy = $derived(
-		position > 0 ? view.parts.find((part) => part.steps[0] === current.id)?.why : null
+		position > 0 ? spoken.parts.find((part) => part.steps[0] === current.id)?.why : null
 	);
 	const notes = $derived(
-		appState.serverNotes ? notesFor(base.id, current.id, appState.settings) : []
+		appState.serverNotes
+			? notesFor(base.id, current.id, appState.settings).map((note) => ({
+					...note,
+					title: say(note.title),
+					text: say(note.text)
+				}))
+			: []
 	);
 
 	// Raw traffic is only for advanced mode, and only what is on the wire has any.
@@ -452,7 +464,9 @@
 	const openSource = $derived(appState.source);
 	const openWhy = $derived(
 		openSource
-			? settingDefs[openSource.setting].sources.find((ref) => ref.source === openSource.id)?.why
+			? (openSource.setting ? settingDefs[openSource.setting].sources : nameSources).find(
+					(ref) => ref.source === openSource.id
+				)?.why
 			: undefined
 	);
 	const closeSource = () => onnavigate(withSourceClosed(appState), 'push');
@@ -463,7 +477,9 @@
 		const source = appState.source;
 		untrack(() => {
 			if (lastSource && !source) {
-				const opener = `[data-source-ref="${lastSource.setting}:${lastSource.id}"]`;
+				const opener = lastSource.setting
+					? `[data-source-ref="${lastSource.setting}:${lastSource.id}"]`
+					: `[data-name-source="${lastSource.id}"]`;
 				tick().then(() => window.document.querySelector<HTMLElement>(opener)?.focus());
 			}
 			lastSource = source;
@@ -541,6 +557,11 @@
 			mode={appState.mode}
 			onchange={(mode) => onnavigate(withMode(appState, mode), 'push')}
 		/>
+		<WordsSwitch
+			current={wording}
+			serverNotes={appState.serverNotes}
+			onchange={(chosen) => onnavigate(withWording(appState, chosen), 'push')}
+		/>
 		<p class="status" data-testid="provenance">
 			<span class="what" bind:this={statusLine} title={statusLine?.textContent?.trim()}>
 				Prototype.
@@ -591,6 +612,7 @@
 
 	<aside class="settings" aria-label="Settings">
 		<SettingsPanel
+			{say}
 			settings={appState.settings}
 			available={base.settings}
 			mode={appState.mode}
@@ -608,7 +630,7 @@
 
 	<main class="diagram">
 		<div class="above">
-			<DiagramSwitch current={appState.diagram} {hrefs} caption={flow.caption} />
+			<DiagramSwitch current={appState.diagram} {hrefs} caption={say(flow.caption)} />
 			<EyesSwitch {parties} current={appState.eyes} onchange={seeAs} />
 			<button
 				type="button"
@@ -674,7 +696,7 @@
 		{/if}
 		{#if questionAnswer}
 			<QuestionAnswer
-				answer={questionAnswer}
+				answer={say(questionAnswer)}
 				follows={questionFollows && !appState.follow ? artifacts[questionFollows].label : null}
 				onfollow={() => follow(questionFollows)}
 				onrewind={position > 0 ? () => goToStep(steps[0].id) : null}
@@ -700,15 +722,14 @@
 				following={appState.follow === explanation.follows}
 				onclose={() => explain(null)}
 				onexplainartifact={(id) => explain({ kind: 'artifact', id })}
-				onopensource={(ref) => {
-					if (explainedSetting) onnavigate(withSourceOpen(appState, explainedSetting, ref), 'push');
-				}}
+				onopensource={(ref) => onnavigate(withSourceOpen(appState, explainedSetting, ref), 'push')}
 			/>
 		{/if}
 		<StepDetail
-			step={current}
+			step={spoken.steps[position]}
 			lifelines={view.lifelines}
 			mode={appState.mode}
+			{wording}
 			{intro}
 			{partWhy}
 			unseenBy={seesStep(current.id) ? null : eyesName}
@@ -755,7 +776,7 @@
 			canGoBack={previousStep(base, appState) !== null}
 			onback={back}
 			onnext={forward}
-			parts={view.parts}
+			parts={spoken.parts}
 			current={current.id}
 			onjump={goToStep}
 			{playing}

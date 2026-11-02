@@ -59,6 +59,37 @@ export const ARefusalOnItsWay: Story = {
 	}
 };
 
+export const InTheSpecsWords: Story = {
+	args: {
+		layout: layoutDiagram(evaluate(flow, defaultSettings), 'simple', undefined, 'specs'),
+		currentStep: 'authorize'
+	}
+};
+
+export const WithOpenIdConnectInTheSpecsWords: Story = {
+	args: {
+		layout: layoutDiagram(
+			evaluate(flow, { ...defaultSettings, oidc: true }),
+			'simple',
+			undefined,
+			'specs'
+		),
+		currentStep: 'authorize'
+	}
+};
+
+export const InKeycloaksWords: Story = {
+	args: {
+		layout: layoutDiagram(
+			evaluate(flow, { ...defaultSettings, broker: true }),
+			'simple',
+			undefined,
+			'keycloak'
+		),
+		currentStep: 'authorize'
+	}
+};
+
 export const ASettingBeingPointedAt: Story = {
 	args: {
 		layout: layoutDiagram(

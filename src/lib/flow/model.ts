@@ -7,18 +7,27 @@ import {
 	type Settings
 } from '#lib/flow/settings.ts';
 import type { ArtifactId, Channel, LifelineIcon } from '#lib/flow/vocabulary.ts';
-import type { SourceId } from '#lib/sources/sources.ts';
+import type { SourceId, SourceRef } from '#lib/sources/sources.ts';
 
 /** Text that varies with the settings. The first case that holds wins. */
 export type Text = string | readonly { when?: Condition; text: string }[];
 
+/** A name this goes by, who calls it that, and where they say so. */
+export interface KnownAs {
+	word: string;
+	by: string;
+	source: SourceRef;
+}
+
 export interface LifelineDef {
 	id: string;
-	/** What simple mode calls it, in words that need no explaining first. */
+	/** What it is called in plain words, which need no explaining first. */
 	plainName: string;
 	plainRole: string;
-	name: string;
+	/** What the docs will call it, with what it is in plain words under that. */
+	name: Text;
 	role: Text;
+	knownAs?: readonly KnownAs[];
 	concept: Text;
 	icon: LifelineIcon;
 	/** Messages to or from this lifeline travel through the browser. */
@@ -165,6 +174,7 @@ export interface Lifeline {
 	plainRole: string;
 	name: string;
 	role: string;
+	knownAs: readonly KnownAs[];
 	concept: string;
 	icon: LifelineIcon;
 	startsWith: ArtifactId[];
@@ -299,8 +309,9 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 				id: lifeline.id,
 				plainName: lifeline.plainName,
 				plainRole: lifeline.plainRole,
-				name: lifeline.name,
+				name: resolveText(lifeline.name, settings),
 				role: resolveText(lifeline.role, settings),
+				knownAs: lifeline.knownAs ?? [],
 				concept: resolveText(lifeline.concept, settings),
 				icon: lifeline.icon,
 				startsWith: (lifeline.startsWith ?? [])
@@ -378,7 +389,10 @@ export function diffViews(before: DiagramView, after: DiagramView): ViewDiff {
 		addedLifelines: after.lifelines.filter((l) => !beforeLines.has(l.id)).map((l) => l.id),
 		removedLifelines: before.lifelines.filter((l) => !afterLines.has(l.id)).map((l) => l.id),
 		renamedLifelines: after.lifelines
-			.filter((l) => beforeLines.has(l.id) && beforeLines.get(l.id)?.role !== l.role)
+			.filter((l) => {
+				const line = beforeLines.get(l.id);
+				return line && (line.role !== l.role || line.name !== l.name);
+			})
 			.map((l) => l.id),
 		addedFields: kept.flatMap((step) => fieldsNotIn(step, beforeSteps.get(step.id)!)),
 		removedFields: kept.flatMap((step) => fieldsNotIn(beforeSteps.get(step.id)!, step)),

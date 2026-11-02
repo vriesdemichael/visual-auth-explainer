@@ -180,7 +180,7 @@ export const noteDefs: readonly NoteDef[] = [
 		id: 'web-origins',
 		steps: ['token-request'],
 		title: 'Web origins',
-		text: "An app that runs in the page makes this request from the page, so the browser blocks it unless the app's origin is listed here. It shows up as a CORS error, and the code still works afterwards, so the login can be tried again once the origin is listed. The app in this recording is a server standing in for one, which needs nothing here.",
+		text: "An app that runs in the page makes this request from the page, so the browser blocks it unless the app's origin is listed here. It shows up as a CORS error, and the code still works afterwards, so the login can be tried again once the origin is listed. What ran in this recording is a server standing in for one of those, which needs nothing here.",
 		when: not(confidential),
 		place: clientSettings('Access settings', 'Web origins'),
 		backedBy: {

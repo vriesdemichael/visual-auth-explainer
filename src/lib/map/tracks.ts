@@ -265,7 +265,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'token-api-v2',
 					answer:
-						'The app also has to say which client it is, and that client has to be allowed to ask. What comes back is only the access token.',
+						'The app also has to authenticate, and has to be allowed to ask. What comes back is only the access token.',
 					title: 'What changes with API V2 for stored tokens?',
 					summary: 'Only the access token, and the client has to be allowed to ask.',
 					mode: 'advanced',
@@ -313,7 +313,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'token-after-logout',
 					answer:
-						'It depends who checks. An API that only looks at the token takes it until it expires. One that asks the identity provider gets whatever that provider says, which on the server tried here was no, and a refresh was refused too.',
+						'It depends who checks. An API that only looks at the token takes it until it expires. One that asks the identity provider gets whatever it says, which on the server tried here was no, and a refresh was refused too.',
 					title: 'I logged out. Does the token still work?',
 					summary: 'The same token, and two answers.',
 					preset: 'logout',

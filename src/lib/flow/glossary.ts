@@ -53,7 +53,15 @@ const list: readonly Term[] = [
 	{
 		id: 'identity-provider',
 		name: 'Identity provider',
-		words: ['identity provider', 'identity providers', 'IdP'],
+		words: [
+			'identity provider',
+			'identity providers',
+			'IdP',
+			'authorization server',
+			'authorization servers',
+			'OpenID provider',
+			'OpenID providers'
+		],
 		explains:
 			'The service that logs users in and hands out tokens, so that each app does not have to handle passwords itself.',
 		alsoCalled: ['IdP', 'authorization server, in OAuth', 'OpenID provider, in OpenID Connect'],
@@ -70,11 +78,29 @@ const list: readonly Term[] = [
 	{
 		id: 'client',
 		name: 'Client',
-		words: ['client', 'clients'],
+		words: ['client', 'clients', 'relying party', 'relying parties'],
 		explains:
 			'What the specs call the app, because it is a client of the identity provider. It has nothing to do with the user’s computer.',
 		alsoCalled: ['app', 'relying party, in OpenID Connect'],
 		at: { diagram: 'flow', lifeline: 'app' }
+	},
+	{
+		id: 'resource-owner',
+		name: 'Resource owner',
+		words: ['resource owner', 'End-User'],
+		explains:
+			'What OAuth calls the user, because they own what is being accessed, such as their calendar. OpenID Connect calls them the End-User. This site says the user in all three, because the specs’ own words for them read the same.',
+		alsoCalled: ['user', 'End-User, in OpenID Connect'],
+		at: { diagram: 'flow', lifeline: 'browser' }
+	},
+	{
+		id: 'user-agent',
+		name: 'User agent',
+		words: ['user agent', 'user-agent'],
+		explains:
+			'What the specs call the browser, or whatever else carries messages for the user. This site says the browser in all three, because the specs do too.',
+		alsoCalled: ['browser'],
+		at: { diagram: 'flow', lifeline: 'browser' }
 	},
 	{
 		id: 'client-id',
@@ -326,7 +352,7 @@ const list: readonly Term[] = [
 	{
 		id: 'api',
 		name: 'API',
-		words: ['API', 'APIs'],
+		words: ['API', 'APIs', 'resource server', 'resource servers'],
 		explains: 'A service the app calls to get or change something, such as someone’s calendar.',
 		alsoCalled: ['resource server, in OAuth'],
 		at: { diagram: 'flow', lifeline: 'api' }
