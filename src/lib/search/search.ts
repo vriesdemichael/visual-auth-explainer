@@ -65,7 +65,8 @@ function stateAt(
 		settingsHidden: false,
 		eyes: null,
 		follow: null,
-		wording: null
+		wording: null,
+		list: false
 	};
 }
 
@@ -88,7 +89,8 @@ const stateIn = (
 	settingsHidden: false,
 	eyes: null,
 	follow: null,
-	wording: null
+	wording: null,
+	list: false
 });
 
 function resultAt(kind: ResultKind, title: string, says: string, state: AppState): Result {

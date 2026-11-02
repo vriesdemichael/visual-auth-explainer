@@ -141,6 +141,7 @@ export function speak(view: DiagramView, say: Say): DiagramView {
 			label: say(step.label),
 			concept: say(step.concept),
 			inPractice: step.inPractice && say(step.inPractice),
+			largerJob: step.largerJob && say(step.largerJob),
 			pitfall: step.pitfall && {
 				...step.pitfall,
 				title: say(step.pitfall.title),

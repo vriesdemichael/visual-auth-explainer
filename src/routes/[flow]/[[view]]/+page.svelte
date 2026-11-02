@@ -180,6 +180,7 @@
 		{loadRecording}
 		{pageImage}
 		{flowChoices}
+		questionOffersList={question?.offersList ?? false}
 		onflow={goToFlow}
 		onnavigate={navigate}
 	/>

@@ -1105,8 +1105,10 @@ export const authorizationCode: DiagramDef = {
 			label: 'Validate the ID token',
 			concept:
 				'The app checks issuer, audience, expiry and nonce before it trusts the token, and usually the signature. The spec lets it skip that one when the token came straight from the token endpoint over TLS.',
+			largerJob:
+				'Your own session for the user is yours to write, and so is logging out of it. Neither is on this diagram.',
 			inPractice:
-				'A framework usually does all of this. A low-level library may leave parts of it to you, such as the nonce, so read what yours does, and do not skip any of it. After this your app starts its own session for the user, and logging out is yours as well. Neither is on this diagram.',
+				'A framework usually does all of this. A low-level library may leave parts of it to you, such as the nonce, so read what yours does, and do not skip any of it.',
 			practice: [
 				example('authjs', true, 'keeps the nonce and checks it'),
 				example(

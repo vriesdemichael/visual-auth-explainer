@@ -133,6 +133,8 @@ export interface StepDef {
 	ends?: readonly ArtifactId[];
 	/** What this means for someone building an app: who writes this part, and what is left to them. */
 	inPractice?: Text;
+	/** What comes up here and is bigger than anything on the diagram. Said after that. */
+	largerJob?: string;
 	/** What is true of real libraries, so that a line about what they do has something behind it. */
 	practice?: readonly PracticeExample[];
 	links?: readonly StepLink[];
@@ -233,6 +235,7 @@ export interface Step {
 	cites: readonly SourceRef[];
 	ends: readonly ArtifactId[];
 	inPractice?: string;
+	largerJob?: string;
 	practice: readonly PracticeExample[];
 	links: readonly StepLink[];
 	fields: Field[];
@@ -314,7 +317,11 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
 			page: step.page,
 			cites: (step.cites ?? []).filter((cite) => present(cite.when, settings)),
-			inPractice: step.inPractice && resolveText(step.inPractice, settings),
+			inPractice:
+				[step.inPractice && resolveText(step.inPractice, settings), step.largerJob]
+					.filter(Boolean)
+					.join(' ') || undefined,
+			largerJob: step.largerJob,
 			practice: (step.practice ?? []).filter((example) => present(example.when, settings)),
 			links: (step.links ?? []).filter((link) => present(link.when, settings)),
 			execute:

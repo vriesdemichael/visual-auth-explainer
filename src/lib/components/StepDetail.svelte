@@ -48,6 +48,8 @@
 		onterm?: (id: string) => void;
 		/** What this step looks like on the wire, ahead of what each part of it is for. */
 		wire?: Snippet;
+		/** Someone wants all of what steps say is left to them, in one list. */
+		onlist?: () => void;
 		/** Someone wants to read what this step cites. */
 		oncite?: (ref: SourceRef) => void;
 		/** What the person sees in their browser at this step. */
@@ -75,6 +77,7 @@
 		mode = 'advanced',
 		wording = wordingFor(mode),
 		inTheBrowser,
+		onlist,
 		oncite,
 		pageImage = null,
 		intro = null,
@@ -242,6 +245,11 @@
 								{example.text}{/each}.
 						</span>
 					{/if}
+					{#if onlist}
+						<button type="button" class="to-list" data-testid="to-list" onclick={onlist}>
+							All of this in one list
+						</button>
+					{/if}
 				</p>
 			{/if}
 			{#if step.kind !== 'time'}
@@ -369,6 +377,25 @@
 </section>
 
 <style>
+	.to-list {
+		display: block;
+		margin-top: 4px;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--muted);
+		font: inherit;
+		font-size: 12.5px;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
+	@media print {
+		.to-list {
+			display: none;
+		}
+	}
+
 	.cites {
 		margin: 8px 0;
 		color: var(--muted);

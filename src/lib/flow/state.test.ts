@@ -50,7 +50,8 @@ describe('the URL', () => {
 						settingsHidden: false,
 						eyes: null,
 						follow: null,
-						wording: null
+						wording: null,
+						list: false
 					};
 					expect(parseState(base, diagram, serializeState(base, state))).toEqual(state);
 				}
@@ -82,7 +83,8 @@ describe('the URL', () => {
 							settingsHidden: !onOff,
 							eyes: onOff ? 'browser' : null,
 							follow: onOff ? 'code' : null,
-							wording: onOff ? ('specs' as const) : null
+							wording: onOff ? ('specs' as const) : null,
+							list: onOff
 						};
 						expect(parseState(base, 'flow', serializeState(base, state))).toEqual(state);
 					}
