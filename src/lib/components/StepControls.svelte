@@ -14,14 +14,16 @@
 		parts: readonly Part[];
 		current: string;
 		onjump: (step: string) => void;
-		/** Whether it is stepping by itself. */
+		/** Whether it is stepping by itself, and how long it stays on this step. */
 		playing?: boolean;
+		playingFor?: number;
 		onplay?: () => void;
 		/** The step's answer, when running this step adds something. */
 		answerAt?: number | null;
 		onexecute?: () => void;
 		/** Where to go at the end, so the last step is not a dead end. */
 		onwardHref?: string | null;
+		onwardLabel?: string;
 	}
 
 	let {
@@ -34,10 +36,12 @@
 		current,
 		onjump,
 		playing = false,
+		playingFor = 0,
 		onplay = () => {},
 		answerAt = null,
 		onexecute = () => {},
-		onwardHref = null
+		onwardHref = null,
+		onwardLabel = 'Next question'
 	}: Props = $props();
 
 	// At the end Next becomes a link, and whoever pressed it should still be on the way forward.
@@ -73,7 +77,7 @@
 	{#if atEnd && onwardHref}
 		<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
 		<a class="next onward" href={onwardHref} data-testid="next-question" bind:this={onwardLink}>
-			Next question
+			{onwardLabel}
 		</a>
 	{:else}
 		<button
@@ -91,7 +95,7 @@
 	{/if}
 	<button class="play" data-testid="play" onclick={onplay}>{playing ? 'Stop' : 'Play'}</button>
 	<span class="position" data-testid="position">Step {position} of {total}</span>
-	<Timeline {parts} {current} {onjump} />
+	<Timeline {parts} {current} {onjump} waiting={playing ? playingFor : null} />
 	{#if answerAt !== null}
 		<Execute {answerAt} {onexecute} />
 	{:else}

@@ -62,7 +62,7 @@
 
 	const current = $derived(mounted ? page.url.searchParams.get('at') : null);
 	const DESCRIPTION =
-		"OAuth and OpenID Connect on one living diagram, with its messages recorded from a real Keycloak, a free identity provider you can run yourself. The specs are the same elsewhere, though error codes, token formats, defaults and the stored-token API are Keycloak's own. Pick a question and follow it, one message at a time.";
+		"OAuth and OpenID Connect on one living diagram, with its messages recorded from a real Keycloak, a free identity provider you can run yourself. The specs are the same elsewhere, though the wording of errors, token formats, defaults and the stored-token API are Keycloak's own. Pick a question and follow it, one message at a time.";
 	const TITLE = `${SITE_NAME}: OAuth and OpenID Connect on one living diagram`;
 	const sharing = sharingTags({
 		title: TITLE,
@@ -94,8 +94,9 @@
 			<p class="lead">
 				OAuth and OpenID Connect on one living diagram, with its messages recorded from a real
 				Keycloak, a free identity provider you can run yourself. The specs are the same elsewhere,
-				though error codes, token formats, defaults and the stored-token API are Keycloak's own.
-				Pick a question and follow it, one message at a time. New to this? Start with the first one.
+				though the wording of errors, token formats, defaults and the stored-token API are
+				Keycloak's own. Pick a question and follow it, one message at a time. New to this? Start
+				with the first one.
 			</p>
 			<button
 				type="button"
@@ -113,6 +114,12 @@
 				showing={Living ? showing.id : null}
 				onpoint={point}
 			/>
+			<p class="source" data-testid="source-link">
+				Open source. See
+				<a href="https://github.com/vriesdemichael/authlines" rel="external"
+					>the code, the recordings and how they are checked</a
+				>.
+			</p>
 		</div>
 		{#if Living}
 			<div class="beside">
@@ -123,6 +130,12 @@
 </main>
 
 <style>
+	.source {
+		margin: 24px 0 0;
+		color: var(--muted);
+		font-size: 12.5px;
+	}
+
 	main {
 		max-width: 1360px;
 		margin: 24px auto;

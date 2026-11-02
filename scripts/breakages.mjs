@@ -403,7 +403,7 @@ export const breakages = [
 	{
 		name: 'parts: a reason too long to read in passing',
 		file: AC,
-		from: "why: 'The app does not handle the password, so it sends the user to whoever does.',",
+		from: "why: 'The app does not handle the password, so it sends the user off to log in elsewhere.',",
 		to: "why: 'The app does not handle the password at all and never should, because that is the whole point of all this, so it sends the user to whoever does.',"
 	},
 	{
@@ -435,8 +435,8 @@ export const breakages = [
 	{
 		name: 'eyes: a party is kept when a setting takes it off the diagram',
 		file: 'src/lib/flow/state.ts',
-		from: 'return { state: { ...state, settings, step, eyes: onTheDiagram(view, state.eyes) }, resets };',
-		to: 'return { state: { ...state, settings, step }, resets };'
+		from: '\t\t\teyes: onTheDiagram(view, state.eyes),\n\t\t\tfollow: onTheWay(view, state.follow)\n',
+		to: '\t\t\tfollow: onTheWay(view, state.follow)\n'
 	},
 	{
 		name: 'eyes: a question is still answered as someone else',
@@ -575,6 +575,26 @@ export const breakages = [
 		to: "export const CHALLENGE = 'not-the-challenge';"
 	},
 
+	// Search.
+	{
+		name: 'search: a word says only that it is a word',
+		file: 'src/lib/search/search.ts',
+		from: 'if (term.artifact) return artifacts[term.artifact].explains;',
+		to: ''
+	},
+	{
+		name: 'search: a pasted error goes past the question about it',
+		file: 'src/lib/search/search.ts',
+		from: 'return about ? { ...result, view: about.id } : result;',
+		to: 'return result;'
+	},
+	{
+		name: 'search: a field only some settings bring cannot be found',
+		file: 'src/lib/search/search.ts',
+		from: 'const fields = (step.fields ?? [])',
+		to: 'const fields = shown.fields'
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',
@@ -673,8 +693,8 @@ export const breakages = [
 	{
 		name: 'map: a question ignores the diagram',
 		file: NODES,
-		from: 'state.flow === of.flow &&\n\tstate.diagram === of.diagram &&\n\tsameSettings(nodeSettings(of), state.settings);',
-		to: 'state.flow === of.flow &&\n\tsameSettings(nodeSettings(of), state.settings);'
+		from: 'state.flow === of.flow &&\n\tstate.diagram === of.diagram &&\n',
+		to: 'state.flow === of.flow &&\n'
 	},
 
 	// The diagram and the state.

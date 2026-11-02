@@ -156,12 +156,12 @@ export const authorizationCode: DiagramDef = {
 	parts: [
 		{
 			label: 'Ask',
-			why: 'The app does not handle the password, so it sends the user to whoever does.',
+			why: 'The app does not handle the password, so it sends the user off to log in elsewhere.',
 			from: 'open-app'
 		},
 		{
 			label: 'Log in',
-			why: 'The user proves who they are away from the app, which sees none of it.',
+			why: 'The user proves who they are away from the app, which never sees the password.',
 			from: 'login-page'
 		},
 		{
@@ -171,27 +171,27 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			label: 'Trade',
-			why: 'The code went through the browser, so the tokens come by a route that does not.',
+			why: 'Only a code went through the browser. This is where the app tries to trade it for tokens.',
 			from: 'callback'
 		},
 		{
 			label: 'Use',
-			why: 'The app puts the token to use, and whatever gets it decides whether it is good.',
+			why: 'This is what the token was for, and whatever gets the call decides what to do with it.',
 			from: 'userinfo-request'
 		},
 		{
 			label: 'Renew',
-			why: 'An access token does not last, and a refresh token gets another without asking the user again.',
+			why: 'An access token does not last, and a refresh token can get another without asking the user again.',
 			from: 'token-runs-out'
 		},
 		{
 			label: 'Second app',
-			why: 'Another app sends the same browser to the same identity provider, which may remember it.',
+			why: 'Another app sends a browser to the same identity provider, which may remember it.',
 			from: 'second-open-app'
 		},
 		{
 			label: 'Log out',
-			why: 'Logging out reaches the app, the session and the tokens, and each ends differently.',
+			why: 'Logging out ends some things and leaves others, and this shows which on a real server.',
 			from: 'logout-start'
 		},
 		{
@@ -278,7 +278,12 @@ export const authorizationCode: DiagramDef = {
 			label: '302 to the identity provider',
 			concept:
 				'The app sends the browser to the identity provider, because the password must never reach the app.',
-			inPractice: 'A library does this, from the values you gave it in setup.',
+			inPractice: [
+				{ when: pkce, text: 'A library does this, from the values you gave it in setup.' },
+				{
+					text: 'A library does this, from the values you gave it in setup. Turn on its PKCE option as well, which current advice recommends for every app.'
+				}
+			],
 			practice: [
 				example('passport', true, 'from its authorizationURL and clientID options'),
 				example('authjs', true, 'from the issuer and client ID')
@@ -335,7 +340,7 @@ export const authorizationCode: DiagramDef = {
 				{
 					name: 'code_challenge_method=S256',
 					place: 'query',
-					note: 'How the fingerprint was made',
+					note: 'How the fingerprint was made: a one-way hash, which is why it cannot be turned back. RFC 7636 also has plain, where the challenge is the verifier itself, and RFC 9700 says to use a method that does not expose it.',
 					when: pkce
 				}
 			]
@@ -567,7 +572,7 @@ export const authorizationCode: DiagramDef = {
 				'The identity provider sets a cookie on its own address, so it will know this browser next time, and sends the browser back to the app with a short-lived, one-time code. This goes through the browser, where it can be seen, so it cannot be a token yet.',
 			pitfall: {
 				title: 'Why not send the token here?',
-				text: 'That is the implicit flow, and it is what apps in a browser used to do. The token then sits in an address, where history, logs and other pages can get at it, and it cannot be tied to the app that asked. Current advice is not to use it, though you will still see it offered.'
+				text: 'That is the implicit flow, and it is what apps in a browser used to do. The token then sits in the address, where browser history and anything running in the page can get at it, and it cannot be tied to the app that asked. Current advice is not to use it, though you will still see it offered.'
 			},
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
@@ -731,7 +736,7 @@ export const authorizationCode: DiagramDef = {
 					text: 'The code reaches the app. On its own it is worth little, which is the point.'
 				},
 				{
-					text: 'The code reaches the app. Someone with only the code cannot trade it without the secret, though that is not quite the end of it, as the next step says.'
+					text: 'The code reaches the app. Someone with only the code cannot trade it without the secret, though that is not quite the end of it, as the question on the next step says.'
 				}
 			],
 			inPractice:
@@ -887,7 +892,7 @@ export const authorizationCode: DiagramDef = {
 			concept: [
 				{
 					when: pkce,
-					text: 'A code works once, and this server counts a failed try as that once. The specs do not say whether it should. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
+					text: 'A code works once, and this server counts a failed try as that once. The specs say a code is good for one use, and not whether a failed try counts. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
 				},
 				{
 					text: 'A code works once, and it has been used, so the app gets nothing and the user sees an error. The specs advise the server to cancel what that code got, and this one does. But someone else has had the tokens by then, and an API that only looks at the token itself goes on taking them until they expire.'

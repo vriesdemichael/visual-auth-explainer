@@ -7,6 +7,13 @@
 	}
 
 	let { parties, current, onchange }: Props = $props();
+
+	// Chosen with a pointer, the arrow keys and a clicker should go back to moving through the steps.
+	let pointing = false;
+	function choose(list: HTMLSelectElement) {
+		onchange(list.value || null);
+		if (pointing) list.blur();
+	}
 </script>
 
 <label data-testid="eyes-switch">
@@ -14,7 +21,9 @@
 	<select
 		data-testid="eyes"
 		value={current ?? ''}
-		onchange={(event) => onchange(event.currentTarget.value || null)}
+		onpointerdown={() => (pointing = true)}
+		onkeydown={() => (pointing = false)}
+		onchange={(event) => choose(event.currentTarget)}
 	>
 		<option value="">everyone</option>
 		{#each parties as party (party.id)}

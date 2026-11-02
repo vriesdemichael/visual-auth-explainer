@@ -11,11 +11,11 @@ export const formsOf = (artifact: ArtifactId): readonly ArtifactId[] =>
 	TOGETHER[artifact] ?? [artifact];
 
 /**
- * Where something is used up, which the fields cannot say. Only what a recording backs goes here, and
- * a test holds each one to it.
+ * Where something turns out to have been used up, which the fields cannot say. Only what a recording
+ * backs goes here, and a test holds each one to it.
  */
 export const USED_UP: Partial<Record<ArtifactId, { step: string; says: string }>> = {
-	code: { step: 'real-app-refused', says: 'Used up: a real server refused it here' }
+	code: { step: 'real-app-refused', says: 'Refused here: a real server counted it as used' }
 };
 
 /** A step on the way, and what happens to the thing there. */
@@ -52,7 +52,7 @@ export function pathOf(view: DiagramView, artifact: ArtifactId): Stop[] {
 					: 'Checked here'
 				: isNew
 					? 'First sent here'
-					: 'Carried here';
+					: 'Sent here';
 			stops.push({ step: step.id, says: named(forms, here, says) });
 		}
 		for (const form of here) seen.add(form);

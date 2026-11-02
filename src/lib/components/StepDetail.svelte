@@ -48,7 +48,7 @@
 		onshowadded?: () => void;
 		/** This is the last step, so say where to go from here. */
 		atEnd?: boolean;
-		onward?: { title: string; summary: string; href: string } | null;
+		onward?: { title: string; summary: string; href: string; label?: string } | null;
 		mapHref?: string | null;
 	}
 
@@ -194,10 +194,10 @@
 			<h2 class="title" data-testid="unseen">Not seen by {unseenBy}</h2>
 			<p>
 				{#if step.from === step.to}
-					It happens inside {nameOf(step.from)}, and nothing of it reaches {unseenBy}.
+					It happens inside {nameOf(step.from)}, and {unseenBy} was not sent anything.
 				{:else}
-					It goes between {nameOf(step.from)} and {nameOf(step.to)}, and nothing in it reaches
-					{unseenBy}.
+					It goes between {nameOf(step.from)} and {nameOf(step.to)}, and {unseenBy} was not sent it. If
+					something in it reaches {unseenBy} later, that shows on the step where it does.
 				{/if}
 			</p>
 		{:else}
@@ -292,7 +292,7 @@
 	{#if atEnd}
 		{#if onward}
 			<section class="onward" data-testid="onward">
-				<h3>Next question</h3>
+				<h3>{onward.label ?? 'Next question'}</h3>
 				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
 				<a href={onward.href}><strong>{onward.title}</strong></a>
 				<p>{onward.summary}</p>

@@ -71,7 +71,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'what-the-browser-sees',
 					answer:
-						"What passes through it: the user's password, the one-time code and its session with the identity provider. The access token goes straight to the app, on a direct call the browser is not part of.",
+						"With an app on a server, what matters of what passes through it: the user's password, the one-time code and its session with the identity provider. The access token goes straight to the app, on a direct call the browser is not part of.",
 					title: 'What can the browser see?',
 					summary: 'The whole flow with everything the browser was not sent hidden.',
 					preset: 'oauth',
@@ -120,7 +120,7 @@ export const mapTracks: readonly MapTrack[] = [
 				node({
 					id: 'adding-login',
 					answer:
-						'Someone registers your app with the identity provider, and your configuration gets the issuer, the client ID and any secret. A library can do much of the rest, and which pages need a login and your own session stay your code.',
+						'Someone registers your app with the identity provider, and your configuration gets the issuer, the client ID and any secret. A library can do much of the rest, with PKCE turned on. Which pages need a login and your own session stay your code.',
 					startsAtTheBeginning: 'What they have to do starts with the first step of setup.',
 					title: 'I have to add login to an app. What do I do?',
 					summary:
