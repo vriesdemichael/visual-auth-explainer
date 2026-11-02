@@ -476,7 +476,11 @@ export const authorizationCode: DiagramDef = {
 			fields: [
 				{ name: 'code', place: 'query' },
 				{ name: 'state', place: 'query' },
-				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+				{
+					name: 'iss',
+					place: 'query',
+					note: 'Names the server this came from, so an app that uses more than one can tell which answered'
+				}
 			]
 		},
 		{
@@ -492,7 +496,11 @@ export const authorizationCode: DiagramDef = {
 			fields: [
 				{ name: 'code', place: 'query' },
 				{ name: 'state', place: 'query' },
-				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+				{
+					name: 'iss',
+					place: 'query',
+					note: 'Names the server this came from, so an app that uses more than one can tell which answered'
+				}
 			]
 		},
 		{
@@ -623,6 +631,11 @@ export const authorizationCode: DiagramDef = {
 			cites: [
 				{
 					source: 'rfc9700',
+					section: '4.4',
+					why: 'Section 4.4 is the mix-up attack, where an app that uses more than one provider is tricked into sending a code from one to another. Its countermeasure is to check who answered, which is what iss is for.'
+				},
+				{
+					source: 'rfc9700',
 					section: '2.1.2',
 					why: 'Section 2.1.2 is the current advice on the implicit grant: clients should not use it, or anything else that puts an access token in the redirect.'
 				}
@@ -641,7 +654,11 @@ export const authorizationCode: DiagramDef = {
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query' },
-				{ name: 'iss', place: 'query', note: 'Names the server this came from' },
+				{
+					name: 'iss',
+					place: 'query',
+					note: 'Names the server this came from, so an app that uses more than one can tell which answered'
+				},
 				{
 					name: 'Set-Cookie',
 					place: 'header',
@@ -788,6 +805,18 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'callback',
+			cites: [
+				{
+					source: 'rfc6749',
+					section: '10.12',
+					why: 'Section 10.12 is what state is for: without it, someone can get their own code accepted in a victim’s browser, and the app then works with the attacker’s account.'
+				},
+				{
+					source: 'rfc9700',
+					section: '4.7',
+					why: 'Section 4.7 is the same attack in the current advice, and says that PKCE or a nonce can stand in for state.'
+				}
+			],
 			from: 'browser',
 			to: 'app',
 			kind: 'request',
@@ -825,7 +854,11 @@ export const authorizationCode: DiagramDef = {
 			fields: [
 				{ name: 'code', place: 'query', artifact: 'code' },
 				{ name: 'state', place: 'query', note: 'Must match what the app sent' },
-				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+				{
+					name: 'iss',
+					place: 'query',
+					note: 'Names the server this came from, so an app that uses more than one can tell which answered'
+				}
 			]
 		},
 		{
@@ -1731,7 +1764,11 @@ export const authorizationCode: DiagramDef = {
 					when: secondIsFresh
 				},
 				{ name: 'state', place: 'query' },
-				{ name: 'iss', place: 'query', note: 'Names the server this came from' },
+				{
+					name: 'iss',
+					place: 'query',
+					note: 'Names the server this came from, so an app that uses more than one can tell which answered'
+				},
 				{
 					name: 'Set-Cookie',
 					place: 'header',
@@ -1768,7 +1805,11 @@ export const authorizationCode: DiagramDef = {
 				{ name: 'code', place: 'query', artifact: 'code', when: secondGetsACode },
 				{ name: 'error=login_required', place: 'query', note: 'Passed on', when: secondIsFresh },
 				{ name: 'state', place: 'query' },
-				{ name: 'iss', place: 'query', note: 'Names the server this came from' }
+				{
+					name: 'iss',
+					place: 'query',
+					note: 'Names the server this came from, so an app that uses more than one can tell which answered'
+				}
 			]
 		},
 		{

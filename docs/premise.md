@@ -320,6 +320,16 @@ An order for later releases. **Proposed**, and expected to change.
 | FAPI 2.0, OAuth 2.1 | Later | A composition or a diff over existing toggles |
 | Authz (RBAC, ABAC, ReBAC, UMA) | Later | Multiplies the content |
 
+What a security-minded reader looks for, decided one by one ([#101](https://github.com/vriesdemichael/authlines/issues/101)). **Proposed.**
+
+| Threat | Decision | Why |
+|---|---|---|
+| CSRF, and what `state` is for | A question, on what is drawn | People ask it, and `state` is on the diagram. The answer says it is from the specs, and that the attack is not drawn |
+| `iss`, and mix-up | A question, on what is drawn, in advanced mode | `iss` is on the wire, and had no why. Drawing the attack takes a second provider that lies, so it says it is not drawn |
+| A stolen code handed to the real app | To be drawn ([#100](https://github.com/vriesdemichael/authlines/issues/100)) | It fits the attacker already there, and answers why a confidential client needs PKCE |
+| PKCE downgrade | Not here, and search says so | It takes an attacker who changes a request on its way, which nothing here draws |
+| Native apps, custom schemes, a malicious app on the device | Not here, and search says so | They take a second app on the device and a different kind of redirect, which is a shape of its own, and the first version is about a browser |
+
 ## 8. First slice
 
 **Proposed.**

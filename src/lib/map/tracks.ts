@@ -141,6 +141,28 @@ export const mapTracks: readonly MapTrack[] = [
 		chains: [
 			[
 				node({
+					id: 'what-state-does',
+					preset: 'oauth',
+					step: 'callback',
+					title: 'What does state protect against?',
+					summary:
+						'Cross-site request forgery, or CSRF: someone slipping their own answer into your login.',
+					answer:
+						'The specs say it stops someone slipping their own answer into your login, which would leave you in their account. The app makes up a value and checks it comes back. That attack is not drawn here, and stopping a stolen code takes PKCE.'
+				}),
+				node({
+					id: 'what-iss-does',
+					preset: 'oauth',
+					step: 'redirect-with-code',
+					mode: 'advanced',
+					title: 'What is iss doing in the address?',
+					summary: 'It says which server answered.',
+					answer:
+						'It says which server the answer came from. An app that uses more than one provider can check it, so that it does not send a code from one to another, which the specs call a mix-up attack. That attack is not drawn here.'
+				})
+			],
+			[
+				node({
 					id: 'no-secret',
 					answer:
 						'An app in a browser or on a phone cannot keep a secret, because what is on someone’s device can be read there. So its token request shows nothing about which app sent it, unless PKCE does.',

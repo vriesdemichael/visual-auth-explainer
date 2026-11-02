@@ -164,6 +164,16 @@ export const knownErrors: readonly KnownError[] = [
 
 /** What people ask about that is not here yet, which should be said rather than guessed around. */
 export const notHereYet: readonly string[] = [
+	// Each takes something the diagrams do not have: see section 7 of the premise.
+	'pkce downgrade',
+	'downgrade attack',
+	'native app',
+	'custom scheme',
+	'custom url scheme',
+	'claimed https',
+	'malicious app',
+	'rfc 8252',
+	'rfc8252',
 	'device flow',
 	'device code',
 	'saml',

@@ -412,6 +412,14 @@ const list: readonly Term[] = [
 		at: flowAt('authorize')
 	},
 	{
+		id: 'csrf',
+		name: 'CSRF',
+		words: ['CSRF', 'cross-site request forgery'],
+		explains:
+			'Cross-site request forgery: getting someone’s browser to send a request they did not mean to. Against a login, it can leave them working in the attacker’s account without noticing.',
+		at: flowAt('callback')
+	},
+	{
 		id: 'claim',
 		name: 'Claim',
 		words: ['claim', 'claims'],

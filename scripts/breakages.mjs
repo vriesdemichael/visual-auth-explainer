@@ -14,8 +14,22 @@ const WORDING = 'src/lib/flow/wording.ts';
 const ADDRESS = 'src/lib/recordings/address.ts';
 const NO_USER = 'src/lib/flow/client-credentials.ts';
 const LEFT = 'src/lib/flow/left-to-you.ts';
+const ERRORS = 'src/lib/search/errors.ts';
 
 export const breakages = [
+	// What a security reader looks for.
+	{
+		name: 'threats: a threat that is not here is not said to be',
+		file: ERRORS,
+		from: "	'malicious app',\n",
+		to: ''
+	},
+	{
+		name: 'threats: a flow that is here is said not to be',
+		file: ERRORS,
+		from: "	'device flow',",
+		to: "	'device flow',\n	'client credentials',"
+	},
 	// All that is left to someone, in one list.
 	{
 		name: 'list: a step goes under the wrong job',
