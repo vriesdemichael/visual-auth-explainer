@@ -16,10 +16,13 @@ const pkce = is('pkce', true);
 const consent = is('consent', true);
 const attacker = is('attacker', true);
 // The code is one-time, and on a public client nothing stops someone else using it first.
-const codeGone = all(attacker, not(confidential));
+const codeTaken = all(attacker, not(confidential));
+const handedToTheApp = is('attackerUses', 'real-app');
+const codeGone = any(codeTaken, handedToTheApp);
 const stillGoing = not(codeGone);
-const attackerWins = all(codeGone, not(pkce));
-const stoppedByPkce = all(codeGone, pkce);
+const attackerWins = all(codeTaken, not(pkce));
+const stoppedByPkce = all(codeTaken, pkce);
+const stoppedByNonce = all(handedToTheApp, oidc, not(pkce));
 const stoppedBySecret = all(attacker, confidential);
 const dpop = is('binding', 'dpop');
 const bearer = is('binding', 'bearer');
@@ -686,6 +689,211 @@ export const authorizationCode: DiagramDef = {
 			]
 		},
 		{
+			id: 'attacker-opens-app',
+			from: 'attacker',
+			to: 'app',
+			kind: 'request',
+			channel: 'front',
+			plain: 'They open the real app themselves',
+			label: 'GET /',
+			concept:
+				'In their own browser, they start a login at the real app, as anyone can. They have no intention of finishing it. What they want is a login in progress, so that the app will take an answer for it.',
+			when: handedToTheApp
+		},
+		{
+			id: 'attacker-sent-to-login',
+			from: 'app',
+			to: 'attacker',
+			kind: 'response',
+			channel: 'front',
+			plain: 'The app starts a login for them',
+			label: '302 to the identity provider',
+			concept: [
+				{
+					when: pkce,
+					text: 'The app makes up a state and a verifier for this login, and keeps them with it. The challenge goes in this redirect, and it has nothing to do with the real user’s.'
+				},
+				{
+					when: oidc,
+					text: 'The app makes up a state and a nonce for this login, and keeps them with it. The nonce has nothing to do with the real user’s.'
+				},
+				{ text: 'The app makes up a state for this login, and keeps it with them.' }
+			],
+			when: handedToTheApp,
+			fields: [
+				{ name: 'response_type', place: 'query' },
+				{
+					name: 'client_id',
+					place: 'query',
+					note: 'The real app’s, because the real app sends this'
+				},
+				{ name: 'redirect_uri', place: 'query' },
+				{ name: 'state', place: 'query', note: 'For the login they started' },
+				{
+					name: 'code_challenge',
+					place: 'query',
+					note: 'For the login they started, and not the real user’s',
+					when: pkce
+				},
+				{
+					name: 'code_challenge_method',
+					place: 'query',
+					note: 'How the challenge was made',
+					when: pkce
+				},
+				{ name: 'scope', place: 'query', when: oidc },
+				{ name: 'nonce', place: 'query', note: 'For the login they started', when: oidc }
+			]
+		},
+		{
+			id: 'attacker-hands-code',
+			from: 'attacker',
+			to: 'app',
+			kind: 'request',
+			channel: 'front',
+			cites: [
+				{
+					source: 'rfc9700',
+					section: '4.5',
+					why: 'Section 4.5 is this attack, authorization code injection. A secret does not stop it, because it is the real app that ends up using the code.'
+				}
+			],
+			plain: 'They hand it the stolen code',
+			label: 'GET /callback',
+			concept:
+				'They go to the app’s own callback address, with the real user’s code and the state of their own login. So the state matches: it ties an answer to the browser that started the login, and this browser did.',
+			when: handedToTheApp,
+			fields: [
+				{ name: 'code', place: 'query', artifact: 'code', note: 'The real user’s' },
+				{ name: 'state', place: 'query', note: 'Their own, so it matches' }
+			]
+		},
+		{
+			id: 'handed-token-request',
+			from: 'app',
+			to: 'idp',
+			kind: 'request',
+			plain: 'The app trades the code, with its secret',
+			label: 'POST /token',
+			concept: [
+				{
+					when: pkce,
+					text: 'The app does what it always does. It sends its secret, and the verifier for the login it thinks this is, which is the one they started.'
+				},
+				{
+					text: 'The app does what it always does, and sends its secret. So the secret proves this really is the app, and it is.'
+				}
+			],
+			when: handedToTheApp,
+			fields: [
+				{ name: 'grant_type=authorization_code', place: 'body' },
+				{ name: 'code', place: 'body', artifact: 'code' },
+				{ name: 'redirect_uri', place: 'body' },
+				{
+					name: 'Authorization: Basic',
+					place: 'header',
+					note: 'The client ID and secret',
+					artifact: 'secret'
+				},
+				{
+					name: 'code_verifier',
+					place: 'body',
+					note: 'For the login they started, and not the real user’s',
+					when: pkce
+				}
+			]
+		},
+		{
+			id: 'handed-token-response',
+			from: 'idp',
+			to: 'app',
+			kind: 'response',
+			cites: [
+				{
+					source: 'rfc9700',
+					section: '4.5.3.1',
+					why: 'Section 4.5.3.1 is why this fails: the verifier is right for the app, and the code is tied to a challenge that does not match it.',
+					when: pkce
+				}
+			],
+			plain: [
+				{ when: pkce, text: 'Refused: the verifier does not match' },
+				{ text: 'Tokens for the real user' }
+			],
+			label: [{ when: pkce, text: '400 invalid_grant' }, { text: '200 with tokens' }],
+			concept: [
+				{
+					when: pkce,
+					text: 'The code was tied to the real user’s challenge when it was issued, and this verifier belongs to the login they started. This is what PKCE adds that a secret cannot: it ties a code to the login it came from.'
+				},
+				{
+					text: 'The server has no way to tell. The code is good and the secret is good, so the tokens come back, for the real user, to the app, in a login someone else started.'
+				}
+			],
+			when: handedToTheApp,
+			fields: [
+				{ name: 'access_token', place: 'body', artifact: 'access-token', when: not(pkce) },
+				{ name: 'token_type=Bearer', place: 'body', when: not(pkce) },
+				{ name: 'id_token', place: 'body', artifact: 'id-token', when: all(oidc, not(pkce)) },
+				{ name: 'expires_in', place: 'body', when: not(pkce) },
+				{ name: 'refresh_token', place: 'body', artifact: 'refresh-token', when: not(pkce) },
+				{ name: 'scope', place: 'body', when: not(pkce) },
+				{
+					name: 'error=invalid_grant',
+					place: 'body',
+					note: 'The code cannot be used this way',
+					when: pkce
+				},
+				{ name: 'error_description', place: 'body', note: 'Which check it failed', when: pkce }
+			]
+		},
+		{
+			id: 'handed-nonce-check',
+			from: 'app',
+			to: 'app',
+			kind: 'internal',
+			cites: [
+				{
+					source: 'rfc9700',
+					section: '4.5.3.2',
+					why: 'Section 4.5.3.2 is why this works: the nonce in the ID token is the real user’s, and the one kept for this login is not. It is up to the app to compare them.'
+				}
+			],
+			plain: 'The app checks the ID token, and it is for another login',
+			label: 'Compare the nonce',
+			concept:
+				'The ID token has the nonce from the real user’s login, and the app made a different one for this login. So it stops here. That only helps if the check is really done, and it happens after the server has already handed over the tokens.',
+			when: stoppedByNonce,
+			fields: [{ name: 'nonce', place: 'memory', note: 'The one made for this login' }]
+		},
+		{
+			id: 'attacker-handed-answer',
+			from: 'app',
+			to: 'attacker',
+			kind: 'response',
+			channel: 'front',
+			plain: [
+				{ when: pkce, text: 'The login fails' },
+				{ when: stoppedByNonce, text: 'The app refuses' },
+				{ text: 'They are logged in as the real user' }
+			],
+			label: [{ when: any(pkce, stoppedByNonce), text: '400' }, { text: '200' }],
+			concept: [
+				{
+					when: pkce,
+					text: 'They get nothing. They still hold a code, and it is no use to them.'
+				},
+				{
+					when: stoppedByNonce,
+					text: 'They get nothing, because the app did the check. The tokens went no further than the app.'
+				},
+				{
+					text: 'The app now takes this browser for the real user’s. They never saw a token and did not need to. The secret did nothing, because the real app was the one using it.'
+				}
+			],
+			when: handedToTheApp
+		},
+		{
 			id: 'attacker-token-request',
 			from: 'attacker',
 			to: 'idp',
@@ -706,7 +914,7 @@ export const authorizationCode: DiagramDef = {
 					text: 'They send the code to the identity provider, as the real app would, but they do not have the secret to send with it.'
 				}
 			],
-			when: attacker,
+			when: all(attacker, not(handedToTheApp)),
 			fields: [
 				{ name: 'grant_type=authorization_code', place: 'body' },
 				{ name: 'code', place: 'body', artifact: 'code' },
@@ -753,7 +961,7 @@ export const authorizationCode: DiagramDef = {
 					text: 'Without the secret, the identity provider will not even look at the code. But they could still hand it to the real app from their own browser, so that it trades the code for them, which is what PKCE stops.'
 				}
 			],
-			when: attacker,
+			when: all(attacker, not(handedToTheApp)),
 			fields: [
 				{ name: 'access_token', place: 'body', artifact: 'access-token', when: attackerWins },
 				{ name: 'token_type=Bearer', place: 'body', when: attackerWins },
@@ -1043,6 +1251,14 @@ export const authorizationCode: DiagramDef = {
 				{
 					when: pkce,
 					text: 'A code works once, and this server counts a failed try as that once. The specs say a code is good for one use, and not whether a failed try counts. So PKCE kept the tokens from them, but someone with the code can still spoil the login. The user has to start again.'
+				},
+				{
+					when: stoppedByNonce,
+					text: 'A code works once, and it has been used, so the real user gets nothing and sees an error. The nonce kept someone else out, and did not save this login.'
+				},
+				{
+					when: handedToTheApp,
+					text: 'A code works once, and it has been used, so the real user gets nothing and sees an error, while someone else is logged in as them. The specs advise the server to cancel what that code got, which does not end the session the app has already started.'
 				},
 				{
 					text: 'A code works once, and it has been used, so the app gets nothing and the user sees an error. The specs advise the server to cancel what that code got, and this one does. But someone else has had the tokens by then, and an API that only looks at the token itself goes on taking them until they expire.'

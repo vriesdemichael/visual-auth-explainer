@@ -100,6 +100,21 @@ const presets: readonly Preset[] = [
 		title: 'An attacker, against an app with a secret, with PKCE',
 		settings: { attacker: true, pkce: true }
 	},
+	{
+		id: 'attack-at-the-app',
+		title: 'A stolen code, handed to the real app',
+		settings: { attacker: true, attackerUses: 'real-app' }
+	},
+	{
+		id: 'attack-at-the-app-pkce',
+		title: 'A stolen code, handed to the real app, with PKCE',
+		settings: { attacker: true, attackerUses: 'real-app', pkce: true }
+	},
+	{
+		id: 'attack-at-the-app-oidc',
+		title: 'A stolen code, handed to the real app, with a nonce',
+		settings: { attacker: true, attackerUses: 'real-app', oidc: true }
+	},
 	{ id: 'dpop', title: 'DPoP', settings: { binding: 'dpop' } },
 	{
 		id: 'dpop-nonce',

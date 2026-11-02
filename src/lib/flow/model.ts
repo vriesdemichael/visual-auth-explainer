@@ -129,6 +129,8 @@ export interface StepDef {
 	pitfall?: PitfallDef;
 	page?: PageDef;
 	cites?: readonly CiteDef[];
+	/** How it travels, where its lifelines alone would not say: someone's own browser, say. */
+	channel?: Channel;
 	/** What stops existing here, so that nobody holds it any more. */
 	ends?: readonly ArtifactId[];
 	/** What this means for someone building an app: who writes this part, and what is left to them. */
@@ -282,6 +284,7 @@ function causes(when: Condition | undefined, settings: Settings): SettingId[] {
 }
 
 function channelOf(flow: DiagramDef, step: StepDef): Channel {
+	if (step.channel) return step.channel;
 	if (step.kind === 'human') return 'people';
 	if (step.kind === 'internal' || step.kind === 'time') return 'internal';
 	const front = flow.lifelines.some((l) => l.front && (l.id === step.from || l.id === step.to));

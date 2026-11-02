@@ -87,5 +87,12 @@
 	"introspect-response",
 	"asks-after-logout-response",
 	"refresh-after-logout",
-	"refresh-after-logout-response"
+	"refresh-after-logout-response",
+	"attacker-opens-app",
+	"attacker-sent-to-login",
+	"attacker-hands-code",
+	"handed-token-request",
+	"handed-token-response",
+	"handed-nonce-check",
+	"attacker-handed-answer"
 ]

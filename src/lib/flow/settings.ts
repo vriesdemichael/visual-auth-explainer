@@ -6,6 +6,7 @@ export interface Settings {
 	clientType: 'public' | 'confidential';
 	pkce: boolean;
 	attacker: boolean;
+	attackerUses: 'themselves' | 'real-app';
 	binding: 'bearer' | 'dpop';
 	dpopNonce: boolean;
 	broker: boolean;
@@ -214,6 +215,30 @@ export const settingDefs: { [K in SettingId]: DefFor<Settings[K]> } = {
 			because: 'The attacker only shows the plain case, with a Bearer token and no other provider.',
 			sayWhenBlocked: true
 		}
+	},
+	attackerUses: {
+		kind: 'choice',
+		label: 'What they do with it',
+		param: 'uses',
+		default: 'themselves',
+		summary:
+			'A secret stops them trading the code themselves. They can also get the real app to trade it for them, secret and all.',
+		why: 'This is why an app with a secret still needs PKCE. The secret proves the request comes from the real app, and here it does. Nothing in the request says the code was meant for someone else.',
+		options: [
+			{ value: 'themselves', label: 'Trade it themselves' },
+			{ value: 'real-app', label: 'Hand it to the real app' }
+		],
+		requires: {
+			when: all(is('attacker', true), is('clientType', 'confidential')),
+			because: 'Only an app with a secret needs this. With no secret, they can just trade the code.'
+		},
+		sources: [
+			{
+				source: 'rfc9700',
+				section: '4.5',
+				why: 'Section 4.5 is this attack, which it calls authorization code injection, and section 4.5.3 what stops it.'
+			}
+		]
 	},
 	binding: {
 		kind: 'choice',

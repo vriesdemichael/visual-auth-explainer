@@ -239,6 +239,8 @@ Toggles cut across messages. DPoP touches several steps and PAR changes what cro
 
 Turning on PKCE adds parameters, and the learner still does not know what they are for. "Why" is the most reported confusion, so each toggle must show the problem it solves, ideally what goes wrong when it is off. Showing an attacker's path when a protection is off is one way to do this, and it is built for a stolen code: a setting brings an attacker onto the diagram, and flipping PKCE or the client type changes the answer on the same arrow, with what a real server said ([#26](https://github.com/vriesdemichael/authlines/issues/26)). A refusal travels with nothing in it and leaves nothing under the attacker, and an answer with tokens leaves them there.
 
+It also answers what a reader kept asking, why an app with a secret needs PKCE: they can hand the stolen code to the real app, from a login of their own, and a real server gives the app the tokens. PKCE refuses it there, and a nonce stops it at the app ([#100](https://github.com/vriesdemichael/authlines/issues/100)).
+
 ### User federation and brokering are different (Proposed, from Keycloak's docs)
 
 - **Identity brokering:** Keycloak acts as an intermediary and redirects the browser to another IdP. The diagram gains a lifeline and a nested flow, and client applications never contact the external provider.

@@ -7,6 +7,7 @@
 //                                  or a page a person gets
 //   pnpm record --pages            only takes the pictures of those pages again
 //   pnpm record --no-user          only records the flows with no user and no browser
+//   pnpm record --presets a,b      only records those named states
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import {
 	chromium,
@@ -64,6 +65,7 @@ const argument = (name: string) => {
 const checking = process.argv.includes('--check');
 const onlyPages = process.argv.includes('--pages');
 const onlyNoUser = process.argv.includes('--no-user');
+const onlyPresets = argument('--presets')?.split(',');
 const version = argument('--keycloak') ?? PINNED_KEYCLOAK;
 
 /** Which step of the diagram a message in the browser is, going by where it went. */
@@ -385,6 +387,45 @@ function indexOf(
 
 const needsV2 = (preset: (typeof presets)[number]) => preset.settings.upstreamTokens === 'v2';
 
+/** Only those, because a whole run changes every value in every recording. */
+async function recordOnlyPresets(ids: readonly string[]) {
+	const demo = new Demo();
+	await demo.start();
+	const browser = await chromium.launch();
+	try {
+		await startKeycloak(version, []);
+		const admin = await Admin.connect();
+		const keycloak = await admin.serverVersion();
+		await setUpRealms(admin);
+		const recordedAt = new Date().toISOString().slice(0, 10);
+		const index = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
+		const steps = new Set(index.flows[base.id].steps);
+		for (const id of ids) {
+			const preset = presets.find((candidate) => candidate.id === id);
+			if (!preset) throw new Error(`No named state ${id}`);
+			const run = await record(browser, demo, admin, preset);
+			console.log(`${id}: ${run.messages.length} messages`);
+			for (const message of run.messages) if (message.step) steps.add(message.step);
+			const recording: Recording = {
+				preset: id,
+				keycloak,
+				recordedAt,
+				settings: run.settings,
+				messages: run.messages
+			};
+			writeFileSync(`${FOLDER}/${id}.json`, `${JSON.stringify(recording, null, '\t')}\n`);
+		}
+		const flow = { presets: presets.map(({ id }) => id), steps: [...steps].sort() };
+		const flows = { ...index.flows, [base.id]: flow };
+		writeFileSync(INDEX, `${JSON.stringify({ ...index, flows }, null, '\t')}\n`);
+	} finally {
+		await browser.close();
+		demo.stop();
+		stopKeycloak();
+	}
+	process.exit(0);
+}
+
 /** Only the pictures, because a whole run changes every value in every recording. */
 async function takePictures() {
 	const demo = new Demo();
@@ -521,4 +562,10 @@ async function main() {
 	process.exit(failed ? 2 : 0);
 }
 
-await (onlyPages ? takePictures() : onlyNoUser ? recordOnlyWithNoUser() : main());
+await (onlyPages
+	? takePictures()
+	: onlyNoUser
+		? recordOnlyWithNoUser()
+		: onlyPresets
+			? recordOnlyPresets(onlyPresets)
+			: main());

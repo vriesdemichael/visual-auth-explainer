@@ -248,8 +248,10 @@ describe('how a message travels', () => {
 		for (const settings of allValidSettings()) {
 			for (const step of evaluate(flow, settings).steps) {
 				const browser = step.from === 'browser' || step.to === 'browser';
+				// Someone's own browser, which is not the one on this diagram.
+				const theirs = step.from === 'attacker' || step.to === 'attacker';
 				if (browser) expect(step.channel, step.id).toBe('front');
-				else expect(step.channel, step.id).not.toBe('front');
+				else if (!theirs) expect(step.channel, step.id).not.toBe('front');
 			}
 		}
 	});

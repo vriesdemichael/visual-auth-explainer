@@ -78,8 +78,8 @@ export const knownErrors: readonly KnownError[] = [
 	{
 		text: 'PKCE verification failed: Code mismatch',
 		means: 'The verifier sent does not match the challenge from the login.',
-		step: 'token-request',
-		settings: { pkce: true }
+		step: 'handed-token-response',
+		settings: { attacker: true, attackerUses: 'real-app', pkce: true }
 	},
 	{
 		text: 'unauthorized_client',
