@@ -111,6 +111,11 @@ export interface PracticeExample {
 	when?: Condition;
 }
 
+/** Where something a step says comes from, because a claim about a spec has to say which one. */
+export interface CiteDef extends SourceRef {
+	when?: Condition;
+}
+
 export interface StepDef {
 	id: string;
 	from: string;
@@ -123,6 +128,7 @@ export interface StepDef {
 	group?: string;
 	pitfall?: PitfallDef;
 	page?: PageDef;
+	cites?: readonly CiteDef[];
 	/** What stops existing here, so that nobody holds it any more. */
 	ends?: readonly ArtifactId[];
 	/** What this means for someone building an app: who writes this part, and what is left to them. */
@@ -224,6 +230,7 @@ export interface Step {
 	group?: string;
 	pitfall?: Pitfall;
 	page?: PageDef;
+	cites: readonly SourceRef[];
 	ends: readonly ArtifactId[];
 	inPractice?: string;
 	practice: readonly PracticeExample[];
@@ -306,6 +313,7 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 			group: step.group,
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
 			page: step.page,
+			cites: (step.cites ?? []).filter((cite) => present(cite.when, settings)),
 			inPractice: step.inPractice && resolveText(step.inPractice, settings),
 			practice: (step.practice ?? []).filter((example) => present(example.when, settings)),
 			links: (step.links ?? []).filter((link) => present(link.when, settings)),

@@ -33,6 +33,8 @@ export interface OpenSource {
 	id: SourceId;
 	/** None when it was opened from a party, which is about what it is called. */
 	setting: SettingId | null;
+	/** It was opened from what a step says, so that is what says what it means here. */
+	fromStep?: boolean;
 	section: string | null;
 }
 
@@ -69,6 +71,16 @@ const SETTINGS_PANEL_PARAM = 'settings';
 const EYES_PARAM = 'eyes';
 const FOLLOW_PARAM = 'follow';
 const WORDING_PARAM = 'say';
+const FROM_A_STEP = 'step';
+
+/** One step can cite two sections of the same spec, which each say something different. */
+export const refFor = (
+	refs: readonly SourceRef[],
+	source: string | null,
+	section: string | null
+): SourceRef | undefined =>
+	refs.find((ref) => ref.source === source && ref.section === section) ??
+	refs.find((ref) => ref.source === source);
 
 const diagramOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
 const viewOf = (base: BaseFlow, state: AppState) =>
@@ -105,8 +117,14 @@ function diagramFor(base: BaseFlow, onPath: DiagramId, params: URLSearchParams):
 }
 
 /** A link naming something that does not exist opens nothing, as other unknown values do. */
-function parseSource(params: URLSearchParams): OpenSource | null {
+function parseSource(params: URLSearchParams, cited: readonly SourceRef[]): OpenSource | null {
 	const asked = params.get('for');
+	if (asked === FROM_A_STEP) {
+		const ref = refFor(cited, params.get('source'), params.get('section'));
+		if (!ref) return null;
+		const section = sources[ref.source].textFile ? params.get('section') : null;
+		return { id: ref.source, setting: null, section, fromStep: true };
+	}
 	const setting = settingIds.find((id) => settingDefs[id].param === asked) ?? null;
 	if (asked && !setting) return null;
 	const offered = setting ? settingDefs[setting].sources : nameSources;
@@ -146,13 +164,14 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 	const diagram = diagramFor(base, onPath, params);
 	const flow = base.diagrams[diagram];
 	const view = evaluate(flow, settings);
+	const step = resolveStep(flow, view, params.get('step'));
 	return {
 		flow: base.id,
 		diagram,
 		mode: params.get('mode') === 'advanced' ? 'advanced' : 'simple',
 		settings,
-		step: resolveStep(flow, view, params.get('step')),
-		source: parseSource(params),
+		step,
+		source: parseSource(params, view.steps.find(({ id }) => id === step)?.cites ?? []),
 		explained: parseExplained(base, diagram, params.get('explain')),
 		serverNotes: params.get(SERVER_NOTES_PARAM) !== 'off',
 		settingsHidden: params.get(SETTINGS_PANEL_PARAM) === 'off',
@@ -174,7 +193,8 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	if (state.step !== viewOf(base, state).steps[0].id) params.set('step', state.step);
 	if (state.source) {
 		params.set('source', state.source.id);
-		if (state.source.setting) params.set('for', settingDefs[state.source.setting].param);
+		if (state.source.fromStep) params.set('for', FROM_A_STEP);
+		else if (state.source.setting) params.set('for', settingDefs[state.source.setting].param);
 		if (state.source.section) params.set('section', state.source.section);
 	}
 	if (state.explained) params.set('explain', `${state.explained.kind}.${state.explained.id}`);
@@ -326,9 +346,12 @@ export function withExplained(state: AppState, explained: Explained | null): App
 export function withSourceOpen(
 	state: AppState,
 	setting: SettingId | null,
-	ref: SourceRef
+	ref: SourceRef,
+	fromStep = false
 ): AppState {
-	return { ...state, source: { id: ref.source, setting, section: ref.section ?? null } };
+	const section = ref.section ?? null;
+	const source = { id: ref.source, setting, section };
+	return { ...state, source: fromStep ? { ...source, fromStep } : source };
 }
 
 export function withSourceSection(state: AppState, section: string | null): AppState {

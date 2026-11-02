@@ -269,6 +269,14 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'redirect-to-idp',
+			cites: [
+				{
+					source: 'rfc9700',
+					section: '2.1.1',
+					why: 'Section 2.1.1 is the current advice: public clients must use PKCE, and for confidential clients it is recommended.',
+					when: not(pkce)
+				}
+			],
 			from: 'app',
 			to: 'browser',
 			kind: 'response',
@@ -290,6 +298,30 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'authorize',
+			cites: [
+				{
+					source: 'rfc6749',
+					section: '4.1.2.1',
+					why: 'Section 4.1.2.1 says that with a wrong redirect address, the server should tell the user, and must not send the browser there.'
+				},
+				{
+					source: 'rfc9700',
+					section: '2.1',
+					why: 'Section 2.1 says servers must compare redirect addresses by exact match, which is the current advice this step mentions.'
+				},
+				{
+					source: 'rfc7636',
+					section: '4.2',
+					why: 'Section 4.2 has the two ways of making a challenge: plain, where it is the verifier itself, and S256.',
+					when: pkce
+				},
+				{
+					source: 'rfc9700',
+					section: '2.1.1',
+					why: 'Section 2.1.1 says to use a challenge method that does not give the verifier away, and that S256 is the only one that does not.',
+					when: pkce
+				}
+			],
 			from: 'browser',
 			to: 'idp',
 			kind: 'request',
@@ -557,6 +589,13 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'consent-grant',
+			cites: [
+				{
+					source: 'rfc6749',
+					section: '10.2',
+					why: 'Section 10.2 says a server should not go through a repeated request with no user there, unless it has authenticated the client or can be sure some other way that the request comes from it. With no secret, it cannot authenticate the client.'
+				}
+			],
 			from: 'browser',
 			to: 'idp',
 			kind: 'request',
@@ -581,6 +620,13 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'redirect-with-code',
+			cites: [
+				{
+					source: 'rfc9700',
+					section: '2.1.2',
+					why: 'Section 2.1.2 is the current advice on the implicit grant: clients should not use it, or anything else that puts an access token in the redirect.'
+				}
+			],
 			from: 'idp',
 			to: 'browser',
 			kind: 'response',
@@ -653,6 +699,13 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'attacker-token-response',
+			cites: [
+				{
+					source: 'rfc6749',
+					section: '5.2',
+					why: 'Section 5.2 lists the errors a token request can get, and invalid_client is the one for a client that did not prove who it is.'
+				}
+			],
 			from: 'idp',
 			to: 'attacker',
 			kind: 'response',
@@ -777,6 +830,20 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'token-request',
+			cites: [
+				{
+					source: 'rfc9700',
+					section: '2.1.1',
+					why: 'Section 2.1.1 is the current advice: public clients must use PKCE, and for confidential clients it is recommended.',
+					when: all(not(confidential), not(pkce), dpop)
+				},
+				{
+					source: 'rfc9449',
+					section: '10',
+					why: 'Section 10 is how a login can name a key with dpop_jkt, which is what ties the code to it. Without that parameter nothing does.',
+					when: all(not(confidential), not(pkce), dpop)
+				}
+			],
 			from: 'app',
 			to: 'idp',
 			kind: 'request',
@@ -877,6 +944,13 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'nonce-challenge',
+			cites: [
+				{
+					source: 'rfc9449',
+					section: '8',
+					why: 'Section 8 is how a server hands out a nonce for a proof to include. The server these messages were recorded from did not do this, so it comes from here alone.'
+				}
+			],
 			group: 'nonce-retry',
 			from: 'idp',
 			to: 'app',
@@ -893,6 +967,13 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'token-request-retry',
+			cites: [
+				{
+					source: 'rfc9449',
+					section: '8',
+					why: 'Section 8 is how a server hands out a nonce for a proof to include. The server these messages were recorded from did not do this, so it comes from here alone.'
+				}
+			],
 			group: 'nonce-retry',
 			from: 'app',
 			to: 'idp',
@@ -906,6 +987,18 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'real-app-refused',
+			cites: [
+				{
+					source: 'rfc6749',
+					section: '4.1.2',
+					why: 'Section 4.1.2 says a code used more than once must be refused, and that the server should revoke what was issued from it. It does not say whether a try that failed counts as a use.'
+				},
+				{
+					source: 'rfc9700',
+					section: '4.2.4',
+					why: 'Section 4.2.4 says a code must be invalidated after its first use at the token endpoint, as a defence against someone using it later.'
+				}
+			],
 			from: 'idp',
 			to: 'app',
 			kind: 'response',
@@ -999,6 +1092,12 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'validate-id-token',
+			cites: [
+				{
+					source: 'oidc-core',
+					why: 'Section 3.1.3.7 is the list of checks, and its step 6 is what lets an app skip the signature when the token came straight from the token endpoint over TLS.'
+				}
+			],
 			from: 'app',
 			to: 'app',
 			kind: 'internal',
@@ -1367,6 +1466,13 @@ export const authorizationCode: DiagramDef = {
 		},
 		{
 			id: 'refresh-again-response',
+			cites: [
+				{
+					source: 'rfc9700',
+					section: '2.2.2',
+					why: 'Section 2.2.2 says refresh tokens for public clients must be sender-constrained or use rotation, which is what this step is about.'
+				}
+			],
 			when: refreshes,
 			from: 'idp',
 			to: 'app',

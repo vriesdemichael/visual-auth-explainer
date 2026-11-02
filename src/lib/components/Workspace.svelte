@@ -44,6 +44,7 @@
 		withSettingsHidden,
 		withExplained,
 		withEyes,
+		refFor,
 		withWording,
 		wordingOf,
 		withFollow,
@@ -482,8 +483,14 @@
 	const openSource = $derived(appState.source);
 	const openWhy = $derived(
 		openSource
-			? (openSource.setting ? settingDefs[openSource.setting].sources : nameSources).find(
-					(ref) => ref.source === openSource.id
+			? refFor(
+					openSource.fromStep
+						? current.cites
+						: openSource.setting
+							? settingDefs[openSource.setting].sources
+							: nameSources,
+					openSource.id,
+					openSource.section
 				)?.why
 			: undefined
 	);
@@ -495,9 +502,11 @@
 		const source = appState.source;
 		untrack(() => {
 			if (lastSource && !source) {
-				const opener = lastSource.setting
-					? `[data-source-ref="${lastSource.setting}:${lastSource.id}"]`
-					: `[data-name-source="${lastSource.id}"]`;
+				const opener = lastSource.fromStep
+					? `[data-step-source="${lastSource.id}"]`
+					: lastSource.setting
+						? `[data-source-ref="${lastSource.setting}:${lastSource.id}"]`
+						: `[data-name-source="${lastSource.id}"]`;
 				tick().then(() => window.document.querySelector<HTMLElement>(opener)?.focus());
 			}
 			lastSource = source;
@@ -758,6 +767,7 @@
 			mode={appState.mode}
 			{wording}
 			pageImage={imageOf}
+			oncite={(ref) => onnavigate(withSourceOpen(appState, null, ref, true), 'push')}
 			{intro}
 			{partWhy}
 			unseenBy={seesStep(current.id) ? null : eyesName}
