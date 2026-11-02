@@ -17,7 +17,8 @@
 		"reuse": "keeps",
 		"sso": true,
 		"ssoAsks": "remembered",
-		"logout": true
+		"logout": true,
+		"attackerUses": "themselves"
 	},
 	"messages": [
 		{
