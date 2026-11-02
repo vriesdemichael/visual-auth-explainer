@@ -1,0 +1,1 @@
+import{xt as e}from"./Bq2-T-8A.js";var t=e({open:!1});export{t};
