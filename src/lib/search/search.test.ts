@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { authorizationCodeBase as base } from '#lib/flow/index.ts';
+import { authorizationCodeBase as base, flows } from '#lib/flow/index.ts';
 import { parseState } from '#lib/flow/state.ts';
 import { evaluate } from '#lib/flow/model.ts';
 import type { Recording } from '#lib/recordings/format.ts';
@@ -49,7 +49,16 @@ describe('what people bring', () => {
 		if (title) expect(match?.title).toBe(title);
 	});
 
-	it.each(['client credentials', 'Device flow', 'What about SAML?', 'token exchange'])(
+	it('never says a flow that is here is not', () => {
+		for (const base of Object.values(flows)) {
+			const title = base.diagrams.flow.title.toLowerCase();
+			expect(search(title).notHereYet, title).toBeNull();
+			expect(search(title.replace(/ flow$/, '')).notHereYet, title).toBeNull();
+			expect(search(title.replace(/ flow$/, '')).results.length, title).toBeGreaterThan(0);
+		}
+	});
+
+	it.each(['Device flow', 'What about SAML?', 'token exchange'])(
 		'%s is said not to be here yet, and is not guessed around',
 		(query) => {
 			const found = search(query);

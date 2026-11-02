@@ -216,7 +216,7 @@ Three things follow:
 
 ### 5.10 Sources open in the application
 
-**Decided.** A source named on a setting opens beside the diagram, with a summary in our own words, what it means for that setting, and a link to the original. An RFC is just text, so its full text is shown there as well, at the section that matters ([ADR-009](adr/009-code-is-apache-and-content-is-cc-by.md)). Sources that are not plain text, such as OpenID Connect Core and the Keycloak docs, get the summary and the link.
+**Decided.** A source named on a setting opens beside the diagram, with a summary in our own words, what it means for that setting, and a link to the original. **Proposed, and built:** a claim about a spec on a step has one too, under "Which spec says so?", closed for someone new and open in advanced mode ([#104](https://github.com/vriesdemichael/authlines/issues/104)). A test finds "the specs", "current advice" and "RFC" in what every step says in every combination, and fails where it has no source, and holds a phrase from each cited section to the RFC's text. An RFC is just text, so its full text is shown there as well, at the section that matters ([ADR-009](adr/009-code-is-apache-and-content-is-cc-by.md)). Sources that are not plain text, such as OpenID Connect Core and the Keycloak docs, get the summary and the link.
 
 ## 6. Nuances that must not get lost
 

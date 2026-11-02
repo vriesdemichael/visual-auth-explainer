@@ -148,6 +148,15 @@ test.describe('from the map', () => {
 		await expect(page.getByTestId('answer')).toContainText('its own secret');
 	});
 
+	test('search does not say it is not here', async ({ page }) => {
+		await page.goto('./');
+		await page.locator('main[data-ready="true"]').waitFor();
+		await page.getByTestId('open-search').click();
+		await page.getByTestId('search-input').fill('client credentials');
+		await expect(page.getByTestId('search').locator('[data-result]').first()).toBeVisible();
+		await expect(page.getByTestId('search')).not.toContainText('does not cover');
+	});
+
 	test('search finds it', async ({ page }) => {
 		await page.goto('./');
 		await page.locator('main[data-ready="true"]').waitFor();

@@ -16,6 +16,7 @@
 	import { nameIn, wordingFor, type Wording } from '#lib/flow/wording.ts';
 	import type { Note } from '#lib/keycloak/notes.ts';
 	import { recordedIndex, type Known } from '#lib/recordings/known.ts';
+	import { refLabel, type SourceRef } from '#lib/sources/sources.ts';
 
 	/** A link the route has already resolved. */
 	interface Link {
@@ -47,6 +48,8 @@
 		onterm?: (id: string) => void;
 		/** What this step looks like on the wire, ahead of what each part of it is for. */
 		wire?: Snippet;
+		/** Someone wants to read what this step cites. */
+		oncite?: (ref: SourceRef) => void;
 		/** What the person sees in their browser at this step. */
 		inTheBrowser?: Snippet;
 		/** Where the picture of a page is. None without the server's notes (ADR-015). */
@@ -72,6 +75,7 @@
 		mode = 'advanced',
 		wording = wordingFor(mode),
 		inTheBrowser,
+		oncite,
 		pageImage = null,
 		intro = null,
 		partWhy = null,
@@ -282,6 +286,23 @@
 					{/if}
 				</details>
 			{/if}
+			{#if step.cites.length}
+				<details class="cites" data-testid="step-cites" open={!simple}>
+					<summary>Which spec says so?</summary>
+					<p>
+						{#each step.cites as ref (`${ref.source}:${ref.section}`)}
+							<button
+								type="button"
+								data-step-source={ref.source}
+								data-section={ref.section}
+								onclick={() => oncite?.(ref)}
+							>
+								{refLabel(ref)}
+							</button>
+						{/each}
+					</p>
+				</details>
+			{/if}
 			{#if !simple}
 				{#each notes as note (note.id)}
 					<KeycloakNote {note} version={recordedIndex.keycloak} />
@@ -348,6 +369,33 @@
 </section>
 
 <style>
+	.cites {
+		margin: 8px 0;
+		color: var(--muted);
+		font-size: 12.5px;
+	}
+
+	.cites summary {
+		cursor: pointer;
+	}
+
+	.cites p {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px 10px;
+		margin: 4px 0 0;
+	}
+
+	.cites button {
+		padding: 0;
+		border: 0;
+		background: none;
+		color: var(--link, var(--accent));
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
+	}
+
 	h2,
 	h3 {
 		margin: 0;

@@ -15,6 +15,37 @@ const ADDRESS = 'src/lib/recordings/address.ts';
 const NO_USER = 'src/lib/flow/client-credentials.ts';
 
 export const breakages = [
+	// What a step cites.
+	{
+		name: 'cite: a claim loses its source',
+		file: AC,
+		from: "			id: 'redirect-with-code',\n			cites: [",
+		to: "			id: 'redirect-with-code',\n			cited: ["
+	},
+	{
+		name: 'cite: a step cites the wrong section',
+		file: AC,
+		from: "section: '2.1.2',",
+		to: "section: '2.2.2',"
+	},
+	{
+		name: 'cite: a citation shows with settings it is not about',
+		file: MODEL,
+		from: 'cites: (step.cites ?? []).filter((cite) => present(cite.when, settings)),',
+		to: 'cites: step.cites ?? [],'
+	},
+	{
+		name: 'cite: a source opened from a step does not survive a reload',
+		file: STATE,
+		from: "if (state.source.fromStep) params.set('for', FROM_A_STEP);\n\t\telse if",
+		to: 'if'
+	},
+	{
+		name: 'cite: the second section of a spec opens as the first',
+		file: STATE,
+		from: 'refs.find((ref) => ref.source === source && ref.section === section) ??\n\trefs.find((ref) => ref.source === source);',
+		to: 'refs.find((ref) => ref.source === source);'
+	},
 	// A flow with no user.
 	{
 		name: 'no user: says there is a refresh token',

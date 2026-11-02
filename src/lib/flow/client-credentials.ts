@@ -112,6 +112,13 @@ export const clientCredentials: DiagramDef = {
 		},
 		{
 			id: 'service-token-response',
+			cites: [
+				{
+					source: 'rfc6749',
+					section: '4.4.3',
+					why: 'Section 4.4.3 is the answer in this flow, and says a refresh token should not be included.'
+				}
+			],
 			from: 'idp',
 			to: 'app',
 			kind: 'response',

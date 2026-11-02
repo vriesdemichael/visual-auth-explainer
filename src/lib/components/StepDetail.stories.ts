@@ -165,3 +165,15 @@ export const AtTheEndWithAQuestionToGoOnTo: Story = {
 export const AtTheEndWithNowhereToGo: Story = {
 	args: { step: stepIn('api-response'), atEnd: true, mapHref: '#map' }
 };
+
+export const ItSaysWhichSpec: Story = {
+	args: {
+		step: {
+			...stepIn('authorize'),
+			cites: [
+				{ source: 'rfc9700', section: '2.1.2', why: 'What current advice says about this.' },
+				{ source: 'rfc6749', section: '4.1.2', why: 'What the spec says about this.' }
+			]
+		}
+	}
+};
