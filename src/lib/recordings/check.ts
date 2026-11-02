@@ -1,3 +1,4 @@
+import { pageShots, type ShotId } from '#lib/flow/vocabulary.ts';
 import { noteDefs, type NoteDef } from '#lib/keycloak/notes.ts';
 import type { FlagStatus, Recording } from '#lib/recordings/format.ts';
 import { shapeDifferences, shapeOf } from '#lib/recordings/shape.ts';
@@ -50,6 +51,13 @@ export interface WhatARunFound {
 }
 
 /** What a run on this server found that differs from what the screen says. Nothing means no drift. */
+/** The pages a person gets that this server no longer showed. Their pixels are not compared. */
+export function pagesGone(seen: readonly ShotId[]): string[] {
+	return pageShots
+		.filter((shot) => !seen.includes(shot))
+		.map((shot) => `The page "${shot}" no longer appears.`);
+}
+
 export function whatChanged({ recordings, flags, answers }: WhatARunFound): string[] {
 	return [
 		...recordings.flatMap(({ committed, now }) => {

@@ -113,6 +113,8 @@
 		return (await response.json()) as Recording;
 	});
 	const loadRecording = (preset: string) => fetchRecording(`/recordings/${base.id}/${preset}.json`);
+	const pageImage = (shot: string) =>
+		asset(`/recordings/${base.id}/pages/${shot}.jpg` as Parameters<typeof asset>[0]);
 
 	async function navigate(next: AppState, history: 'push' | 'replace') {
 		ahead = next;
@@ -151,5 +153,6 @@
 	{hrefFor}
 	{loadText}
 	{loadRecording}
+	{pageImage}
 	onnavigate={navigate}
 />

@@ -5,7 +5,14 @@
 	import { markTerms } from '#lib/flow/glossary.ts';
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
-	import { artifacts, channels, whyOf, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
+	import {
+		artifacts,
+		channels,
+		whyOf,
+		type ArtifactId,
+		type Mode,
+		type ShotId
+	} from '#lib/flow/vocabulary.ts';
 	import { nameIn, wordingFor, type Wording } from '#lib/flow/wording.ts';
 	import type { Note } from '#lib/keycloak/notes.ts';
 	import { recordedIndex, type Known } from '#lib/recordings/known.ts';
@@ -40,6 +47,10 @@
 		onterm?: (id: string) => void;
 		/** What this step looks like on the wire, ahead of what each part of it is for. */
 		wire?: Snippet;
+		/** What the person sees in their browser at this step. */
+		inTheBrowser?: Snippet;
+		/** Where the picture of a page is. None without the server's notes (ADR-015). */
+		pageImage?: ((shot: ShotId) => string) | null;
 		/** What one server has to say about this step, and whether to name that server at all. */
 		notes?: readonly Note[];
 		serverNamed?: boolean;
@@ -60,6 +71,8 @@
 		lifelines,
 		mode = 'advanced',
 		wording = wordingFor(mode),
+		inTheBrowser,
+		pageImage = null,
 		intro = null,
 		partWhy = null,
 		unseenBy = null,
@@ -210,6 +223,7 @@
 				<p class="plain">{step.plain}</p>
 			{/if}
 			<p><Worded segments={worded[1]} {onterm} /></p>
+			{@render inTheBrowser?.()}
 			{#if step.inPractice}
 				<p class="practice" data-testid="step-practice">
 					<strong>In practice.</strong>
@@ -257,6 +271,15 @@
 				<details class="pitfall" data-testid="step-pitfall">
 					<summary>{step.pitfall.title}</summary>
 					<p><Worded segments={worded[3]} {onterm} /></p>
+					{#if step.pitfall.shot && pageImage}
+						<img
+							loading="lazy"
+							src={pageImage(step.pitfall.shot)}
+							alt={step.pitfall.shows}
+							width="640"
+							height="480"
+						/>
+					{/if}
 				</details>
 			{/if}
 			{#if !simple}

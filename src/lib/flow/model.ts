@@ -6,7 +6,7 @@ import {
 	type SettingId,
 	type Settings
 } from '#lib/flow/settings.ts';
-import type { ArtifactId, Channel, LifelineIcon } from '#lib/flow/vocabulary.ts';
+import type { ArtifactId, Channel, LifelineIcon, ShotId } from '#lib/flow/vocabulary.ts';
 import type { SourceId, SourceRef } from '#lib/sources/sources.ts';
 
 /** Text that varies with the settings. The first case that holds wins. */
@@ -70,11 +70,28 @@ export interface StepLink {
 export interface PitfallDef {
 	title: string;
 	text: Text;
+	/** The page someone gets when this goes wrong. */
+	shot?: ShotId;
+	shows?: string;
 }
 
 export interface Pitfall {
 	title: string;
 	text: string;
+	shot?: ShotId;
+	shows?: string;
+}
+
+/** What a person sees in their browser at this step, which is what "through the browser" means. */
+export interface PageDef {
+	/** The step whose request put this address in the address bar, as it was recorded. */
+	address: string;
+	/** What is on the page, for where there is no picture of it and for whoever cannot see one. */
+	shows: string;
+	/** A picture of the real page, which is only ever of one server's look (ADR-015). */
+	shot?: ShotId;
+	/** The part of the address that matters here. */
+	marks?: readonly string[];
 }
 
 /** This step sends something, and what comes back is used later, so running it adds something. */
@@ -105,6 +122,7 @@ export interface StepDef {
 	concept: Text;
 	group?: string;
 	pitfall?: PitfallDef;
+	page?: PageDef;
 	/** What stops existing here, so that nobody holds it any more. */
 	ends?: readonly ArtifactId[];
 	/** What this means for someone building an app: who writes this part, and what is left to them. */
@@ -201,6 +219,7 @@ export interface Step {
 	concept: string;
 	group?: string;
 	pitfall?: Pitfall;
+	page?: PageDef;
 	ends: readonly ArtifactId[];
 	inPractice?: string;
 	practice: readonly PracticeExample[];
@@ -235,7 +254,7 @@ export function resolveText(text: Text, settings: Settings): string {
 }
 
 function resolvePitfall(pitfall: PitfallDef, settings: Settings): Pitfall {
-	return { title: pitfall.title, text: resolveText(pitfall.text, settings) };
+	return { ...pitfall, text: resolveText(pitfall.text, settings) };
 }
 
 const present = (when: Condition | undefined, settings: Settings) => !when || holds(when, settings);
@@ -282,6 +301,7 @@ export function evaluate(flow: DiagramDef, settings: Settings): DiagramView {
 			concept: resolveText(step.concept, settings),
 			group: step.group,
 			pitfall: step.pitfall && resolvePitfall(step.pitfall, settings),
+			page: step.page,
 			inPractice: step.inPractice && resolveText(step.inPractice, settings),
 			practice: (step.practice ?? []).filter((example) => present(example.when, settings)),
 			links: (step.links ?? []).filter((link) => present(link.when, settings)),

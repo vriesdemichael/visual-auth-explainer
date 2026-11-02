@@ -22,6 +22,8 @@ What a chat answer or a vendor's simulation cannot offer is that what is on scre
 
 Someone can run the same server themselves. A recorded request can be copied as a command, and a test reads each command back as a shell would and compares it to the recording. A page gives the commands for a login at home, from the values the recorder uses, and a scheduled job runs those commands against the version recorded.
 
+Pictures of the pages a person gets are recordings as well: taken by the same run, kept beside the recordings, and taken again on each release. Their pixels are not compared, and a page that stopped appearing fails the check. `pnpm record --pages` takes only those, because a whole run changes every value in every recording.
+
 ## Not chosen
 
 - **Stitching together payloads for unrecorded combinations**: They would look real, and nothing would prove them.

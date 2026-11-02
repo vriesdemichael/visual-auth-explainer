@@ -10,6 +10,8 @@ One switch, Server notes, on by default, takes all of it away, and it is in the 
 
 Keycloak's own words for the parties are in that layer too, in `src/lib/keycloak/words.ts`, and are one of the three a person can choose ([#62](https://github.com/vriesdemichael/authlines/issues/62)). They go with the switch as well: with it off they are not offered, and a link asking for them gets the default.
 
+A picture of a page a person gets is one server's look, so it says so, and goes with the switch as well. What the flow says about that page is in neutral words, and stays as an outline. The address stays, since it is what a real server answered, as the recordings do.
+
 The premise's bet is that someone on another identity provider still gets the protocol explanation, and that this layer survives if a vendor adds toggles to its own tool. Both only hold if the two stay apart. And reading the real console corrected the first draft of these notes twice, which is why none is written from memory.
 
 ## Not chosen

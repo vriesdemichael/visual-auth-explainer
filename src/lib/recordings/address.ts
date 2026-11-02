@@ -1,0 +1,57 @@
+import type { Recording } from '#lib/recordings/format.ts';
+
+/** What the address bar said at a step, which is the address its request was sent to. */
+export function addressAt(recording: Recording, step: string): string | null {
+	const request = recording.messages.find(
+		(message) => message.step === step && message.direction === 'request'
+	);
+	return request?.url ?? null;
+}
+
+/** The words someone can select in an address, for the parameters that have one. */
+const TERM_OF: Readonly<Record<string, string>> = {
+	code: 'code',
+	state: 'state',
+	iss: 'iss',
+	nonce: 'nonce',
+	scope: 'scope',
+	client_id: 'client-id',
+	redirect_uri: 'redirect-uri',
+	code_challenge: 'challenge'
+};
+
+const LONGEST_VALUE = 18;
+
+export interface AddressPart {
+	name: string;
+	value: string;
+	/** All of it, because a value in the bar is cut short, as a browser would have to as well. */
+	whole: string;
+	marked: boolean;
+	term?: string;
+}
+
+export interface Address {
+	where: string;
+	parts: AddressPart[];
+	/** How many are not shown. Simple mode only has the ones that matter here. */
+	left: number;
+}
+
+/** The address, with what matters here picked out. Everything else can go, but nothing is made up. */
+export function readAddress(
+	url: string,
+	marks: readonly string[] = [],
+	{ everything = false }: { everything?: boolean } = {}
+): Address {
+	const { host, pathname, searchParams } = new URL(url);
+	const all = [...searchParams].map(([name, whole]) => ({
+		name,
+		whole,
+		value: whole.length > LONGEST_VALUE ? `${whole.slice(0, LONGEST_VALUE)}…` : whole,
+		marked: marks.includes(name),
+		term: TERM_OF[name]
+	}));
+	const parts = everything ? all : all.filter((part) => part.marked);
+	return { where: `${host}${pathname}`, parts, left: all.length - parts.length };
+}

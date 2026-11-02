@@ -306,6 +306,8 @@ export const authorizationCode: DiagramDef = {
 			],
 			pitfall: {
 				title: 'What if the address does not match?',
+				shot: 'wrong-redirect',
+				shows: "The identity provider's own error page, with no way back to the app.",
 				text: 'The identity provider has to stop and show an error, and must not send the browser anywhere. Otherwise an attacker could ask for the code to be sent to them, which is why current advice is an exact match.'
 			},
 			links: [
@@ -351,6 +353,12 @@ export const authorizationCode: DiagramDef = {
 			plain: 'The login page',
 			label: 'Login page',
 			concept: 'The identity provider asks the user to prove who they are, on its own page.',
+			page: {
+				address: 'authorize',
+				shows: "The identity provider's own page, asking for a username and a password.",
+				shot: 'login',
+				marks: ['redirect_uri', 'state']
+			},
 			when: not(broker)
 		},
 		{
@@ -384,6 +392,12 @@ export const authorizationCode: DiagramDef = {
 			from: 'browser',
 			to: 'upstream',
 			kind: 'request',
+			page: {
+				address: 'upstream-authorize',
+				shows: "The other provider's own login page. The app is nowhere on it.",
+				shot: 'login-upstream',
+				marks: ['client_id', 'redirect_uri']
+			},
 			plain: 'The browser asks to log in there',
 			label: 'GET /authorize',
 			concept:
@@ -527,6 +541,12 @@ export const authorizationCode: DiagramDef = {
 			kind: 'response',
 			plain: 'What the app is asking for',
 			label: 'Consent page',
+			page: {
+				address: 'submit-credentials',
+				shows:
+					"The identity provider's own page, asking the user to agree to what the app asked for.",
+				shot: 'consent'
+			},
 			concept:
 				'The identity provider asks the user whether this app may have this access. What it lists are scopes: each one names some access or some information. They come from what the app asked for and from how it was set up. This is between the user and the identity provider, and the app has no part in it.',
 			pitfall: {
@@ -718,6 +738,12 @@ export const authorizationCode: DiagramDef = {
 			from: 'browser',
 			to: 'app',
 			kind: 'request',
+			page: {
+				address: 'callback',
+				shows:
+					"The app's own page, whatever it shows. What matters is the address, because the code is in it, for anything that can see the address.",
+				marks: ['code', 'state']
+			},
 			plain: 'The code reaches the app',
 			label: 'Deliver the code',
 			concept: [
@@ -1533,7 +1559,14 @@ export const authorizationCode: DiagramDef = {
 			kind: 'response',
 			plain: 'The login page, again',
 			label: 'Login page',
-			concept: 'The form the session would have saved them from.'
+			concept: 'The form the session would have saved them from.',
+			page: {
+				address: 'second-authorize',
+				shows:
+					"The identity provider's own page again, asking for the password though it knows who this is.",
+				shot: 'login-again',
+				marks: ['prompt']
+			}
 		},
 		{
 			id: 'second-submit-credentials',
@@ -1606,6 +1639,11 @@ export const authorizationCode: DiagramDef = {
 			from: 'browser',
 			to: 'second-app',
 			kind: 'request',
+			page: {
+				address: 'second-callback',
+				shows: "The second app's own page, whatever it shows. What matters is the address.",
+				marks: ['code', 'error']
+			},
 			plain: [
 				{ when: secondIsFresh, text: 'The answer reaches the app' },
 				{ text: 'The code reaches the app' }
@@ -1726,6 +1764,8 @@ export const authorizationCode: DiagramDef = {
 				'To end the other session, the app sends the browser to the identity provider, because that is where its cookie goes. The ID token goes along to say who this is, so here it does cross the browser.',
 			pitfall: {
 				title: 'What if the app sends no ID token?',
+				shot: 'logout-question',
+				shows: "The identity provider's own page, asking whether the user meant to log out.",
 				text: 'The identity provider cannot be sure who is asking, so it has to ask the user whether to log out. Without it, it will not send the browser back either, unless it has some other way to trust the address.'
 			},
 			fields: [

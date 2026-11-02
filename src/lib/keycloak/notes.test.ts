@@ -71,6 +71,14 @@ describe('the protocol layer', () => {
 		expect(said.filter((text) => /keycloak/i.test(text))).toEqual([]);
 	});
 
+	it('says nothing about Keycloak in what a page shows, whatever is in its picture', () => {
+		for (const diagram of [flow, setup]) {
+			for (const step of diagram.steps) {
+				expect(`${step.page?.shows} ${step.pitfall?.shows}`, step.id).not.toMatch(/keycloak/i);
+			}
+		}
+	});
+
 	it('says nothing about Keycloak in what takes part, whatever a field is called', () => {
 		for (const diagram of [flow, setup]) {
 			expect(JSON.stringify(diagram.lifelines)).not.toMatch(/keycloak|realm/i);
