@@ -1,7 +1,8 @@
 import { expect, type Page } from '@playwright/test';
 import { authorizationCodeBase as base } from '../../src/lib/flow/index.ts';
 import { evaluate, type DiagramId } from '../../src/lib/flow/model.ts';
-import { parseState } from '../../src/lib/flow/state.ts';
+import { parseState, wordingOf } from '../../src/lib/flow/state.ts';
+import { sayer, speak } from '../../src/lib/flow/wording.ts';
 
 export const FLOW_PATH = 'authorization-code/';
 export const SETUP_PATH = 'authorization-code/setup/';
@@ -45,7 +46,10 @@ export const lifelineIds = (page: Page) =>
 /** What the flow model says should be on screen for this query string. */
 export function expectedFor(search: string, diagram: DiagramId = 'flow') {
 	const state = parseState(base, diagram, search);
-	const view = evaluate(base.diagrams[state.diagram], state.settings);
+	const view = speak(
+		evaluate(base.diagrams[state.diagram], state.settings),
+		sayer(wordingOf(state))
+	);
 	return {
 		state,
 		view,

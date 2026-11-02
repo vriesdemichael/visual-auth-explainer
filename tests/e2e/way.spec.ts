@@ -136,7 +136,7 @@ test.describe('what is on every step', () => {
 		await expect(page.getByTestId('step-detail').locator('.plain')).toHaveCount(0);
 		await open(page, 'step=token-request');
 		await expect(page.getByTestId('step-detail').locator('.plain')).toHaveText(
-			'The app trades the code for tokens'
+			'The client trades the code for tokens'
 		);
 	});
 

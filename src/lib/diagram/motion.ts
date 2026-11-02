@@ -27,7 +27,11 @@ interface Visibility {
 	leaving: boolean;
 }
 
-export type FrameLane = LaneLayout & Visibility;
+export type FrameLane = LaneLayout &
+	Visibility & {
+		/** How far its name is showing, because a name that changes goes and comes back. */
+		words: number;
+	};
 export type FrameRow = RowLayout &
 	Visibility & {
 		/** How far its words are showing, because words that change go and come back. */
@@ -59,7 +63,7 @@ export function toFrame(layout: DiagramLayout): Frame {
 		height: layout.height,
 		heldWidth: layout.heldWidth,
 		headHeight: layout.headHeight,
-		lanes: layout.lanes.map(settled),
+		lanes: layout.lanes.map((lane) => ({ ...settled(lane), words: 1 })),
 		rows: layout.rows.map((row) => ({ ...settled(row), words: 1 })),
 		chips: layout.chips.map(settled),
 		groups: layout.groups.map(settled)
@@ -81,6 +85,8 @@ const arriveAt = (t: number) => within(t, 0.7, 1);
 const comeAt = (t: number) => within(t, 0.35, 0.8);
 const wordsAt = (t: number) => (t < 0.5 ? 1 - leaveAt(t) : arriveAt(t));
 const BEFORE_THE_SWAP = 0.5;
+
+const sameName = (a: LaneLayout, b: LaneLayout) => a.name === b.name && a.role === b.role;
 
 const sameWords = (a: RowLayout, b: RowLayout) =>
 	a.lines.length === b.lines.length &&
@@ -139,7 +145,10 @@ export function interpolate(from: Frame, to: Frame, t: number): Frame {
 			...b,
 			x: lerp(a.x, b.x, p),
 			headWidth: lerp(a.headWidth, b.headWidth, p),
-			role: p < 0.5 ? a.role : b.role
+			name: side(a.name, b.name),
+			nameLines: side(a.nameLines, b.nameLines),
+			role: side(a.role, b.role),
+			words: sameName(a, b) ? lerp(a.words, 1, p) : wordsAt(t)
 		})),
 		rows: blend(
 			from.rows,

@@ -3,8 +3,10 @@ import { diagramParts, READING, terms, type Term, type TermPlace } from '#lib/fl
 import type { ArtifactId } from '#lib/flow/vocabulary.ts';
 import { evaluate, type BaseFlow, type DiagramView } from '#lib/flow/model.ts';
 import { normalize, settingDefs } from '#lib/flow/settings.ts';
-import type { AppState } from '#lib/flow/state.ts';
+import { wordingOf, type AppState } from '#lib/flow/state.ts';
 import { artifacts } from '#lib/flow/vocabulary.ts';
+import { nameIn, sayer, type Wording } from '#lib/flow/wording.ts';
+import { keycloakKnownAs } from '#lib/keycloak/words.ts';
 import { isVendorSource, type SourceRef } from '#lib/sources/sources.ts';
 
 /** What the panel says about something someone clicked, in the words of the mode they are in. */
@@ -26,6 +28,25 @@ export interface Explaining {
 	follows?: ArtifactId;
 }
 
+type Line = DiagramView['lifelines'][number];
+
+/** What else a party is called, whichever is showing, and where each of those comes from. */
+function namesOf(line: Line, wording: Wording, serverNotes: boolean) {
+	const known = [...line.knownAs, ...(serverNotes ? keycloakKnownAs(line.id) : [])];
+	const shown = nameIn(line, wording).toLowerCase();
+	const words = [...new Set(known.map(({ word }) => word))]
+		.filter((word) => word.toLowerCase() !== shown)
+		.map((word) => {
+			const by = known.filter((name) => name.word === word).map((name) => name.by);
+			return `${word}, in ${by.join(' and ')}`;
+		});
+	const plain = line.plainName.toLowerCase() === shown ? [] : [`${line.plainName}, in plain words`];
+	return {
+		alsoCalled: [...plain, ...words],
+		sources: [...new Map(known.map(({ source }) => [source.source, source])).values()]
+	};
+}
+
 const followable = (view: DiagramView, artifact: ArtifactId) =>
 	pathOf(view, artifact).length ? artifact : undefined;
 
@@ -35,13 +56,16 @@ export function explanationOf(
 	holdings: Readonly<Record<string, readonly ArtifactId[]>>
 ): Explaining | null {
 	const simple = state.mode === 'simple';
+	const wording = wordingOf(state);
+	const named = (line: Line) => nameIn(line, wording);
 	const explained = state.explained;
 	if (explained?.kind === 'lifeline') {
 		const line = view.lifelines.find((candidate) => candidate.id === explained.id);
 		if (!line) return null;
 		return {
-			title: simple ? line.plainName : line.name,
+			title: named(line),
 			text: line.concept,
+			...namesOf(line, wording, state.serverNotes),
 			// Seen as someone else, what that one never saw stays hidden here too.
 			seen: (holdings[line.id] ?? []).filter(
 				(id) => !state.eyes || state.eyes === line.id || holdings[state.eyes]?.includes(id)
@@ -53,9 +77,7 @@ export function explanationOf(
 		return {
 			title: artifacts[explained.id].label,
 			text: artifacts[explained.id].explains,
-			seenBy: view.lifelines
-				.filter((line) => holdings[line.id]?.includes(explained.id))
-				.map((line) => (simple ? line.plainName : line.name)),
+			seenBy: view.lifelines.filter((line) => holdings[line.id]?.includes(explained.id)).map(named),
 			follows: followable(view, explained.id)
 		};
 	}
@@ -69,9 +91,7 @@ export function explanationOf(
 			text: term.artifact ? artifacts[term.artifact].explains : source ? source.why : term.explains,
 			alsoCalled: term.alsoCalled,
 			seenBy: term.artifact
-				? view.lifelines
-						.filter((line) => holdings[line.id]?.includes(term.artifact!))
-						.map((line) => (simple ? line.plainName : line.name))
+				? view.lifelines.filter((line) => holdings[line.id]?.includes(term.artifact!)).map(named)
 				: undefined,
 			parts: reading ? diagramParts : undefined,
 			aboutTheServer: term.id === 'keycloak',
@@ -82,7 +102,9 @@ export function explanationOf(
 		const def = settingDefs[explained.id];
 		return {
 			title: simple ? (def.simple?.label ?? def.label) : def.label,
-			text: `${simple ? (def.simple?.summary ?? def.summary) : def.summary} ${def.why}`,
+			text: sayer(wording)(
+				`${simple ? (def.simple?.summary ?? def.summary) : def.summary} ${def.why}`
+			),
 			sources: def.sources.filter((ref) => state.serverNotes || !isVendorSource(ref.source))
 		};
 	}

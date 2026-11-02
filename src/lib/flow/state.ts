@@ -19,12 +19,20 @@ import {
 	type Settings
 } from '#lib/flow/settings.ts';
 import { artifacts, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
-import { isVendorSource, sources, type SourceId, type SourceRef } from '#lib/sources/sources.ts';
+import { wordingFor, wordings, type Wording } from '#lib/flow/wording.ts';
+import {
+	isVendorSource,
+	nameSources,
+	sources,
+	type SourceId,
+	type SourceRef
+} from '#lib/sources/sources.ts';
 
 /** A source someone opened from a setting, which is what says what it means here. */
 export interface OpenSource {
 	id: SourceId;
-	setting: SettingId;
+	/** None when it was opened from a party, which is about what it is called. */
+	setting: SettingId | null;
 	section: string | null;
 }
 
@@ -51,6 +59,8 @@ export interface AppState {
 	eyes: string | null;
 	/** The one thing whose path through the diagram to light up. */
 	follow: ArtifactId | null;
+	/** Whose words to use, when someone chose. Otherwise the mode decides. */
+	wording: Wording | null;
 }
 
 const diagramIds: readonly DiagramId[] = ['flow', 'setup'];
@@ -58,6 +68,7 @@ const SERVER_NOTES_PARAM = 'keycloak';
 const SETTINGS_PANEL_PARAM = 'settings';
 const EYES_PARAM = 'eyes';
 const FOLLOW_PARAM = 'follow';
+const WORDING_PARAM = 'say';
 
 const diagramOf = (base: BaseFlow, state: AppState) => base.diagrams[state.diagram];
 const viewOf = (base: BaseFlow, state: AppState) =>
@@ -95,9 +106,11 @@ function diagramFor(base: BaseFlow, onPath: DiagramId, params: URLSearchParams):
 
 /** A link naming something that does not exist opens nothing, as other unknown values do. */
 function parseSource(params: URLSearchParams): OpenSource | null {
-	const setting = settingIds.find((id) => settingDefs[id].param === params.get('for'));
-	if (!setting) return null;
-	const ref = settingDefs[setting].sources.find((r) => r.source === params.get('source'));
+	const asked = params.get('for');
+	const setting = settingIds.find((id) => settingDefs[id].param === asked) ?? null;
+	if (asked && !setting) return null;
+	const offered = setting ? settingDefs[setting].sources : nameSources;
+	const ref = offered.find((r) => r.source === params.get('source'));
 	if (!ref) return null;
 	if (isVendorSource(ref.source) && params.get(SERVER_NOTES_PARAM) === 'off') return null;
 	const section = sources[ref.source].textFile ? params.get('section') : null;
@@ -115,6 +128,12 @@ function parseExplained(base: BaseFlow, diagram: DiagramId, raw: string | null):
 	}
 	if (kind === 'term' && Object.hasOwn(terms, id)) return { kind, id };
 	return null;
+}
+
+/** With the server's notes left out, nothing here is about it, its words included (ADR-015). */
+function parseWording(params: URLSearchParams): Wording | null {
+	const asked = wordings.find((wording) => wording === params.get(WORDING_PARAM)) ?? null;
+	return asked === 'keycloak' && params.get(SERVER_NOTES_PARAM) === 'off' ? null : asked;
 }
 
 export function parseState(base: BaseFlow, onPath: DiagramId, search: string): AppState {
@@ -138,7 +157,8 @@ export function parseState(base: BaseFlow, onPath: DiagramId, search: string): A
 		serverNotes: params.get(SERVER_NOTES_PARAM) !== 'off',
 		settingsHidden: params.get(SETTINGS_PANEL_PARAM) === 'off',
 		eyes: onTheDiagram(view, params.get(EYES_PARAM)),
-		follow: onTheWay(view, params.get(FOLLOW_PARAM))
+		follow: onTheWay(view, params.get(FOLLOW_PARAM)),
+		wording: parseWording(params)
 	};
 }
 
@@ -154,7 +174,7 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	if (state.step !== viewOf(base, state).steps[0].id) params.set('step', state.step);
 	if (state.source) {
 		params.set('source', state.source.id);
-		params.set('for', settingDefs[state.source.setting].param);
+		if (state.source.setting) params.set('for', settingDefs[state.source.setting].param);
 		if (state.source.section) params.set('section', state.source.section);
 	}
 	if (state.explained) params.set('explain', `${state.explained.kind}.${state.explained.id}`);
@@ -162,6 +182,7 @@ export function serializeState(base: BaseFlow, state: AppState): string {
 	if (state.settingsHidden) params.set(SETTINGS_PANEL_PARAM, 'off');
 	if (state.eyes) params.set(EYES_PARAM, state.eyes);
 	if (state.follow) params.set(FOLLOW_PARAM, state.follow);
+	if (state.wording) params.set(WORDING_PARAM, state.wording);
 	return params.toString();
 }
 
@@ -187,7 +208,8 @@ export function presetSearch(base: BaseFlow, settings: Partial<Settings>): strin
 		serverNotes: true,
 		settingsHidden: false,
 		eyes: null,
-		follow: null
+		follow: null,
+		wording: null
 	});
 }
 
@@ -240,7 +262,12 @@ export function withMode(state: AppState, mode: Mode): AppState {
 /** Leaving them out closes one product's own docs as well, so nothing about it stays on screen. */
 export function withServerNotes(state: AppState, serverNotes: boolean): AppState {
 	const closes = !serverNotes && state.source && isVendorSource(state.source.id);
-	return { ...state, serverNotes, source: closes ? null : state.source };
+	return {
+		...state,
+		serverNotes,
+		source: closes ? null : state.source,
+		wording: !serverNotes && state.wording === 'keycloak' ? null : state.wording
+	};
 }
 
 export function withSettingsHidden(state: AppState, settingsHidden: boolean): AppState {
@@ -255,11 +282,22 @@ export function withFollow(state: AppState, follow: ArtifactId | null): AppState
 	return { ...state, follow };
 }
 
+export function withWording(state: AppState, wording: Wording | null): AppState {
+	return { ...state, wording };
+}
+
+export const wordingOf = (state: Pick<AppState, 'mode' | 'wording'>): Wording =>
+	state.wording ?? wordingFor(state.mode);
+
 export function withExplained(state: AppState, explained: Explained | null): AppState {
 	return { ...state, explained };
 }
 
-export function withSourceOpen(state: AppState, setting: SettingId, ref: SourceRef): AppState {
+export function withSourceOpen(
+	state: AppState,
+	setting: SettingId | null,
+	ref: SourceRef
+): AppState {
 	return { ...state, source: { id: ref.source, setting, section: ref.section ?? null } };
 }
 

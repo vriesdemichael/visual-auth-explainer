@@ -1,0 +1,70 @@
+import type { KnownAs, LifelineDef } from '#lib/flow/model.ts';
+import { is } from '#lib/flow/settings.ts';
+import { NAMED_BY_OAUTH, NAMED_BY_OIDC } from '#lib/sources/sources.ts';
+
+/**
+ * What the specs call each party, wherever a diagram has it, with what it is in plain words under
+ * that. RFC 6749 section 1.1 and OpenID Connect Core section 1.2, read on 2026-11-02.
+ */
+type Words = Pick<LifelineDef, 'name' | 'role' | 'knownAs'>;
+
+const oidc = is('oidc', true);
+const broker = is('broker', true);
+
+const asAClient: readonly KnownAs[] = [
+	{ word: 'client', by: 'OAuth', source: NAMED_BY_OAUTH },
+	{ word: 'relying party', by: 'OpenID Connect', source: NAMED_BY_OIDC }
+];
+
+export const browserWords: Words = {
+	name: 'User agent',
+	role: 'User’s browser',
+	knownAs: [
+		// OAuth does not list it as a role, and says it from here on.
+		{ word: 'user agent', by: 'OAuth', source: { ...NAMED_BY_OAUTH, section: '1.3.1' } },
+		{ word: 'user agent', by: 'OpenID Connect', source: NAMED_BY_OIDC }
+	]
+};
+
+export const appWords: Words = {
+	name: [{ when: oidc, text: 'Relying party' }, { text: 'Client' }],
+	role: [{ when: oidc, text: 'Client' }, { text: 'App' }],
+	knownAs: asAClient
+};
+
+export const secondAppWords: Words = {
+	name: [{ when: oidc, text: 'Second relying party' }, { text: 'Second client' }],
+	role: [{ when: oidc, text: 'Second client' }, { text: 'Second app' }],
+	knownAs: asAClient
+};
+
+export const idpWords: Words = {
+	name: [{ when: oidc, text: 'OpenID provider' }, { text: 'Authorization server' }],
+	role: [
+		{ when: broker, text: 'And a broker' },
+		{ when: oidc, text: 'Authorization server' },
+		{ text: 'Identity provider' }
+	],
+	knownAs: [
+		{ word: 'authorization server', by: 'OAuth', source: NAMED_BY_OAUTH },
+		{ word: 'OpenID provider', by: 'OpenID Connect', source: NAMED_BY_OIDC }
+	]
+};
+
+export const upstreamWords: Words = {
+	name: 'Upstream provider',
+	role: 'Other provider',
+	knownAs: [
+		{ word: 'authorization server', by: 'OAuth', source: NAMED_BY_OAUTH },
+		{ word: 'OpenID provider', by: 'OpenID Connect', source: NAMED_BY_OIDC }
+	]
+};
+
+export const apiWords: Words = {
+	name: 'Resource server',
+	role: 'API',
+	knownAs: [
+		{ word: 'resource server', by: 'OAuth', source: NAMED_BY_OAUTH },
+		{ word: 'resource server', by: 'OpenID Connect', source: NAMED_BY_OIDC }
+	]
+};

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/sveltekit';
 import Explanation from '#lib/components/Explanation.svelte';
 import { settingDefs } from '#lib/flow/settings.ts';
 import { artifacts } from '#lib/flow/vocabulary.ts';
+import { NAMED_BY_OAUTH, NAMED_BY_OIDC } from '#lib/sources/sources.ts';
 
 const meta = {
 	title: 'Explanation',
@@ -18,6 +19,14 @@ type Story = StoryObj<typeof meta>;
 
 export const ALifelineThatHasSeenThings: Story = {
 	args: { seen: ['secret', 'password', 'code'], onseeonly: () => {} }
+};
+
+export const WhatElseItIsCalled: Story = {
+	args: {
+		title: 'Client',
+		alsoCalled: ['App, in plain words', 'relying party, in OpenID Connect'],
+		sources: [NAMED_BY_OAUTH, NAMED_BY_OIDC]
+	}
 };
 
 export const SomethingToFollow: Story = {

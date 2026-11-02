@@ -27,7 +27,7 @@
 			{diagram.label}
 		</a>
 	{/each}
-	<p>{caption}</p>
+	<p title={caption}>{caption}</p>
 </nav>
 
 <style>
@@ -35,11 +35,13 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
+		min-width: 0;
 		padding: 6px 12px;
 		border-bottom: 1px solid var(--line);
 	}
 
 	a {
+		flex: none;
 		padding: 3px 12px;
 		border: 1px solid transparent;
 		border-radius: 6px;
@@ -65,9 +67,14 @@
 		}
 	}
 
+	/* What gives way when there is little room, because the switch is what it is there for. */
 	p {
+		overflow: hidden;
+		min-width: 0;
 		margin: 0 0 0 12px;
 		color: var(--muted);
 		font-size: 12px;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 </style>

@@ -8,7 +8,8 @@ export type SourceId =
 	| 'oidc-rp-logout'
 	| 'oidc-backchannel-logout'
 	| 'keycloak-brokering'
-	| 'keycloak-stored-tokens';
+	| 'keycloak-stored-tokens'
+	| 'keycloak-concepts';
 
 export interface SourceDef {
 	label: string;
@@ -114,10 +115,35 @@ export const sources: Record<SourceId, SourceDef> = {
 		summary:
 			'How an app gets the tokens Keycloak stored from an external identity provider. There are two versions. V1 is deprecated and still on by default, and V2 is the one to migrate to.',
 		url: 'https://www.keycloak.org/docs/26.8.1/server_development/#_identity-brokering-apis-tokens'
+	},
+	'keycloak-concepts': {
+		label: 'Keycloak docs: core concepts',
+		title: 'Core concepts and terms',
+		status: 'Keycloak 26.8.1, Server Administration Guide.',
+		summary:
+			'What Keycloak calls things. A realm holds a set of users and what goes with them, and users log in to a realm. A client is anything that can ask Keycloak to authenticate a user, usually an application. An identity provider is any service that can authenticate a user, which it says Keycloak is, while its console uses the word for the outside ones it can hand off to.',
+		url: 'https://www.keycloak.org/docs/26.8.1/server_admin/#core-concepts-and-terms'
 	}
 };
 
 export const sourceIds = Object.keys(sources) as SourceId[];
+
+/** Where the names of the parties come from. Opened from a party, and not from any setting. */
+export const NAMED_BY_OAUTH: SourceRef = {
+	source: 'rfc6749',
+	section: '1.1',
+	why: 'Section 1.1 is where OAuth names its four roles: resource owner, resource server, client and authorization server. It has no role for the browser, and from section 1.3.1 on calls it the user-agent.'
+};
+export const NAMED_BY_OIDC: SourceRef = {
+	source: 'oidc-core',
+	why: 'Section 1.2 is where it says End-User, Relying Party and OpenID Provider, and takes Resource Server and User Agent from OAuth. Most of its text still says Client and Authorization Server, and so does this site once you choose the specs’ words.'
+};
+export const NAMED_BY_KEYCLOAK: SourceRef = {
+	source: 'keycloak-concepts',
+	why: 'This is where Keycloak says what it means by its words. Its client is the specs’ client, and a realm is not in any spec. Each realm has an issuer of its own, so to an app it is one identity provider.'
+};
+
+export const nameSources: readonly SourceRef[] = [NAMED_BY_OAUTH, NAMED_BY_OIDC, NAMED_BY_KEYCLOAK];
 
 /** One product's own docs, as opposed to a specification. */
 export const isVendorSource = (id: SourceId) => id.startsWith('keycloak');

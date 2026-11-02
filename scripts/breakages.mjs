@@ -10,7 +10,76 @@ const STATE = 'src/lib/flow/state.ts';
 const MODEL = 'src/lib/flow/model.ts';
 const MOTION = 'src/lib/diagram/motion.ts';
 
+const WORDING = 'src/lib/flow/wording.ts';
+
 export const breakages = [
+	// Whose words the diagram is in.
+	{
+		name: 'wording: a name in capitals loses its small form, mid sentence',
+		file: WORDING,
+		from: 'table.set(capital(from), capital(to));\n\t\t\t\t// After that, because a name that starts with a capital is just itself.\n\t\t\t\ttable.set(from, to);',
+		to: 'table.set(from, to);\n\t\t\t\ttable.set(capital(from), capital(to));'
+	},
+	{
+		name: 'wording: the app team becomes the client team',
+		file: WORDING,
+		from: "notBefore: ['team'],",
+		to: ''
+	},
+	{
+		name: 'wording: a person opens a client',
+		file: WORDING,
+		from: "	'opens the',\n",
+		to: ''
+	},
+	{
+		name: 'wording: API V2 becomes a resource server',
+		file: WORDING,
+		from: "notBefore: ['V1', 'V2'],",
+		to: ''
+	},
+	{
+		name: 'wording: an app becomes an client',
+		file: WORDING,
+		from: "'an app': 'a client'",
+		to: "'an app': 'an client'"
+	},
+	{
+		name: 'wording: a choice of words moves a row',
+		file: LAYOUT,
+		from: 'return wordings.map((other) => {',
+		to: 'return [wording].map((other) => {'
+	},
+	{
+		name: 'wording: Keycloak’s words stay with the notes off',
+		file: STATE,
+		from: "wording: !serverNotes && state.wording === 'keycloak' ? null : state.wording",
+		to: 'wording: state.wording'
+	},
+	{
+		name: 'wording: a link asks for Keycloak’s words with the notes off',
+		file: STATE,
+		from: "return asked === 'keycloak' && params.get(SERVER_NOTES_PARAM) === 'off' ? null : asked;",
+		to: 'return asked;'
+	},
+	{
+		name: 'wording: a source about a name opens for any source',
+		file: STATE,
+		from: 'const offered = setting ? settingDefs[setting].sources : nameSources;',
+		to: 'const offered = setting ? settingDefs[setting].sources : settingIds.flatMap((id) => settingDefs[id].sources);'
+	},
+	{
+		name: 'wording: a flow says Keycloak',
+		file: 'src/lib/flow/parties.ts',
+		from: "name: 'Resource server',",
+		to: "name: 'Keycloak resource server',"
+	},
+	{
+		name: 'wording: a name changes without going away first',
+		file: MOTION,
+		from: 'words: sameName(a, b) ? lerp(a.words, 1, p) : wordsAt(t)',
+		to: 'words: 1'
+	},
 	// The attacker, in the words simple mode uses.
 	{
 		name: 'attacker: says they get the tokens with PKCE on',

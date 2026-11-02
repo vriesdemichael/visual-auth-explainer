@@ -37,7 +37,9 @@ test.describe('each step shows what is relevant at that point', () => {
 		await open(page);
 		await expect(row(page, 'authorize').locator('.number')).toHaveText('3');
 		await expect(row(page, 'authorize')).toHaveAccessibleName(/3.*GET \/authorize/);
-		await expect(row(page, 'authorize')).toHaveAccessibleDescription("User's browser to IdP");
+		await expect(row(page, 'authorize')).toHaveAccessibleDescription(
+			'User agent to Authorization server'
+		);
 	});
 
 	test('the two sides of the current message stand out', async ({ page }) => {

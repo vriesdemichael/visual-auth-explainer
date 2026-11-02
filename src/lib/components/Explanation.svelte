@@ -58,7 +58,7 @@
 	</header>
 	<p>{text}</p>
 	{#if alsoCalled.length}
-		<p class="seen" data-testid="explanation-also-called">Also called: {alsoCalled.join(', ')}.</p>
+		<p class="seen" data-testid="explanation-also-called">Also called: {alsoCalled.join('; ')}.</p>
 	{/if}
 	{#if parts.length}
 		<p class="parts" data-testid="explanation-parts">
@@ -125,7 +125,12 @@
 		<p class="seen">
 			Read more:
 			{#each sources as ref (ref.source)}
-				<button type="button" class="chip" onclick={() => onopensource?.(ref)}>
+				<button
+					type="button"
+					class="chip"
+					data-name-source={ref.source}
+					onclick={() => onopensource?.(ref)}
+				>
 					{refLabel(ref)}
 				</button>
 			{/each}

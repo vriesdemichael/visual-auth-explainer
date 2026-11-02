@@ -6,6 +6,7 @@
 	import type { Lifeline, Step, ViewDiff } from '#lib/flow/model.ts';
 	import { settingDefs, type Reset, type SettingId } from '#lib/flow/settings.ts';
 	import { artifacts, channels, whyOf, type ArtifactId, type Mode } from '#lib/flow/vocabulary.ts';
+	import { nameIn, wordingFor, type Wording } from '#lib/flow/wording.ts';
 	import type { Note } from '#lib/keycloak/notes.ts';
 	import { recordedIndex, type Known } from '#lib/recordings/known.ts';
 
@@ -18,6 +19,8 @@
 	interface Props {
 		step: Step;
 		lifelines: readonly Lifeline[];
+		/** Whose words to name them in, when someone chose. */
+		wording?: Wording;
 		mode?: Mode;
 		/** Where someone new starts, shown on the first step. */
 		intro?: string | null;
@@ -56,6 +59,7 @@
 		step,
 		lifelines,
 		mode = 'advanced',
+		wording = wordingFor(mode),
 		intro = null,
 		partWhy = null,
 		unseenBy = null,
@@ -97,7 +101,7 @@
 	const server = $derived(serverNamed ? 'Keycloak' : 'the server');
 	const nameOf = (id: string) => {
 		const line = lifelines.find((candidate) => candidate.id === id);
-		return (simple ? line?.plainName : line?.name) ?? id;
+		return line ? nameIn(line, wording) : id;
 	};
 	const labelOf = (id: SettingId) =>
 		simple ? (settingDefs[id].simple?.label ?? settingDefs[id].label) : settingDefs[id].label;

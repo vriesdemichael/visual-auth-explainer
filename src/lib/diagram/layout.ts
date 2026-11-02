@@ -6,6 +6,15 @@ import {
 	type LifelineIcon,
 	type Mode
 } from '#lib/flow/vocabulary.ts';
+import {
+	nameIn,
+	roleIn,
+	sayer,
+	speak,
+	wordingFor,
+	wordings,
+	type Wording
+} from '#lib/flow/wording.ts';
 
 /** The width with nothing to go on, which is the prerendered page and the small ones on the map. */
 export const WIDTH = 880;
@@ -22,6 +31,11 @@ const MIN_LANE_SPACING = 116;
 const HEAD_WIDTH = 144;
 /** Narrower than this, a head leaves out its icon. */
 export const FULL_HEAD_WIDTH = 140;
+/** Beside the icon of a full head. */
+const NAME_ROOM = 110;
+const TIGHT_NAME_EDGE = 8;
+/** Its name is a little smaller without the icon. */
+const TIGHT_NAME_SCALE = 0.96;
 const FIRST_ROW_Y = 36;
 /** Used with no height to go on. With one, rows take what is there, between these two. */
 const ROW_HEIGHT = 46;
@@ -69,6 +83,8 @@ export interface LaneLayout {
 	x: number;
 	headWidth: number;
 	name: string;
+	/** One line, or two when it does not fit, which takes the place of the role. */
+	nameLines: readonly string[];
 	role: string;
 	icon: LifelineIcon;
 }
@@ -206,6 +222,32 @@ function flow(label: string, chips: readonly Field[], room: number): Flowed[] {
 	return lines;
 }
 
+const NARROW_LETTERS = /[iljtfrI .’']/;
+const WIDE_LETTERS = /[mwMW]/;
+
+/** Near enough, and only there to know when a name needs a second line. A test measures the real one. */
+function nameWidth(name: string) {
+	let width = 0;
+	for (const letter of name) {
+		if (NARROW_LETTERS.test(letter)) width += 4.3;
+		else if (WIDE_LETTERS.test(letter)) width += 11;
+		else width += letter === letter.toUpperCase() ? 9 : 7.4;
+	}
+	return width;
+}
+
+function linesOfName(name: string, headWidth: number): readonly string[] {
+	const full = headWidth >= FULL_HEAD_WIDTH;
+	const room = full ? NAME_ROOM : (headWidth - TIGHT_NAME_EDGE) / TIGHT_NAME_SCALE;
+	if (nameWidth(name) <= room) return [name];
+	const words = name.split(' ');
+	const splits = words
+		.slice(1)
+		.map((_, i) => [words.slice(0, i + 1).join(' '), words.slice(i + 1).join(' ')]);
+	const widest = (lines: readonly string[]) => Math.max(...lines.map(nameWidth));
+	return splits.reduce((best, lines) => (widest(lines) < widest(best) ? lines : best), [name]);
+}
+
 /** How wide to be, and how to share that out between the lanes. */
 function fitLanes(count: number, room?: Room) {
 	const gaps = Math.max(1, count - 1);
@@ -220,10 +262,12 @@ function fitLanes(count: number, room?: Room) {
 
 /** A pure function of the view and the room, so every test sees the same geometry as the page. */
 export function layoutDiagram(
-	view: DiagramView,
+	inPlainWords: DiagramView,
 	mode: Mode = 'simple',
-	room?: Room
+	room?: Room,
+	wording: Wording = wordingFor(mode)
 ): DiagramLayout {
+	const view = speak(inPlainWords, sayer(wording));
 	const simple = mode === 'simple';
 	const { width, margin, spacing, headWidth } = fitLanes(view.lifelines.length, room);
 	const heldWidth = Math.min(HELD_LINE_WIDTH, spacing - 6);
@@ -232,8 +276,9 @@ export function layoutDiagram(
 		id: line.id,
 		x: margin + i * spacing,
 		headWidth,
-		name: simple ? line.plainName : line.name,
-		role: simple ? line.plainRole : line.role,
+		name: nameIn(line, wording),
+		nameLines: linesOfName(nameIn(line, wording), headWidth),
+		role: roleIn(line, wording),
 		icon: line.icon
 	}));
 	const laneX = new Map(lanes.map((lane) => [lane.id, lane.x]));
@@ -256,15 +301,18 @@ export function layoutDiagram(
 		return { time, self, x1, x2, selfSide, beside, room: Math.max(room, 1) };
 	};
 
-	// Simple mode says less, and a switch of mode moves no row, so each keeps the room of the longer.
-	const linesOf = steps.map((step) => {
+	// Simple mode says less and some words are longer, and neither a switch of mode nor of words moves
+	// a row, so each keeps the room of the longest.
+	const linesOf = inPlainWords.steps.map((step) => {
 		const { self, room } = placeOf(step);
-		const counts = [true, false].map((plain) => {
+		const counts = [true, false].flatMap((plain) => {
 			const shown = plain ? chipsOn(step).filter((f) => f.artifact || f.mark) : chipsOn(step);
-			const label = plain ? step.plain : step.label;
-			return self
-				? flow(label, [], room).length + (shown.length ? 1 : 0)
-				: flow(label, shown, room).length;
+			return wordings.map((other) => {
+				const label = sayer(other)(plain ? step.plain : step.label);
+				return self
+					? flow(label, [], room).length + (shown.length ? 1 : 0)
+					: flow(label, shown, room).length;
+			});
 		});
 		return Math.max(...counts);
 	});
