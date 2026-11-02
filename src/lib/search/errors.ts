@@ -164,7 +164,6 @@ export const knownErrors: readonly KnownError[] = [
 
 /** What people ask about that is not here yet, which should be said rather than guessed around. */
 export const notHereYet: readonly string[] = [
-	'client credentials',
 	'device flow',
 	'device code',
 	'saml',
