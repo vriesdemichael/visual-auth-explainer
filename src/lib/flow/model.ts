@@ -154,6 +154,8 @@ export interface PartDef {
 export interface DiagramDef {
 	id: string;
 	title: string;
+	/** What the switch between diagrams calls it, where the default would not be true. */
+	named?: string;
 	/** What it is about, in a few words beside the switch between diagrams. */
 	caption: string;
 	summary: string;
@@ -183,6 +185,8 @@ export interface BaseFlow {
 	id: string;
 	diagrams: Readonly<Record<DiagramId, DiagramDef>>;
 	settings: readonly SettingId[];
+	/** Why the others are not here, because a setting that just vanishes says nothing. */
+	notHere?: Readonly<Partial<Record<SettingId, string>>>;
 	presets: readonly Preset[];
 }
 

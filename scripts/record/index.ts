@@ -6,6 +6,7 @@
 //                                  longer holds: the shape of a message, a flag, a note's evidence,
 //                                  or a page a person gets
 //   pnpm record --pages            only takes the pictures of those pages again
+//   pnpm record --no-user          only records the flows with no user and no browser
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import {
 	chromium,
@@ -15,7 +16,7 @@ import {
 	type Request,
 	type Response
 } from '@playwright/test';
-import { authorizationCodeBase as base } from '#lib/flow/index.ts';
+import { authorizationCodeBase as base, clientCredentialsBase } from '#lib/flow/index.ts';
 import { pagesGone, whatChanged } from '#lib/recordings/check.ts';
 import { defaultSettings, flagsInSettings, normalize, type Settings } from '#lib/flow/settings.ts';
 import type { ShotId } from '#lib/flow/vocabulary.ts';
@@ -34,6 +35,7 @@ import {
 	SECOND_APP,
 	SECOND_CLIENT,
 	SECOND_REDIRECT_URI,
+	SERVICE_CLIENT,
 	setUpFor,
 	setUpRealms,
 	startKeycloak,
@@ -43,7 +45,8 @@ import {
 } from './keycloak.ts';
 import { lookInConsole } from './console.ts';
 import { capturePages } from './pages.ts';
-import { questionsWithApiV1, questionsWithApiV2 } from './questions.ts';
+import { questionsWithApiV1, questionsWithApiV2, questionsWithNoUser } from './questions.ts';
+import { noUserNoteDefs } from '#lib/keycloak/notes.ts';
 
 const { presets } = base;
 
@@ -60,6 +63,7 @@ const argument = (name: string) => {
 };
 const checking = process.argv.includes('--check');
 const onlyPages = process.argv.includes('--pages');
+const onlyNoUser = process.argv.includes('--no-user');
 const version = argument('--keycloak') ?? PINNED_KEYCLOAK;
 
 /** Which step of the diagram a message in the browser is, going by where it went. */
@@ -257,6 +261,91 @@ async function record(
 	return run;
 }
 
+/** No user and no browser, so it is only what the app sends and gets, and the real server's keys. */
+async function recordWithNoUser(demo: Demo, keycloak: string, recordedAt: string) {
+	const recordings: Recording[] = [];
+	for (const preset of clientCredentialsBase.presets) {
+		const settings = normalize({ ...defaultSettings, ...preset.settings }).settings;
+		const run: Run = {
+			settings,
+			realm: LOCAL_REALM,
+			clientId: SERVICE_CLIENT,
+			clientSecret: CLIENT_SECRET,
+			messages: []
+		};
+		await demo.discover(run);
+		demo.current = run;
+		await demo.asItself(run);
+		demo.current = null;
+		console.log(`${preset.id}: ${run.messages.length} messages`);
+		// The same messages as in the other flow, and a step id only ever means one thing.
+		const messages = run.messages.map((message) => ({
+			...message,
+			step: message.step && `service-${message.step}`
+		}));
+		recordings.push({ preset: preset.id, keycloak, recordedAt, settings, messages });
+	}
+	return recordings;
+}
+
+function writeWithNoUser(recordings: readonly Recording[]) {
+	const folder = `static/recordings/${clientCredentialsBase.id}`;
+	mkdirSync(folder, { recursive: true });
+	for (const recording of recordings) {
+		writeFileSync(
+			`${folder}/${recording.preset}.json`,
+			`${JSON.stringify(recording, null, '\t')}\n`
+		);
+	}
+	const known = new Set(
+		Object.values(clientCredentialsBase.diagrams).flatMap(({ steps }) => steps.map(({ id }) => id))
+	);
+	const steps = new Set(recordings.flatMap((r) => r.messages.flatMap((m) => m.step ?? [])));
+	for (const step of steps) {
+		if (!known.has(step)) throw new Error(`Recorded a step the model does not have: ${step}`);
+	}
+	return {
+		[clientCredentialsBase.id]: {
+			presets: clientCredentialsBase.presets.map((preset) => preset.id),
+			steps: [...steps].sort()
+		}
+	};
+}
+
+/** Only that flow, because a whole run changes every value in every recording. */
+async function recordOnlyWithNoUser() {
+	const demo = new Demo();
+	await demo.start();
+	try {
+		await startKeycloak(version, []);
+		const admin = await Admin.connect();
+		await setUpRealms(admin);
+		const keycloak = await admin.serverVersion();
+		const recordings = await recordWithNoUser(
+			demo,
+			keycloak,
+			new Date().toISOString().slice(0, 10)
+		);
+		const browser = await chromium.launch();
+		const answers = {
+			...(await questionsWithNoUser(admin)),
+			console: await lookInConsole(browser, admin, [], noUserNoteDefs)
+		};
+		await browser.close();
+		writeFileSync(
+			`static/recordings/${clientCredentialsBase.id}/questions.json`,
+			`${JSON.stringify({ keycloak, answers }, null, '\t')}\n`
+		);
+		const index = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
+		const flows = { ...index.flows, ...writeWithNoUser(recordings) };
+		writeFileSync(INDEX, `${JSON.stringify({ ...index, flows }, null, '\t')}\n`);
+	} finally {
+		demo.stop();
+		stopKeycloak();
+	}
+	process.exit(0);
+}
+
 interface ServerFeature extends FlagStatus {
 	name: string;
 }
@@ -328,6 +417,7 @@ async function main() {
 	const browser = await chromium.launch();
 	const recordedAt = new Date().toISOString().slice(0, 10);
 	const recordings: Recording[] = [];
+	let withNoUser: Recording[] = [];
 	const answers: Record<string, unknown> = {};
 	let flags: Record<string, FlagStatus> = {};
 	const inConsole: Record<string, unknown> = {};
@@ -364,7 +454,10 @@ async function main() {
 			} as const;
 			await setUpFor(admin, LOCAL_REALM, forQuestions);
 			await setUpFor(admin, BROKERED_REALM, forQuestions);
-			if (!features.length) pagesSeen = await capturePages(browser, admin, !checking);
+			if (!features.length) {
+				withNoUser = await recordWithNoUser(demo, keycloak, recordedAt);
+				pagesSeen = await capturePages(browser, admin, !checking);
+			}
 			Object.assign(inConsole, await lookInConsole(browser, admin, features));
 			Object.assign(answers, await questions(browser, demo, admin));
 			if (!features.length) {
@@ -380,12 +473,23 @@ async function main() {
 			const committedIndex = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
 			const changes = [
 				...whatChanged({
-					recordings: recordings.map((now) => ({
-						committed: JSON.parse(
-							readFileSync(`${FOLDER}/${now.preset}.json`, 'utf8')
-						) as Recording,
-						now
-					})),
+					recordings: [
+						...recordings.map((now) => ({
+							committed: JSON.parse(
+								readFileSync(`${FOLDER}/${now.preset}.json`, 'utf8')
+							) as Recording,
+							now
+						})),
+						...withNoUser.map((now) => ({
+							committed: JSON.parse(
+								readFileSync(
+									`static/recordings/${clientCredentialsBase.id}/${now.preset}.json`,
+									'utf8'
+								)
+							) as Recording,
+							now
+						}))
+					],
 					flags: { committed: committedIndex.flags, now: flags },
 					answers
 				}),
@@ -406,7 +510,8 @@ async function main() {
 			// Only this flow's entry, because this run says nothing about another flow's recordings.
 			const others = JSON.parse(readFileSync(INDEX, 'utf8')) as RecordingIndex;
 			const index = indexOf(recordings, keycloak, recordedAt, flags);
-			write(INDEX, { ...index, flows: { ...others.flows, ...index.flows } });
+			const noUser = writeWithNoUser(withNoUser);
+			write(INDEX, { ...index, flows: { ...others.flows, ...index.flows, ...noUser } });
 		}
 	} finally {
 		await browser.close();
@@ -416,4 +521,4 @@ async function main() {
 	process.exit(failed ? 2 : 0);
 }
 
-await (onlyPages ? takePictures() : main());
+await (onlyPages ? takePictures() : onlyNoUser ? recordOnlyWithNoUser() : main());

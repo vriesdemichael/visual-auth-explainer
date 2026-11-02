@@ -5,14 +5,16 @@
 		current: DiagramId;
 		hrefs: Readonly<Record<DiagramId, string>>;
 		caption: string;
+		/** What to call the first one, where there is no user to name it after. */
+		flowName?: string;
 	}
 
-	let { current, hrefs, caption }: Props = $props();
+	let { current, hrefs, caption, flowName = 'User flow' }: Props = $props();
 
-	const diagrams: readonly { id: DiagramId; label: string }[] = [
-		{ id: 'flow', label: 'User flow' },
+	const diagrams: readonly { id: DiagramId; label: string }[] = $derived([
+		{ id: 'flow', label: flowName },
 		{ id: 'setup', label: 'Setup' }
-	];
+	]);
 </script>
 
 <!-- eslint-disable svelte/no-navigation-without-resolve -- the route resolves these -->

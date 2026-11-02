@@ -5,6 +5,7 @@
 	import DiagramSwitch from '#lib/components/DiagramSwitch.svelte';
 	import Explanation from '#lib/components/Explanation.svelte';
 	import EyesSwitch from '#lib/components/EyesSwitch.svelte';
+	import FlowSwitch from '#lib/components/FlowSwitch.svelte';
 	import WordsSwitch from '#lib/components/WordsSwitch.svelte';
 	import FollowPath from '#lib/components/FollowPath.svelte';
 	import Mark from '#lib/components/Mark.svelte';
@@ -98,6 +99,9 @@
 		loadRecording: (preset: string) => Promise<Recording>;
 		/** Where the picture of a page is. */
 		pageImage?: ((shot: ShotId) => string) | null;
+		/** The other base flows, and what to do when one is picked. */
+		flowChoices?: readonly { id: string; title: string }[];
+		onflow?: (flow: string) => void;
 		onnavigate: (next: AppState, history: 'push' | 'replace') => void;
 	}
 
@@ -116,6 +120,8 @@
 		loadText,
 		loadRecording,
 		pageImage = null,
+		flowChoices = [],
+		onflow,
 		onnavigate
 	}: Props = $props();
 
@@ -623,7 +629,11 @@
 	</p>
 
 	<aside class="settings" aria-label="Settings">
+		{#if flowChoices.length > 1}
+			<FlowSwitch flows={flowChoices} current={base.id} onchange={(id) => onflow?.(id)} />
+		{/if}
 		<SettingsPanel
+			notApplicable={base.notHere}
 			{say}
 			settings={appState.settings}
 			available={base.settings}
@@ -642,7 +652,12 @@
 
 	<main class="diagram">
 		<div class="above">
-			<DiagramSwitch current={appState.diagram} {hrefs} caption={say(flow.caption)} />
+			<DiagramSwitch
+				current={appState.diagram}
+				{hrefs}
+				caption={say(flow.caption)}
+				flowName={base.diagrams.flow.named}
+			/>
 			<EyesSwitch {parties} current={appState.eyes} onchange={seeAs} />
 			<button
 				type="button"

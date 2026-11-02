@@ -1,6 +1,6 @@
 import { terms, type Term } from '#lib/flow/glossary.ts';
-import { authorizationCodeBase as base } from '#lib/flow/index.ts';
-import { evaluate, type DiagramId } from '#lib/flow/model.ts';
+import { authorizationCodeBase as base, flows } from '#lib/flow/index.ts';
+import { evaluate, type BaseFlow, type DiagramId } from '#lib/flow/model.ts';
 import {
 	defaultSettings,
 	normalize,
@@ -68,6 +68,28 @@ function stateAt(
 		wording: null
 	};
 }
+
+const otherFlows = Object.values(flows).filter((other) => other.id !== base.id);
+
+const stateIn = (
+	other: BaseFlow,
+	diagram: DiagramId,
+	settings: Settings,
+	step: string
+): AppState => ({
+	flow: other.id,
+	diagram,
+	mode: 'advanced',
+	settings,
+	step,
+	source: null,
+	explained: null,
+	serverNotes: true,
+	settingsHidden: false,
+	eyes: null,
+	follow: null,
+	wording: null
+});
 
 function resultAt(kind: ResultKind, title: string, says: string, state: AppState): Result {
 	return {
@@ -146,6 +168,34 @@ function allEntries(): Entry[] {
 			title: `${def.label} ${def.simple?.label ?? ''}`,
 			text: `${def.summary} ${def.why}`
 		});
+	}
+
+	for (const other of otherFlows) {
+		for (const diagram of ['flow', 'setup'] as const) {
+			for (const step of other.diagrams[diagram].steps) {
+				const settings = normalize({ ...defaultSettings, ...other.presets[0].settings }).settings;
+				const shown = evaluate(other.diagrams[diagram], settings).steps.find(
+					(candidate) => candidate.id === step.id
+				);
+				if (!shown) continue;
+				const fields = (step.fields ?? [])
+					.map((field) => `${field.name} ${field.note ?? ''}`)
+					.join(' ');
+				const state = stateIn(other, diagram, settings, step.id);
+				entries.push({
+					result: {
+						kind: 'step',
+						title: shown.plain,
+						says: other.diagrams.flow.title,
+						flow: other.id,
+						view: diagram === 'setup' ? 'setup' : undefined,
+						query: serializeState(other, state)
+					},
+					title: `${shown.plain} ${shown.label}`,
+					text: `${shown.concept} ${shown.inPractice ?? ''} ${fields}`
+				});
+			}
+		}
 	}
 
 	for (const diagram of ['flow', 'setup'] as const) {

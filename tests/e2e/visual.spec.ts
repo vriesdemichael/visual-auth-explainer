@@ -57,6 +57,15 @@ for (const scheme of ['light', 'dark'] as const) {
 			});
 		});
 
+		test('a flow with no user', async ({ page }) => {
+			await page.goto('client-credentials/?step=service-token-response');
+			await page.locator('.workspace[data-ready="true"]').waitFor();
+			await page.mouse.move(0, 0);
+			await expect(page).toHaveScreenshot(`no-user-${scheme}.png`, {
+				maxDiffPixelRatio: 0.002
+			});
+		});
+
 		test('running it yourself', async ({ page }) => {
 			await page.goto('run-it-yourself/');
 			await expect(page.locator('[data-ready="true"]')).toBeVisible();

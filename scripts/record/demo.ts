@@ -368,6 +368,35 @@ export class Demo {
 		return 'Logged in';
 	}
 
+	/** With no user and no browser: what an app asks for itself, and what it does with that. */
+	async asItself(run: Run) {
+		this.#key = run.settings.binding === 'dpop' ? new ProofKey() : null;
+		const url = this.#server.token_endpoint;
+		if (!run.clientSecret) throw new Error('An app acting for itself has to have a secret');
+		const result = await call(
+			run,
+			['token-request', 'token-response'],
+			'POST',
+			url,
+			{
+				authorization: basicAuth(run.clientId, run.clientSecret),
+				...(this.#key ? { dpop: this.#key.proof('POST', url) } : {})
+			},
+			{ grant_type: 'client_credentials' }
+		);
+		const tokens = jsonOf<Tokens>(result.text);
+		if (!tokens.access_token) throw new Error(`No token: ${result.text}`);
+		const resource = `${API}/resource`;
+		const answer = await call(
+			run,
+			['api-request', 'api-response'],
+			'GET',
+			resource,
+			this.#authorization('GET', resource, tokens.access_token)
+		);
+		if (answer.status !== 200) throw new Error(`The API refused: ${answer.text}`);
+	}
+
 	/** What is left once the user has logged out, tried for real. */
 	async #afterLogout() {
 		await settle();

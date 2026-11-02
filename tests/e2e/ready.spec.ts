@@ -14,7 +14,7 @@ test.describe('every named state, checked by an automated tool', () => {
 
 	for (const node of mapNodes) {
 		test(node.id, async ({ page }) => {
-			await page.goto(`authorization-code/${node.id}/`);
+			await page.goto(`${node.flow}/${node.id}/`);
 			await page.waitForLoadState('networkidle');
 			const { violations } = await new AxeBuilder({ page }).analyze();
 			expect(violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target).join(', ')}`)).toEqual(
@@ -29,7 +29,7 @@ test.describe('by keyboard alone', () => {
 		const { steps } = evaluate(base.diagrams.flow, defaultSettings);
 		await page.goto('./');
 		// Past search and the links that jump to each part of the map, to the first question.
-		for (let i = 0; i < 7; i++) await page.keyboard.press('Tab');
+		for (let i = 0; i < 8; i++) await page.keyboard.press('Tab');
 		await page.keyboard.press('Enter');
 		await ready(page);
 
@@ -164,7 +164,7 @@ test.describe('when a link is shared', () => {
 
 	for (const node of mapNodes) {
 		test(`${node.id} has its own title and image`, async ({ page, request }) => {
-			await page.goto(`authorization-code/${node.id}/`);
+			await page.goto(`${node.flow}/${node.id}/`);
 			expect(await content(page, 'og:title')).toBe(node.title);
 			expect(await content(page, 'og:description')).toBe(node.answer);
 			expect(await content(page, 'og:image')).toMatch(new RegExp(`/social/${node.id}\\.png$`));

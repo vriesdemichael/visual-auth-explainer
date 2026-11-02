@@ -12,8 +12,46 @@ const MOTION = 'src/lib/diagram/motion.ts';
 
 const WORDING = 'src/lib/flow/wording.ts';
 const ADDRESS = 'src/lib/recordings/address.ts';
+const NO_USER = 'src/lib/flow/client-credentials.ts';
 
 export const breakages = [
+	// A flow with no user.
+	{
+		name: 'no user: says there is a refresh token',
+		file: NO_USER,
+		from: "{ name: 'expires_in', place: 'body' },",
+		to: "{ name: 'expires_in', place: 'body' },\n\t\t\t\t{ name: 'refresh_token', place: 'body', artifact: 'refresh-token' },"
+	},
+	{
+		name: 'no user: a browser gets on the diagram',
+		file: NO_USER,
+		from: "id: 'app',\n\t\t\tplainName: 'App',",
+		to: "id: 'browser',\n\t\t\tplainName: 'App',"
+	},
+	{
+		name: 'no user: a setting neither applies nor says why',
+		file: 'src/lib/flow/index.ts',
+		from: "pkce: 'There is no code to protect.',",
+		to: ''
+	},
+	{
+		name: 'no user: another flow keeps what does not apply there',
+		file: STATE,
+		from: 'const shared = to.settings.filter((id) => from.settings.includes(id));',
+		to: 'const shared = from.settings;'
+	},
+	{
+		name: 'no user: a step id means two things',
+		file: NO_USER,
+		from: "id: 'service-token-request',",
+		to: "id: 'token-request',"
+	},
+	{
+		name: 'no user: another flow starts where this one was',
+		file: STATE,
+		from: 'step: evaluate(flow, settings).steps[0].id,\n\t\tsource: null,\n\t\texplained: null,\n\t\teyes: null,',
+		to: 'step: state.step,\n\t\tsource: null,\n\t\texplained: null,\n\t\teyes: null,'
+	},
 	// What a person sees in their browser.
 	{
 		name: 'page: the address is taken from an answer and not what was asked for',
