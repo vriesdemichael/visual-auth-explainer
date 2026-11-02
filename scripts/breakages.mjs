@@ -505,6 +505,76 @@ export const breakages = [
 		to: 'changed.size && `changes ${count(diff.addedFields.length + diff.removedFields.length + diff.rewordedSteps.length, '
 	},
 
+	// A request as a command.
+	{
+		name: 'curl: a quote ends the argument early',
+		file: 'src/lib/recordings/curl.ts',
+		from: 'text.replaceAll("\'", "\'\\\\\'\'")',
+		to: 'text'
+	},
+	{
+		name: 'curl: a request is sent without its headers',
+		file: 'src/lib/recordings/curl.ts',
+		from: '...Object.entries(message.headers).map(([name, value]) => `-H ${quoted(`${name}: ${value}`)}`),',
+		to: ''
+	},
+	{
+		name: 'curl: a code reads as if it could be used again',
+		file: 'src/lib/recordings/curl.ts',
+		from: "'token-request': 'redirect-with-code',",
+		to: ''
+	},
+	{
+		name: 'curl: nothing says the values are throwaway',
+		file: 'src/lib/recordings/curl.ts',
+		from: "'# Never paste real secrets into a command like this.',",
+		to: ''
+	},
+
+	// Running it at home.
+	{
+		name: 'run it yourself: the verifier is left out with PKCE on',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "...(settings.pkce ? [`--data-urlencode 'code_verifier=${VERIFIER}'`] : [])",
+		to: ''
+	},
+	{
+		name: 'run it yourself: an app with no secret is given one',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "...(settings.clientType === 'public' ? { publicClient: true } : withSecret),",
+		to: '...withSecret,'
+	},
+	{
+		name: 'run it yourself: others can reach the server',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: '-p 127.0.0.1:${KEYCLOAK_PORT}:8080',
+		to: '-p ${KEYCLOAK_PORT}:8080'
+	},
+	{
+		name: 'run it yourself: a token at home has no roles and no audience',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: 'users: [{ ...demoUser, realmRoles: [`default-roles-${LOCAL_REALM}`] }],',
+		to: 'users: [{ ...demoUser, realmRoles: [] }],'
+	},
+	{
+		name: 'curl: a step is told its code came from the wrong place',
+		file: 'src/lib/recordings/curl.ts',
+		from: "'second-token-request': 'second-redirect-with-code'",
+		to: "'second-token-request': 'redirect-with-code'"
+	},
+	{
+		name: 'run it yourself: the secret is not the one recorded',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "export const CLIENT_SECRET = 'throwaway-client-secret';",
+		to: "export const CLIENT_SECRET = 'another-secret';"
+	},
+	{
+		name: 'run it yourself: the challenge is not of that verifier',
+		file: 'src/lib/recordings/run-yourself.ts',
+		from: "export const CHALLENGE = 'E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM';",
+		to: "export const CHALLENGE = 'not-the-challenge';"
+	},
+
 	// What the screen says after moving.
 	{
 		name: 'changes: Back is explained with the setting flipped before it',

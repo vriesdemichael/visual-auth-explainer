@@ -83,6 +83,8 @@
 		leftQuestion?: { title: string; href: string } | null;
 		/** The question to go on to, once this flow is done. */
 		onward?: { title: string; summary: string; href: string } | null;
+		/** Where to run the same server at home, with these settings. */
+		runHref?: string | null;
 		homeHref: string;
 		hrefFor: (state: AppState) => string;
 		loadText: (file: string) => Promise<string>;
@@ -99,6 +101,7 @@
 		questionFollows = null,
 		leftQuestion = null,
 		onward = null,
+		runHref = null,
 		homeHref,
 		hrefFor,
 		loadText,
@@ -719,6 +722,7 @@
 						serverNamed={appState.serverNotes}
 						{notes}
 						{seesStep}
+						{runHref}
 					/>
 				{/if}
 			{/snippet}

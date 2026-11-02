@@ -20,6 +20,8 @@ A recording belongs to exactly one set of settings, and is never adapted to anot
 
 What a chat answer or a vendor's simulation cannot offer is that what is on screen is what a real server did. A default client is what people meet: on one, the access token carries the same identity claims with or without `openid`, and a tidied-up demo client would hide that.
 
+Someone can run the same server themselves. A recorded request can be copied as a command, and a test reads each command back as a shell would and compares it to the recording. A page gives the commands for a login at home, from the values the recorder uses, and a scheduled job runs those commands against the version recorded.
+
 ## Not chosen
 
 - **Stitching together payloads for unrecorded combinations**: They would look real, and nothing would prove them.

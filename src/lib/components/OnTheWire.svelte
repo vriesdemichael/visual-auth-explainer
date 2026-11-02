@@ -3,6 +3,7 @@
 	import RunValues from '#lib/components/RunValues.svelte';
 	import type { Step } from '#lib/flow/model.ts';
 	import type { Note } from '#lib/keycloak/notes.ts';
+	import { curlFor } from '#lib/recordings/curl.ts';
 	import type { Recording } from '#lib/recordings/format.ts';
 	import { traceRun, valuesSeen } from '#lib/recordings/wire.ts';
 
@@ -30,6 +31,8 @@
 		notes?: readonly Note[];
 		/** Which steps whoever this is shown as was part of. */
 		seesStep?: (step: string) => boolean;
+		/** Where to run the same server at home, with the settings on screen. */
+		runHref?: string | null;
 	}
 
 	let {
@@ -42,12 +45,28 @@
 		onstep,
 		serverNamed = true,
 		notes = [],
-		seesStep = () => true
+		seesStep = () => true,
+		runHref = null
 	}: Props = $props();
 
 	const message = $derived(recording?.messages.find((candidate) => candidate.step === step.id));
 	const trace = $derived(recording ? traceRun(recording) : []);
 	const here = $derived(numberOf(step.id) ?? 0);
+	// Not for what whoever this is shown as was never sent, because that would hand over all of it.
+	const command = $derived(message && seesStep(step.id) ? curlFor(message, numberOf) : null);
+	let copied = $state<'yes' | 'no' | null>(null);
+	$effect(() => {
+		void command;
+		copied = null;
+	});
+	async function copy() {
+		try {
+			await navigator.clipboard.writeText(command ?? '');
+			copied = 'yes';
+		} catch {
+			copied = 'no';
+		}
+	}
 	// Earlier steps always count as executed, so what the run has so far follows from the step alone.
 	const soFar = $derived(
 		recording
@@ -88,6 +107,18 @@
 		{#if answerTo}
 			<p class="answer" data-testid="answer-to">The answer to step {numberOf(answerTo)}.</p>
 		{/if}
+		{#if command}
+			<p class="copy">
+				<button type="button" data-testid="copy-request" onclick={copy}>Copy as curl</button>
+				<span role="status">
+					{#if copied === 'yes'}Copied, with throwaway values.{/if}
+				</span>
+			</p>
+			{#if copied === 'no'}
+				<!-- The browser would not let it be copied, so here it is to select by hand. -->
+				<pre data-testid="copy-by-hand">{command}</pre>
+			{/if}
+		{/if}
 		<Payload
 			{step}
 			{message}
@@ -109,6 +140,10 @@
 			{#if !serverNamed}
 				Names such as realms, and claims such as realm_access, are that server's own, and the name
 				of its session cookie is left out.
+			{/if}
+			{#if runHref}
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- the route resolves it -->
+				<a href={runHref} data-testid="run-it-yourself-link">Run the same server yourself.</a>
 			{/if}
 		</p>
 	{/if}
@@ -137,6 +172,22 @@
 
 	.answer {
 		font-weight: 600;
+	}
+
+	.copy button {
+		font-size: 12px;
+	}
+
+	.copy span {
+		margin-left: 6px;
+		color: var(--muted);
+	}
+
+	pre {
+		margin: 0 0 6px;
+		overflow-x: auto;
+		font-family: var(--mono);
+		font-size: 11.5px;
 	}
 
 	.origin {

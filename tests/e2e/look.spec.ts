@@ -197,7 +197,14 @@ test.describe('nothing an automated check can find', () => {
 		['a request carrying values', 'authorization-code/?mode=advanced&step=callback'],
 		['an explanation', 'authorization-code/?step=authorize&explain=lifeline.idp'],
 		['setup', 'authorization-code/setup/?broker=1'],
-		['an open source', 'authorization-code/?source=rfc6749&for=client&section=2.1']
+		['an open source', 'authorization-code/?source=rfc6749&for=client&section=2.1'],
+		['running it yourself', 'run-it-yourself/'],
+		['what a party never saw', 'authorization-code/?mode=simple&eyes=browser&step=token-response'],
+		[
+			'what a party never saw, raw',
+			'authorization-code/?mode=advanced&eyes=browser&step=token-response'
+		],
+		['one thing followed', 'authorization-code/?mode=simple&follow=code&step=authorize']
 	];
 
 	for (const scheme of ['light', 'dark'] as const) {

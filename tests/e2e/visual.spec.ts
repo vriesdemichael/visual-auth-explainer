@@ -52,6 +52,16 @@ for (const scheme of ['light', 'dark'] as const) {
 			});
 		});
 
+		test('running it yourself', async ({ page }) => {
+			await page.goto('run-it-yourself/');
+			await expect(page.locator('[data-ready="true"]')).toBeVisible();
+			await page.mouse.move(0, 0);
+			await expect(page).toHaveScreenshot(`run-it-yourself-${scheme}.png`, {
+				fullPage: true,
+				maxDiffPixelRatio: 0.002
+			});
+		});
+
 		for (const [name, search, diagram] of states) {
 			test(name, async ({ page }) => {
 				await open(page, search, diagram);

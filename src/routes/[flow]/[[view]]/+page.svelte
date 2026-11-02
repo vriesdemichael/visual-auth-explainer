@@ -5,7 +5,13 @@
 	import { page } from '$app/state';
 	import Workspace from '#lib/components/Workspace.svelte';
 	import { flows } from '#lib/flow/index.ts';
-	import { parseState, serializeOnNode, serializeState, type AppState } from '#lib/flow/state.ts';
+	import {
+		parseState,
+		presetSearch,
+		serializeOnNode,
+		serializeState,
+		type AppState
+	} from '#lib/flow/state.ts';
 	import {
 		nextQuestion,
 		nodeMatching,
@@ -140,6 +146,7 @@
 	questionFollows={question?.follows ?? null}
 	{leftQuestion}
 	{onward}
+	runHref={`${resolve('/run-it-yourself')}/?${presetSearch(base, appState.settings)}`}
 	homeHref={resolve('/') + ((question ?? here) ? `?at=${(question ?? here)?.id}` : '')}
 	{hrefFor}
 	{loadText}

@@ -67,3 +67,20 @@ jobs:
           else
             gh issue create --title "$title" --body-file body.md
           fi
+
+  # What the page on running it yourself says to do, with its own commands, so that it cannot go on
+  # promising something that stopped working. On the version recorded, which is the one it names.
+  run-it-yourself:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .node-version
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps firefox webkit
+      - run: node scripts/record/run-yourself.ts
