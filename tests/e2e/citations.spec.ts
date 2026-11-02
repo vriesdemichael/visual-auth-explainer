@@ -4,6 +4,7 @@ import { open } from './helpers.ts';
 const cites = (page: Page) => page.getByTestId('step-cites');
 const cite = (page: Page, source: string) => page.locator(`[data-step-source="${source}"]`);
 const panel = (page: Page) => page.getByTestId('source-panel');
+const implicit = (page: Page) => page.locator('[data-step-source="rfc9700"][data-section="2.1.2"]');
 
 test.describe('a claim on a step', () => {
 	test('says which spec, right there, for someone who asked for the detail', async ({ page }) => {
@@ -23,7 +24,7 @@ test.describe('a claim on a step', () => {
 
 	test('opens beside the diagram at the section, saying what it means here', async ({ page }) => {
 		await open(page, 'mode=advanced&step=redirect-with-code');
-		await cite(page, 'rfc9700').click();
+		await implicit(page).click();
 		await expect(panel(page)).toBeVisible();
 		await expect(panel(page).getByTestId('source-why')).toContainText('implicit');
 		await expect(page).toHaveURL(/source=rfc9700/);
@@ -36,13 +37,13 @@ test.describe('a claim on a step', () => {
 
 	test('keeps the source on a reload, and goes back to what opened it', async ({ page }) => {
 		await open(page, 'mode=advanced&step=redirect-with-code');
-		await cite(page, 'rfc9700').click();
+		await implicit(page).click();
 		await expect(page).toHaveURL(/source=rfc9700/);
 		await page.reload();
 		await page.locator('.workspace[data-ready="true"]').waitFor();
 		await expect(panel(page)).toBeVisible();
 		await page.getByTestId('source-close').click();
-		await expect(cite(page, 'rfc9700')).toBeFocused();
+		await expect(implicit(page)).toBeFocused();
 	});
 
 	test('has none where nothing is claimed', async ({ page }) => {

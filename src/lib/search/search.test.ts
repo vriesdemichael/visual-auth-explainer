@@ -58,14 +58,29 @@ describe('what people bring', () => {
 		}
 	});
 
-	it.each(['Device flow', 'What about SAML?', 'token exchange'])(
-		'%s is said not to be here yet, and is not guessed around',
-		(query) => {
-			const found = search(query);
-			expect(found.notHereYet).not.toBeNull();
-			expect(found.results).toEqual([]);
-		}
-	);
+	it.each([
+		['csrf', 'What does state protect against?'],
+		['cross-site request forgery', 'What does state protect against?'],
+		['what is iss', 'What is iss doing in the address?'],
+		['mix-up attack', 'What is iss doing in the address?']
+	])('%s gets a question that answers it', (query, title) => {
+		expect(search(query).results.map((result) => result.title)).toContain(title);
+	});
+
+	it.each([
+		'Device flow',
+		'What about SAML?',
+		'token exchange',
+		'PKCE downgrade',
+		'native apps',
+		'a custom URL scheme',
+		'a malicious app on my phone',
+		'RFC 8252'
+	])('%s is said not to be here yet, and is not guessed around', (query) => {
+		const found = search(query);
+		expect(found.notHereYet).not.toBeNull();
+		expect(found.results).toEqual([]);
+	});
 
 	it('says nothing about something nobody could mean', () => {
 		expect(search('xyzzy plugh').results).toEqual([]);

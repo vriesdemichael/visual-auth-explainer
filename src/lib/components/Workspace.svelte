@@ -520,7 +520,7 @@
 		untrack(() => {
 			if (lastSource && !source) {
 				const opener = lastSource.fromStep
-					? `[data-step-source="${lastSource.id}"]`
+					? `[data-step-source="${lastSource.id}"]${lastSource.section ? `[data-section="${lastSource.section}"]` : ''}`
 					: lastSource.setting
 						? `[data-source-ref="${lastSource.setting}:${lastSource.id}"]`
 						: `[data-name-source="${lastSource.id}"]`;
