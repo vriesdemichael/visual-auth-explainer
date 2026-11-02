@@ -19,6 +19,7 @@ const rfcRequests = (page: Page) => {
 const ALL_ON_OFFER = 'binding=dpop&broker=1';
 const NEEDS: Partial<Record<string, string>> = {
 	attacker: '',
+	attackerUses: 'attacker=1',
 	reuse: 'refresh=1',
 	ssoAsks: 'sso=1'
 };

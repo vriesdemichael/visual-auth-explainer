@@ -232,6 +232,36 @@ export const mapTracks: readonly MapTrack[] = [
 			],
 			[
 				node({
+					id: 'stolen-code-at-the-app',
+					preset: 'attack-at-the-app',
+					step: 'attacker-handed-answer',
+					title: 'What if they hand the stolen code to the real app?',
+					summary: 'Why an app with a secret needs PKCE too.',
+					answer:
+						'Then the secret does not help, because the real app is the one using it. They start a login of their own, give the app the stolen code, and the app logs them in as the real user. The state matches, because it is their own.'
+				}),
+				node({
+					id: 'pkce-at-the-app',
+					preset: 'attack-at-the-app-pkce',
+					step: 'handed-token-response',
+					title: 'What stops them handing it to the real app?',
+					summary: 'The code is tied to the login it came from.',
+					answer:
+						'PKCE. The code is tied to the real user’s challenge, and the app sends the verifier from the login they started, so the server refuses it. That is what PKCE adds to an app with a secret.'
+				}),
+				node({
+					id: 'nonce-at-the-app',
+					preset: 'attack-at-the-app-oidc',
+					step: 'handed-nonce-check',
+					mode: 'advanced',
+					title: 'Does a nonce stop it as well?',
+					summary: 'Yes, if the app checks it, and later.',
+					answer:
+						'Yes, if the app checks it. The server still hands over the tokens, but the ID token has the nonce from the real user’s login, and the app made a different one for this login. PKCE stops it earlier, at the server.'
+				})
+			],
+			[
+				node({
 					id: 'stolen-refresh-token',
 					answer:
 						'New access tokens without the user, for as long as it lasts. From an app with a secret they need the secret too. A new refresh token coming back does not mean the old one stopped working, which depends on the server.',

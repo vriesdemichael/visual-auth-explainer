@@ -17,6 +17,37 @@ const LEFT = 'src/lib/flow/left-to-you.ts';
 const ERRORS = 'src/lib/search/errors.ts';
 
 export const breakages = [
+	// A stolen code handed to the real app.
+	{
+		name: 'injection: says it works with PKCE on',
+		file: AC,
+		from: "{ when: pkce, text: 'Refused: the verifier does not match' },",
+		to: "{ when: pkce, text: 'Tokens for the real user' },"
+	},
+	{
+		name: 'injection: says the server refuses it with no PKCE',
+		file: AC,
+		from: "label: [{ when: pkce, text: '400 invalid_grant' }, { text: '200 with tokens' }],",
+		to: "label: '400 invalid_grant',"
+	},
+	{
+		name: 'injection: the real user goes on as if nothing happened',
+		file: AC,
+		from: 'const codeGone = any(codeTaken, handedToTheApp);',
+		to: 'const codeGone = codeTaken;'
+	},
+	{
+		name: 'injection: offered where there is no secret to get around',
+		file: 'src/lib/flow/settings.ts',
+		from: "when: all(is('attacker', true), is('clientType', 'confidential')),",
+		to: "when: is('attacker', true),"
+	},
+	{
+		name: 'injection: has no nonce check',
+		file: AC,
+		from: 'const stoppedByNonce = all(handedToTheApp, oidc, not(pkce));',
+		to: 'const stoppedByNonce = all(handedToTheApp, oidc, pkce);'
+	},
 	// In front of a room.
 	{
 		name: 'whole: a row is left off the screen',

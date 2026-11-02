@@ -29,6 +29,12 @@ const states: readonly [string, string, 'flow' | 'setup'][] = [
 	['setup', '', 'setup'],
 	['setup-with-external-idp', 'broker=1&upstream=v2&step=register-with-upstream', 'setup'],
 	['left-to-you', 'mode=simple&oidc=1&step=token-request&list=1', 'flow'],
+	['handed-to-the-app', 'mode=simple&attacker=1&uses=real-app&step=attacker-handed-answer', 'flow'],
+	[
+		'handed-to-the-app-pkce',
+		'mode=simple&attacker=1&uses=real-app&pkce=1&step=handed-token-response',
+		'flow'
+	],
 	[
 		'the-whole-flow',
 		'oidc=1&binding=dpop&nonce=1&broker=1&upstream=v1&step=token-request&whole=1',

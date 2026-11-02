@@ -216,6 +216,8 @@ export class Demo {
 	#key: ProofKey | null = null;
 	#verifier: string | null = null;
 	#seenProofs = new Set<string>();
+	/** Someone is handing the real app a stolen code, from a login of their own. */
+	#handed = false;
 
 	get #run() {
 		if (!this.current) throw new Error('No run in progress');
@@ -298,6 +300,62 @@ export class Demo {
 		run.messages.splice(callback, 0, ...own.messages);
 	}
 
+	/**
+	 * The stolen code handed to the real app, from a login someone started in their own browser. The app
+	 * does what it always does, and each answer is real, so whether this works is up to the server.
+	 */
+	async #handToTheRealApp(code: string, stolenFrom: RecordedMessage) {
+		const run = this.#run;
+		const own: Run = { ...run, messages: [] };
+		own.messages.push({ ...stolenFrom, step: 'attacker-steals-code' });
+		const victims = { state: this.#state, verifier: this.#verifier, nonce: this.#nonce };
+
+		this.current = own;
+		const opened = await call(
+			own,
+			['attacker-opens-app', 'attacker-sent-to-login'],
+			'GET',
+			`${APP}/`
+		);
+		const theirState = new URL(opened.headers.get('location') ?? '').searchParams.get('state');
+		this.#handed = true;
+		const query = new URLSearchParams({ code, state: theirState ?? '' });
+		await call(
+			own,
+			['attacker-hands-code', 'attacker-handed-answer'],
+			'GET',
+			`${APP}/callback?${query}`
+		);
+		this.#handed = false;
+		this.current = run;
+		this.#state = victims.state;
+		this.#verifier = victims.verifier;
+		this.#nonce = victims.nonce;
+
+		const callback = run.messages.lastIndexOf(stolenFrom);
+		run.messages.splice(callback, 0, ...own.messages);
+	}
+
+	/** What the app does with a code in a login someone else started, which is what it always does. */
+	async #takeHandedCode(code: string) {
+		const result = await this.#tokenRequest(code, undefined, [
+			'handed-token-request',
+			'handed-token-response'
+		]);
+		const tokens = jsonOf<Tokens>(result.text);
+		if (!tokens.access_token) return { status: 400, says: `Refused: ${tokens.error}` };
+		if (!tokens.id_token) return { status: 200, says: 'Logged in' };
+		const problem = idTokenProblem(tokens.id_token, {
+			issuer: this.#server.issuer,
+			clientId: this.#run.clientId,
+			nonce: this.#nonce,
+			keys: await keysAt(this.#server.jwks_uri)
+		});
+		return problem
+			? { status: 400, says: `Refused: ${problem}` }
+			: { status: 200, says: 'Logged in' };
+	}
+
 	async #afterLogin(code: string) {
 		const run = this.#run;
 		const { settings } = run;
@@ -305,7 +363,8 @@ export class Demo {
 		if (settings.attacker) {
 			const callback = run.messages.findLast((message) => message.step === 'callback');
 			if (!callback) throw new Error('The callback was not recorded');
-			await this.#attack(code, callback);
+			if (settings.attackerUses === 'real-app') await this.#handToTheRealApp(code, callback);
+			else await this.#attack(code, callback);
 		}
 
 		let result = await this.#tokenRequest(code);
@@ -562,6 +621,12 @@ export class Demo {
 				if (url.searchParams.get('state') !== this.#state) {
 					response.writeHead(400, { 'content-type': 'text/html' });
 					response.end('<h1>Failed</h1><p>An answer to something this app did not ask.</p>');
+					return;
+				}
+				if (this.#handed) {
+					const { status, says } = await this.#takeHandedCode(url.searchParams.get('code') ?? '');
+					response.writeHead(status, { 'content-type': 'text/html' });
+					response.end(`<h1>${says}</h1>`);
 					return;
 				}
 				try {

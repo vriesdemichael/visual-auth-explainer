@@ -5,7 +5,9 @@ import { all, any, is, not } from '#lib/flow/settings.ts';
 
 const oidc = is('oidc', true);
 // Someone stole the code from an app with no secret, so the real app never gets as far as the API.
-const reachesTheApi = not(all(is('attacker', true), is('clientType', 'public')));
+const reachesTheApi = not(
+	any(all(is('attacker', true), is('clientType', 'public')), is('attackerUses', 'real-app'))
+);
 const confidential = is('clientType', 'confidential');
 const broker = is('broker', true);
 const storedTokens = any(is('upstreamTokens', 'v1'), is('upstreamTokens', 'v2'));
